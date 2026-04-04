@@ -1,23 +1,20 @@
 import 'package:flutter/material.dart';
-import 'package:tool_store_app/view/home.dart';
+import 'package:tool_store_app/view/menu/home.dart';
 
 void main() {
-  runApp(
-    MaterialApp(
-      title: 'Data Tool',
-      theme: ThemeData(
-        colorSchemeSeed: Colors.deepOrange,
-        primaryColor: Colors.deepOrange,
-        hoverColor: Colors.deepOrange,
-        hintColor: Colors.deepOrange,
-        focusColor: Colors.deepOrange,
-        colorScheme: .fromSeed(seedColor: Colors.orange),
-        progressIndicatorTheme: ProgressIndicatorThemeData(
-          color: Colors.deepOrange, // Warna default untuk semua progress bar
-        ),
-      ),
-      home: const Home(),
-      debugShowCheckedModeBanner: false,
-    ),
-  );
+  runApp(const MyApp());
+}
+
+class MyApp extends StatefulWidget {
+  const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(debugShowCheckedModeBanner: false, home: Home());
+  }
 }
