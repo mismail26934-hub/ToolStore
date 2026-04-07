@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:tool_store_app/view/responsive/dimensions.dart';
 
 class SliverAppbars extends StatefulWidget {
   const SliverAppbars({
     super.key,
     required this.title,
-    this.onPressed,
+    required this.onPressTailing,
+    required this.onPressLeading,
     required this.textColor,
   });
 
   final String title;
-  final void Function()? onPressed;
+  final void Function()? onPressTailing, onPressLeading;
   final Color textColor;
 
   @override
@@ -21,7 +23,9 @@ class _SliverAppbarsState extends State<SliverAppbars> {
   @override
   Widget build(BuildContext context) {
     return SliverAppBar.medium(
-      expandedHeight: 200,
+      expandedHeight: (MediaQuery.sizeOf(context).width < mobileWidth)
+          ? 100
+          : 10,
       centerTitle: true,
       pinned: true,
       stretch: true,
@@ -42,7 +46,9 @@ class _SliverAppbarsState extends State<SliverAppbars> {
           style: GoogleFonts.robotoFlex().copyWith(fontWeight: FontWeight.bold),
         ),
       ),
-      actions: [IconButton(onPressed: widget.onPressed, icon: Icon(Icons.add))],
+      actions: [
+        IconButton(onPressed: widget.onPressTailing, icon: Icon(Icons.add)),
+      ],
     );
   }
 }
