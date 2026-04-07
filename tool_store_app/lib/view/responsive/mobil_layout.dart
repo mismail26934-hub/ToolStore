@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tool_store_app/view/menu/fm_input_tool.dart';
 import 'package:tool_store_app/view/menu/tool_data.dart';
 
 class MobilLayout extends StatefulWidget {
@@ -11,6 +12,6 @@ class MobilLayout extends StatefulWidget {
 class _MobilLayoutState extends State<MobilLayout> {
   @override
   Widget build(BuildContext context) {
-    return ToolData();
+    return FmInputDataTool();
   }
 }
