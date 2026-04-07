@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tool_store_app/view/menu/tool_data.dart';
 
 class DekstopLayout extends StatefulWidget {
   const DekstopLayout({super.key});
@@ -10,9 +11,6 @@ class DekstopLayout extends StatefulWidget {
 class _DekstopLayoutState extends State<DekstopLayout> {
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.green[300],
-      appBar: AppBar(title: Text("D E K S T O P")),
-    );
+    return ToolData();
   }
 }
