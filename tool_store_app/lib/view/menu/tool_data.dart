@@ -15,23 +15,23 @@ class ToolData extends StatefulWidget {
 }
 
 class _ToolDataState extends State<ToolData> {
-  @override
-  void initState() {
-    PostData.getDataUser(
-      "VIEW DATA USER",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-      "",
-    );
-    super.initState();
-  }
+  // @override
+  // void initState() {
+  //   PostData.getDataUser(
+  //     "VIEW DATA USER",
+  //     "",
+  //     "",
+  //     "",
+  //     "",
+  //     "",
+  //     "",
+  //     "",
+  //     "",
+  //     "",
+  //     "",
+  //   );
+  //   super.initState();
+  // }
 
   @override
   Widget build(BuildContext context) {
