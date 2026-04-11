@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:tool_store_app/view/form/text_form_field.dart';
+import 'package:tool_store_app/view/var/var.dart';
 
 class FmInputDataTool extends StatefulWidget {
   const FmInputDataTool({super.key});
@@ -9,19 +10,16 @@ class FmInputDataTool extends StatefulWidget {
 }
 
 class FmInputDataToolState extends State<FmInputDataTool> {
-  final _formKey = GlobalKey<FormState>();
-  final _formNumberController = TextEditingController();
   @override
   Widget build(BuildContext context) {
     return Form(
-      key: _formKey,
-      child: Column(
-        spacing: 8.0,
+      key: formKey,
+      child: ListView(
         children: [
           TextFormFields(
             labelTexts: 'Form Number',
             textColor: Colors.black,
-            controllers: _formNumberController,
+            controllers: formNumberController,
             validators: (formNumber) {
               if (formNumber == null || formNumber.isEmpty) {
                 return 'Required !';
@@ -32,7 +30,7 @@ class FmInputDataToolState extends State<FmInputDataTool> {
           TextFormFields(
             labelTexts: 'Category',
             textColor: Colors.black,
-            controllers: _formNumberController,
+            controllers: categoryController,
             validators: (category) {
               if (category == null || category.isEmpty) {
                 return 'Required !';
@@ -43,7 +41,7 @@ class FmInputDataToolState extends State<FmInputDataTool> {
           TextFormFields(
             labelTexts: 'Checked By',
             textColor: Colors.black,
-            controllers: _formNumberController,
+            controllers: checkedBy,
             validators: (cek) {
               if (cek == null || cek.isEmpty) {
                 return 'Required !';
@@ -54,7 +52,7 @@ class FmInputDataToolState extends State<FmInputDataTool> {
           TextFormFields(
             labelTexts: 'Date Create Form',
             textColor: Colors.black,
-            controllers: _formNumberController,
+            controllers: dateCreateForm,
             validators: (dtCreateFm) {
               if (dtCreateFm == null || dtCreateFm.isEmpty) {
                 return 'Required !';
@@ -65,18 +63,7 @@ class FmInputDataToolState extends State<FmInputDataTool> {
           TextFormFields(
             labelTexts: 'Comment Requester',
             textColor: Colors.black,
-            controllers: _formNumberController,
-            validators: (cmtReq) {
-              if (cmtReq == null || cmtReq.isEmpty) {
-                return 'Required !';
-              }
-              return null;
-            },
-          ),
-          TextFormFields(
-            labelTexts: 'Comment Requester',
-            textColor: Colors.black,
-            controllers: _formNumberController,
+            controllers: commentRequester,
             validators: (cmtReq) {
               if (cmtReq == null || cmtReq.isEmpty) {
                 return 'Required !';
@@ -87,7 +74,18 @@ class FmInputDataToolState extends State<FmInputDataTool> {
           TextFormFields(
             labelTexts: 'Comment Superior',
             textColor: Colors.black,
-            controllers: _formNumberController,
+            controllers: commentSuperior,
+            validators: (cmtReq) {
+              if (cmtReq == null || cmtReq.isEmpty) {
+                return 'Required !';
+              }
+              return null;
+            },
+          ),
+          TextFormFields(
+            labelTexts: 'Comment Service Admin',
+            textColor: Colors.black,
+            controllers: commentServiceAdmin,
             validators: (cmtSup) {
               if (cmtSup == null || cmtSup.isEmpty) {
                 return 'Required !';
@@ -95,20 +93,44 @@ class FmInputDataToolState extends State<FmInputDataTool> {
               return null;
             },
           ),
-          ElevatedButton(
-            onPressed: () {
-              // 4. Cara memicu validasi
-              if (_formKey.currentState!.validate()) {
-                // Jika valid, lakukan aksi selanjutnya (misal: simpan data)
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    backgroundColor: Colors.green,
-                    content: Text('Data diproses'),
-                  ),
-                );
+          TextFormFields(
+            labelTexts: 'Comment Service Head',
+            textColor: Colors.black,
+            controllers: commentServiceHead,
+            validators: (cmtSup) {
+              if (cmtSup == null || cmtSup.isEmpty) {
+                return 'Required !';
               }
+              return null;
             },
-            child: const Text('Submit'),
+          ),
+          Padding(
+            padding: EdgeInsets.all(paddingForm),
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: clrBtnPrimary,
+                foregroundColor: clrBtnPrimaryFgBlack,
+              ),
+              onPressed: () {
+                // 4. Cara memicu validasi
+                if (formKey.currentState!.validate()) {
+                  // Jika valid, lakukan aksi selanjutnya (misal: simpan data)
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      backgroundColor: Colors.green,
+                      content: Text('Data diproses'),
+                    ),
+                  );
+                }
+              },
+              child: Text(
+                'Submit',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: btnFontSize,
+                ),
+              ),
+            ),
           ),
         ],
       ),
