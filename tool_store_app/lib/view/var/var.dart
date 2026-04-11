@@ -7,6 +7,10 @@ Color clrBtnPrimary = Colors.blue;
 Color clrBtnPrimaryFgBlack = Colors.black;
 double btnFontSize = 15.0;
 String paramViewDataUser = 'VIEW DATA USER';
+String errors = "";
+String messages = "";
+String cekInternet = "Check Internet Connection";
+String serverDown = "Server Down";
 
 final formKey = GlobalKey<FormState>();
 final formNumberController = TextEditingController();

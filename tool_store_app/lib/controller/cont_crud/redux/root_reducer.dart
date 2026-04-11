@@ -7,7 +7,7 @@ UserState userReducer(UserState state, dynamic action) {
   } else if (action is UsersLoadedAction) {
     return UserState(users: action.users, isLoading: false, error: null);
   } else if (action is UsersErrorAction) {
-    return UserState(users: [], isLoading: false, error: action.error);
+    return UserState(users: [], isLoading: false, error: action.errors);
   }
   return state;
 }

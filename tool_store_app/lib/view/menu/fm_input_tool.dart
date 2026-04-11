@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:tool_store_app/model/post_get_data.dart';
-import 'package:tool_store_app/controller/api_url/post_list.dart';
 import 'package:tool_store_app/view/custom/form/text_form_field.dart';
 import 'package:tool_store_app/view/var/var.dart';
 
@@ -12,30 +10,6 @@ class FmInputDataTool extends StatefulWidget {
 }
 
 class FmInputDataToolState extends State<FmInputDataTool> {
-  @override
-  void initState() {
-    // TODO: implement initState
-    // _getDataUser(params);
-    super.initState();
-  }
-
-  List<PostList?> _listUser = [];
-  bool _loading = false;
-  String params = paramViewDataUser;
-
-  _getDataUser(params) async {
-    setState(() {
-      _loading = true;
-    });
-    PostData.getDataUser(params, "", "", "", "", "", "", "", "", "", "").then((
-      value,
-    ) async {
-      setState(() {
-        _listUser = value;
-      });
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     return Form(
@@ -140,10 +114,7 @@ class FmInputDataToolState extends State<FmInputDataTool> {
               ),
               onPressed: () {
                 if (formKey.currentState!.validate()) {
-                  setState(() {
-                    _getDataUser(params);
-                    print(params);
-                  });
+                  setState(() {});
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       backgroundColor: Colors.green,

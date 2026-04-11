@@ -11,6 +11,6 @@ class UsersLoadedAction {
 
 class UsersErrorAction {
   // Dipanggil jika terjadi error
-  final String error;
-  UsersErrorAction(this.error);
+  final String errors;
+  UsersErrorAction(this.errors);
 }

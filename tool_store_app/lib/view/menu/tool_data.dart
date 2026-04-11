@@ -1,13 +1,12 @@
 import 'dart:io';
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_redux/flutter_redux.dart';
 import 'package:tool_store_app/controller/cont_crud/redux/state.dart';
 import 'package:tool_store_app/model/post_get_data.dart';
 import 'package:tool_store_app/view/custom/navbar/sliver_appbars.dart';
-import 'package:tool_store_app/view/custom/navbar/sliver_lists.dart';
-import 'package:tool_store_app/view/menu/tool_data%20copy.dart';
+import 'package:tool_store_app/view/custom/navbar/sliver_fill_remaining.dart';
+import 'package:tool_store_app/view/menu/tool_data_copy.dart';
 
 class ToolData extends StatefulWidget {
   const ToolData({super.key});
@@ -51,23 +50,23 @@ class _ToolDataState extends State<ToolData> {
             builder: (context, state) {
               // 1. Tampilan saat Loading
               if (state.isLoading) {
-                return SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: Center(child: CircularProgressIndicator()),
+                return SliverFillRemaiings(
+                  errors: state.error ?? "Loading",
+                  hasScrollBodys: false,
                 );
               }
               // 2. Tampilan saat Error
               if (state.error != null) {
-                return SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: Center(child: Text("Error: ${state.error}")),
+                return SliverFillRemaiings(
+                  errors: state.error ?? "Loading",
+                  hasScrollBodys: false,
                 );
               }
               // 3. Tampilan saat Data Kosong
               if (state.users.isEmpty) {
-                return const SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: Center(child: Text("Tidak ada data user.")),
+                return SliverFillRemaiings(
+                  errors: state.error ?? "Loading",
+                  hasScrollBodys: false,
                 );
               }
               return SliverList(

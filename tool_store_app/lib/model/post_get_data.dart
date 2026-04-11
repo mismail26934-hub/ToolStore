@@ -9,7 +9,7 @@ import 'package:tool_store_app/view/var/var.dart';
 
 class PostData {
   static Future<List<PostList>> getDataUser(
-    param,
+    String param,
     idUsers,
     username,
     password,
@@ -42,7 +42,6 @@ class PostData {
       dio.options.receiveTimeout = const Duration(seconds: 20);
       final response = await dio.post(ApiUrl.contDataUser, data: map);
       List<PostList> listUser = parseResponse(response.data);
-      print(response.data);
       // Dispatch ke store (Redux)
       store.dispatch(UsersLoadedAction(listUser));
       return listUser;
@@ -50,15 +49,18 @@ class PostData {
       if (e.type == DioExceptionType.connectionError ||
           e.error is SocketException ||
           e.type == DioExceptionType.connectionTimeout) {
-        print("Tidak ada koneksi internet atau server down.");
         // Anda bisa melempar error agar ditangkap oleh UI (FutureBuilder/Provider)
-        throw Exception("Periksa koneksi internet Anda");
+        errors = cekInternet;
+        messages = "(${e.message})";
+        store.dispatch(UsersErrorAction(errors));
+        throw Exception(cekInternet);
       } else {
-        print("Terjadi kesalahan server: ${e.message}");
-        throw Exception("Gagal memuat data");
+        errors = serverDown;
+        messages = "(${e.message})";
+        store.dispatch(UsersErrorAction(errors));
+        throw Exception("Server Down ($messages)");
       }
     } catch (e) {
-      print("Error tidak terduga: $e");
       return [];
     }
   }
