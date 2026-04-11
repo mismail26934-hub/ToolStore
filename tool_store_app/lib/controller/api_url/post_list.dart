@@ -25,7 +25,6 @@ class PostList {
   late String formUserUpdate;
 
   late String idFormDetail;
-  late String idForm;
   late String formComment;
   late String pnGroup;
   late String pnDesc;
@@ -34,6 +33,12 @@ class PostList {
   late String actionNote;
   late String formDetailDate;
   late String formDetailUser;
+
+  late String idActionNote;
+  late String actionNoteDesc;
+  late String actionDateUpdate;
+  late String actionNoteUser;
+
   PostList({
     required this.idUsers,
     required this.username,
@@ -61,7 +66,6 @@ class PostList {
     required this.formUserUpdate,
 
     required this.idFormDetail,
-    required this.idForm,
     required this.formComment,
     required this.pnGroup,
     required this.pnDesc,
@@ -70,6 +74,11 @@ class PostList {
     required this.actionNote,
     required this.formDetailDate,
     required this.formDetailUser,
+
+    required this.idActionNote,
+    required this.actionNoteDesc,
+    required this.actionDateUpdate,
+    required this.actionNoteUser,
   });
 
   factory PostList.fromJson(Map<String, dynamic> json) {
@@ -100,7 +109,6 @@ class PostList {
       formUserUpdate: json['formUserUpdate'] ?? "",
 
       idFormDetail: json['idFormDetail'] ?? "",
-      idForm: json['idForm'] ?? "",
       formComment: json['formComment'] ?? "",
       pnGroup: json['pnGroup'] ?? "",
       pnDesc: json['pnDesc'] ?? "",
@@ -109,6 +117,11 @@ class PostList {
       actionNote: json['actionNote'] ?? "",
       formDetailDate: json['formDetailDate'] ?? "",
       formDetailUser: json['formDetailUser'] ?? "",
+
+      idActionNote: json['idActionNote'] ?? "",
+      actionNoteDesc: json['actionNoteDesc'] ?? "",
+      actionDateUpdate: json['actionDateUpdate'] ?? "",
+      actionNoteUser: json['actionNoteUser'] ?? "",
     );
   }
 }

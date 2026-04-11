@@ -5,6 +5,7 @@ double paddingForm = 5.0;
 Color clrBtnPrimary = Colors.blue;
 Color clrBtnPrimaryFgBlack = Colors.black;
 double btnFontSize = 15.0;
+String paramViewDataUser = 'VIEW DATA USER';
 
 final formKey = GlobalKey<FormState>();
 final formNumberController = TextEditingController();

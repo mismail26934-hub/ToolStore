@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:tool_store_app/view/navbar/sliver_appbars.dart';
-import 'package:tool_store_app/view/navbar/sliver_lists.dart';
+import 'package:tool_store_app/view/custom/navbar/sliver_appbars.dart';
+import 'package:tool_store_app/view/custom/navbar/sliver_lists.dart';
 
 class ToolData extends StatefulWidget {
   const ToolData({super.key});
