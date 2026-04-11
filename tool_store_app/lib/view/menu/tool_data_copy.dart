@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_redux/flutter_redux.dart';
-import 'package:tool_store_app/controller/api_url/post_list.dart';
 import 'package:tool_store_app/controller/cont_crud/redux/state.dart';
 
 class ToolDataCopy extends StatefulWidget {
@@ -14,14 +13,14 @@ class _ToolDataCopyState extends State<ToolDataCopy> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.deepPurple[300],
-      body: StoreConnector<UserState, List<PostList>>(
-        converter: (store) => store.state.users,
-        builder: (context, users) {
-          if (users.isEmpty) return Center(child: Text("Tidak ada data"));
+      body: StoreConnector<AppState, UserState>(
+        converter: (store) => store.state.userState,
+        builder: (context, state) {
+          if (state.users.isEmpty) return Center(child: Text("Tidak ada data"));
           return ListView.builder(
-            itemCount: users.length,
+            itemCount: state.users.length,
             itemBuilder: (context, index) =>
-                ListTile(title: Text(users[index].username)),
+                ListTile(title: Text(state.users[index].username)),
           );
         },
       ),

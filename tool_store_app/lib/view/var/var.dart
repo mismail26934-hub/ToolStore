@@ -22,5 +22,5 @@ final commentSuperior = TextEditingController();
 final commentServiceAdmin = TextEditingController();
 final commentServiceHead = TextEditingController();
 
-List<PostList?>? listUser;
+List<PostList?>? list;
 late bool isLoading;

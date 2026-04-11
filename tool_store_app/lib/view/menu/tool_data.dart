@@ -3,7 +3,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_redux/flutter_redux.dart';
 import 'package:tool_store_app/controller/cont_crud/redux/state.dart';
-import 'package:tool_store_app/model/post_get_data.dart';
 import 'package:tool_store_app/view/custom/navbar/sliver_appbars.dart';
 import 'package:tool_store_app/view/custom/navbar/sliver_fill_remaining.dart';
 import 'package:tool_store_app/view/menu/tool_data_copy.dart';
@@ -15,24 +14,6 @@ class ToolData extends StatefulWidget {
 }
 
 class _ToolDataState extends State<ToolData> {
-  // @override
-  // void initState() {
-  //   PostData.getDataUser(
-  //     "VIEW DATA USER",
-  //     "",
-  //     "",
-  //     "",
-  //     "",
-  //     "",
-  //     "",
-  //     "",
-  //     "",
-  //     "",
-  //     "",
-  //   );
-  //   super.initState();
-  // }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -45,8 +26,8 @@ class _ToolDataState extends State<ToolData> {
             onPressLeading: () {},
             textColor: Colors.black,
           ),
-          StoreConnector<UserState, UserState>(
-            converter: (store) => store.state,
+          StoreConnector<AppState, UserState>(
+            converter: (store) => store.state.userState,
             builder: (context, state) {
               // 1. Tampilan saat Loading
               if (state.isLoading) {
@@ -71,10 +52,10 @@ class _ToolDataState extends State<ToolData> {
               }
               return SliverList(
                 delegate: SliverChildBuilderDelegate((context, index) {
-                  final user = state.users[index];
+                  final users = state.users[index];
                   return Card(
                     child: ListTile(
-                      title: Text(user.username),
+                      title: Text(users.username),
                       leading: IconButton(
                         onPressed: () {
                           Navigator.push(

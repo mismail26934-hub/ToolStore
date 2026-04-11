@@ -9,7 +9,7 @@ import 'package:tool_store_app/controller/cont_crud/cont_function_crud.dart';
 import 'package:tool_store_app/controller/cont_crud/redux/state.dart';
 import 'package:tool_store_app/view/var/var.dart';
 
-ThunkAction<UserState> getDataUser({
+ThunkAction<AppState> getDataUser({
   required String param,
   required String idUsers,
   required String username,
@@ -22,7 +22,7 @@ ThunkAction<UserState> getDataUser({
   required String level,
   required String status,
 }) {
-  return (Store<UserState> store) async {
+  return (Store<AppState> store) async {
     store.dispatch(FetchUsersAction());
     var map = FormData.fromMap({
       'param': param,
