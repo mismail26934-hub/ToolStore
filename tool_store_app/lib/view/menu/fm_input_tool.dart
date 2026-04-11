@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:tool_store_app/controller/api_url/functions.dart';
+import 'package:tool_store_app/model/post_get_data.dart';
 import 'package:tool_store_app/controller/api_url/post_list.dart';
 import 'package:tool_store_app/view/custom/form/text_form_field.dart';
 import 'package:tool_store_app/view/var/var.dart';
@@ -134,16 +134,16 @@ class FmInputDataToolState extends State<FmInputDataTool> {
             padding: EdgeInsets.all(paddingForm),
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
+                minimumSize: const Size(double.infinity, 50),
                 backgroundColor: clrBtnPrimary,
                 foregroundColor: clrBtnPrimaryFgBlack,
               ),
               onPressed: () {
-                // 4. Cara memicu validasi
                 if (formKey.currentState!.validate()) {
                   setState(() {
                     _getDataUser(params);
+                    print(params);
                   });
-                  // Jika valid, lakukan aksi selanjutnya (misal: simpan data)
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       backgroundColor: Colors.green,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tool_store_app/controller/api_url/post_list.dart';
 
 const mobileWidth = 600;
 double paddingForm = 5.0;
@@ -16,3 +17,6 @@ final commentRequester = TextEditingController();
 final commentSuperior = TextEditingController();
 final commentServiceAdmin = TextEditingController();
 final commentServiceHead = TextEditingController();
+
+List<PostList?>? listUser;
+late bool isLoading;
