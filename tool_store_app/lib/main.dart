@@ -3,7 +3,10 @@ import 'package:flutter_redux/flutter_redux.dart';
 import 'package:tool_store_app/controller/cont_crud/redux/state.dart';
 import 'package:tool_store_app/controller/cont_crud/redux/store.dart';
 import 'package:tool_store_app/model/post_get_data.dart';
+import 'package:tool_store_app/view/custom/web_custom/web_custom_berhaviour.dart';
 import 'package:tool_store_app/view/menu/home.dart';
+import 'package:tool_store_app/view/menu/login.dart';
+import 'package:tool_store_app/view/var/var.dart';
 
 void main() {
   runApp(const MyApp());
@@ -38,9 +41,17 @@ class _MyAppState extends State<MyApp> {
     return StoreProvider<AppState>(
       store: store,
       child: MaterialApp(
+        color: clrOrange,
+        scrollBehavior: WebCustomScrollBehavior(),
         debugShowCheckedModeBanner: false,
-        home: Home(),
-        theme: ThemeData(useMaterial3: true),
+        home: Login(),
+        theme: ThemeData(
+          useMaterial3: true,
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: clrOrange,
+            primary: clrOrange,
+          ),
+        ),
       ),
     );
   }

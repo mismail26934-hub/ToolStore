@@ -7,13 +7,16 @@ class SliverAppbars extends StatefulWidget {
     super.key,
     required this.title,
     required this.onPressTailing,
+    required this.iconTailing,
     required this.onPressLeading,
+    required this.iconLeading,
     required this.textColor,
   });
 
   final String title;
   final void Function()? onPressTailing, onPressLeading;
   final Color textColor;
+  final Icon iconTailing, iconLeading;
 
   @override
   State<SliverAppbars> createState() => _SliverAppbarsState();
@@ -24,16 +27,16 @@ class _SliverAppbarsState extends State<SliverAppbars> {
   Widget build(BuildContext context) {
     return SliverAppBar.medium(
       expandedHeight: (MediaQuery.sizeOf(context).width < mobileWidth)
-          ? 100
+          ? 80
           : 10,
       centerTitle: true,
       pinned: true,
       stretch: true,
-      backgroundColor: Colors.white,
-      foregroundColor: Colors.black,
-      shadowColor: Colors.white,
-      surfaceTintColor: Colors.white,
-      leading: IconButton(onPressed: () {}, icon: Icon(Icons.menu)),
+      backgroundColor: clrOrange,
+      foregroundColor: clrBlack,
+      shadowColor: clrWhite,
+      surfaceTintColor: clrWhite,
+      leading: IconButton(onPressed: () {}, icon: widget.iconLeading),
       title: Text(
         '',
         style: GoogleFonts.robotoFlex().copyWith(fontWeight: FontWeight.bold),
@@ -42,12 +45,15 @@ class _SliverAppbarsState extends State<SliverAppbars> {
         centerTitle: true,
         stretchModes: [StretchMode.fadeTitle],
         title: Text(
-          'Large App Bar',
-          style: GoogleFonts.robotoFlex().copyWith(fontWeight: FontWeight.bold),
+          titleApp,
+          style: GoogleFonts.robotoFlex().copyWith(
+            fontWeight: FontWeight.bold,
+            fontSize: 18.0,
+          ),
         ),
       ),
       actions: [
-        IconButton(onPressed: widget.onPressTailing, icon: Icon(Icons.add)),
+        IconButton(onPressed: widget.onPressTailing, icon: widget.iconTailing),
       ],
     );
   }
