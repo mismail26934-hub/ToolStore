@@ -6,7 +6,7 @@ import 'package:tool_store_app/controller/cont_crud/redux/store.dart';
 import 'package:tool_store_app/model/post_get_data.dart';
 import 'package:tool_store_app/view/custom/mixin/mixin_pref.dart';
 import 'package:tool_store_app/view/custom/web_custom/web_custom_berhaviour.dart';
-import 'package:tool_store_app/view/menu/splash.dart';
+import 'package:tool_store_app/view/menu/splash_login/splash.dart';
 import 'package:tool_store_app/view/var/var.dart';
 
 void main() {

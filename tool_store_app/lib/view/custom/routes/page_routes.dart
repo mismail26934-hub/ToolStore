@@ -1,8 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:tool_store_app/view/menu/home.dart';
-import 'package:tool_store_app/view/menu/login.dart';
+import 'package:tool_store_app/view/menu/home/home.dart';
+import 'package:tool_store_app/view/menu/splash_login/login.dart';
+import 'package:tool_store_app/view/menu/user/user_form_input.dart';
 
 class PageRoutes {
   // Gunakan void karena kita tidak perlu menunggu hasil dari Timer/Route
@@ -45,5 +46,16 @@ class PageRoutes {
     Navigator.of(
       context,
     ).pushReplacement(MaterialPageRoute(builder: (_) => const Login()));
+  }
+
+  static Future<void> routeUserForm(BuildContext context) async {
+    await Future.delayed(const Duration(milliseconds: 1));
+
+    // Cek apakah context masih aktif/valid di layar
+    if (!context.mounted) return;
+
+    Navigator.of(
+      context,
+    ).pushReplacement(MaterialPageRoute(builder: (_) => const UserForm()));
   }
 }

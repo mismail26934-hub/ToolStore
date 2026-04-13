@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:tool_store_app/view/menu/drawer.dart';
-import 'package:tool_store_app/view/menu/fm_input_tool.dart';
+import 'package:tool_store_app/view/menu/drawer/drawer.dart';
+import 'package:tool_store_app/view/menu/tooll/tool_form_input.dart';
 import 'package:tool_store_app/view/var/var.dart';
 
 class ToolDataCopy extends StatefulWidget {

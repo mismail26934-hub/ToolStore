@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tool_store_app/view/var/var.dart';
 
 class ShowDialogBox {
   static void show({
@@ -9,15 +10,18 @@ class ShowDialogBox {
     required String textYes,
     required void Function()? onPressedNo,
     required void Function()? onPressedYes,
-    Color textColorNo = Colors.grey,
-    Color textColorYes = Colors.red,
+    required Color textColorNo,
+    required Color textColorYes,
   }) {
     showDialog(
       context: context,
       barrierDismissible: false, // User harus pilih salah satu tombol
       builder: (context) => AlertDialog(
-        title: Text(title),
-        content: Text(contentTitle),
+        title: Text(title, style: Theme.of(context).textTheme.titleMedium),
+        content: Text(
+          contentTitle,
+          style: Theme.of(context).textTheme.titleSmall,
+        ),
         actions: [
           TextButton(
             onPressed: onPressedNo,

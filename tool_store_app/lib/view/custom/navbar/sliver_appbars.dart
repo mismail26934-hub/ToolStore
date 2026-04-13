@@ -36,10 +36,7 @@ class _SliverAppbarsState extends State<SliverAppbars> {
       foregroundColor: clrBlack,
       shadowColor: clrWhite,
       surfaceTintColor: clrWhite,
-      title: Text(
-        '',
-        style: GoogleFonts.robotoFlex().copyWith(fontWeight: FontWeight.bold),
-      ),
+      title: Text('', style: Theme.of(context).textTheme.titleLarge),
       flexibleSpace: FlexibleSpaceBar(
         centerTitle: true,
         stretchModes: [StretchMode.fadeTitle],
