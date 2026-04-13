@@ -6,7 +6,11 @@ class ApiUrl {
   static String folderController = 'controller';
   static String folderUser = 'user';
   static String fileContUser = 'cont_user.php';
+  static String fileLogin = 'login.php';
 
   static String contDataUser =
       "$server/$folderApiTool/$folderApiToolStore/$folderController/$fileContUser";
+  // static String contLogin = "$server/$folderApiTool/$folderApiToolStore/$folderController/$fileLogin";
+  static String contLogin =
+      "http://192.168.1.22:8080/api_tool/api_toolstore/controller/login.php";
 }

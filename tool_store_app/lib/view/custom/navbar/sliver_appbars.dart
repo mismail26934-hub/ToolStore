@@ -36,7 +36,6 @@ class _SliverAppbarsState extends State<SliverAppbars> {
       foregroundColor: clrBlack,
       shadowColor: clrWhite,
       surfaceTintColor: clrWhite,
-      leading: IconButton(onPressed: () {}, icon: widget.iconLeading),
       title: Text(
         '',
         style: GoogleFonts.robotoFlex().copyWith(fontWeight: FontWeight.bold),

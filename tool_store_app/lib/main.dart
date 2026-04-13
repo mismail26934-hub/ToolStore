@@ -3,9 +3,11 @@ import 'package:flutter_redux/flutter_redux.dart';
 import 'package:tool_store_app/controller/cont_crud/redux/state.dart';
 import 'package:tool_store_app/controller/cont_crud/redux/store.dart';
 import 'package:tool_store_app/model/post_get_data.dart';
+import 'package:tool_store_app/view/custom/mixin/mixin_pref.dart';
+import 'package:tool_store_app/view/custom/routes/page_routes.dart';
 import 'package:tool_store_app/view/custom/web_custom/web_custom_berhaviour.dart';
-import 'package:tool_store_app/view/menu/home.dart';
 import 'package:tool_store_app/view/menu/login.dart';
+import 'package:tool_store_app/view/menu/splash.dart';
 import 'package:tool_store_app/view/var/var.dart';
 
 void main() {
@@ -35,7 +37,7 @@ class MyApp extends StatefulWidget {
   State<MyApp> createState() => _MyAppState();
 }
 
-class _MyAppState extends State<MyApp> {
+class _MyAppState extends State<MyApp> with MixinPref {
   @override
   Widget build(BuildContext context) {
     return StoreProvider<AppState>(
@@ -44,7 +46,7 @@ class _MyAppState extends State<MyApp> {
         color: clrOrange,
         scrollBehavior: WebCustomScrollBehavior(),
         debugShowCheckedModeBanner: false,
-        home: Login(),
+        home: SplashScreen(),
         theme: ThemeData(
           useMaterial3: true,
           colorScheme: ColorScheme.fromSeed(

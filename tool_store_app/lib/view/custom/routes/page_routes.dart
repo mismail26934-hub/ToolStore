@@ -1,0 +1,38 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:tool_store_app/view/menu/home.dart';
+import 'package:tool_store_app/view/menu/login.dart';
+
+class PageRoutes {
+  // Gunakan void karena kita tidak perlu menunggu hasil dari Timer/Route
+  static Future<void> routeLogin(BuildContext context) async {
+    // Cek apakah context masih aktif/valid di layar
+    if (!context.mounted) return;
+
+    Navigator.pushReplacement(
+      context,
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) => const Login(),
+        transitionDuration: const Duration(
+          milliseconds: 2000,
+        ), // Durasi lebih lama agar smooth
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          // Efek memudar (Fade)
+          return FadeTransition(opacity: animation, child: child);
+        },
+      ),
+    );
+  }
+
+  static Future<void> routeHome(BuildContext context) async {
+    await Future.delayed(const Duration(milliseconds: 1));
+
+    // Cek apakah context masih aktif/valid di layar
+    if (!context.mounted) return;
+
+    Navigator.of(
+      context,
+    ).pushReplacement(MaterialPageRoute(builder: (_) => const Home()));
+  }
+}

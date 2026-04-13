@@ -5,9 +5,13 @@ import 'package:flutter_redux/flutter_redux.dart';
 import 'package:tool_store_app/controller/cont_crud/redux/state.dart';
 import 'package:tool_store_app/controller/cont_crud/redux/store.dart';
 import 'package:tool_store_app/model/post_get_data.dart';
+import 'package:tool_store_app/view/custom/mixin/mixin_pref.dart';
 import 'package:tool_store_app/view/custom/navbar/sliver_appbars.dart';
 import 'package:tool_store_app/view/custom/navbar/sliver_fill_remaining.dart';
+import 'package:tool_store_app/view/custom/routes/page_routes.dart';
+import 'package:tool_store_app/view/menu/drawer.dart';
 import 'package:tool_store_app/view/menu/fm_input_tool.dart';
+import 'package:tool_store_app/view/menu/tool_data_copy.dart';
 import 'package:tool_store_app/view/var/var.dart';
 
 class ToolData extends StatefulWidget {
@@ -16,11 +20,21 @@ class ToolData extends StatefulWidget {
   State<ToolData> createState() => _ToolDataState();
 }
 
-class _ToolDataState extends State<ToolData> {
+class _ToolDataState extends State<ToolData> with MixinPref {
+  // 1. Buat variabel key di sini
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  @override
+  void initState() {
+    super.initState();
+    refreshPref();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: _scaffoldKey,
       backgroundColor: clrWhite,
+      drawer: DrawerMenu(title: name),
       body: RefreshIndicator(
         onRefresh: () async {
           await store.dispatch(
@@ -47,8 +61,8 @@ class _ToolDataState extends State<ToolData> {
                 Navigator.push(
                   context,
                   Platform.isIOS
-                      ? CupertinoPageRoute(builder: (_) => FmInputDataTool())
-                      : MaterialPageRoute(builder: (_) => FmInputDataTool()),
+                      ? CupertinoPageRoute(builder: (_) => ToolDataCopy())
+                      : MaterialPageRoute(builder: (_) => ToolDataCopy()),
                 );
               },
               onPressLeading: () {},
