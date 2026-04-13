@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:tool_store_app/view/custom/routes/page_routes.dart'
-    show PageRoutes;
 // Import file var.dart Anda agar variabel global terbaca
 import 'package:tool_store_app/view/var/var.dart';
 

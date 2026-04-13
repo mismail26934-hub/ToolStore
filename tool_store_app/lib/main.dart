@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_redux/flutter_redux.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:tool_store_app/controller/cont_crud/redux/state.dart';
 import 'package:tool_store_app/controller/cont_crud/redux/store.dart';
 import 'package:tool_store_app/model/post_get_data.dart';
 import 'package:tool_store_app/view/custom/mixin/mixin_pref.dart';
-import 'package:tool_store_app/view/custom/routes/page_routes.dart';
 import 'package:tool_store_app/view/custom/web_custom/web_custom_berhaviour.dart';
-import 'package:tool_store_app/view/menu/login.dart';
 import 'package:tool_store_app/view/menu/splash.dart';
 import 'package:tool_store_app/view/var/var.dart';
 
@@ -52,6 +51,24 @@ class _MyAppState extends State<MyApp> with MixinPref {
           colorScheme: ColorScheme.fromSeed(
             seedColor: clrOrange,
             primary: clrOrange,
+          ),
+          textTheme: TextTheme(
+            // Kita daftarkan style khusus untuk title app bar
+            titleLarge: GoogleFonts.robotoFlex(
+              fontSize: 18.0,
+              fontWeight: FontWeight.bold,
+              color: clrBlack, // Sesuaikan warna default
+            ),
+            titleMedium: GoogleFonts.robotoFlex(
+              fontSize: 16.0,
+              fontWeight: FontWeight.bold,
+              color: clrBlack, // Sesuaikan warna default
+            ),
+            titleSmall: GoogleFonts.robotoFlex(
+              fontSize: 14.0,
+              fontWeight: FontWeight.bold,
+              color: clrBlack, // Sesuaikan warna default
+            ),
           ),
         ),
       ),

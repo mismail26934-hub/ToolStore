@@ -43,13 +43,7 @@ class _SliverAppbarsState extends State<SliverAppbars> {
       flexibleSpace: FlexibleSpaceBar(
         centerTitle: true,
         stretchModes: [StretchMode.fadeTitle],
-        title: Text(
-          titleApp,
-          style: GoogleFonts.robotoFlex().copyWith(
-            fontWeight: FontWeight.bold,
-            fontSize: 18.0,
-          ),
-        ),
+        title: Text(titleApp, style: Theme.of(context).textTheme.titleLarge),
       ),
       actions: [
         IconButton(onPressed: widget.onPressTailing, icon: widget.iconTailing),

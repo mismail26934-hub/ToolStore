@@ -145,7 +145,6 @@ class _LoginState extends State<Login> {
                           final String message = response['message'] ?? "Error";
                           if (statusLogin == '1') {
                             final userData = response['user'] ?? response;
-                            print(userData);
                             final SharedPreferences prefs =
                                 await SharedPreferences.getInstance();
 

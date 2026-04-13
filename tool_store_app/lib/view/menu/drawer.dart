@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tool_store_app/view/custom/navbar/sliver_menu_item.dart';
 import 'package:tool_store_app/view/custom/routes/page_routes.dart';
+import 'package:tool_store_app/view/custom/show_dialog/show_dialog.dart';
 import 'package:tool_store_app/view/var/var.dart';
 
 class DrawerMenu extends StatelessWidget {
@@ -23,78 +25,70 @@ class DrawerMenu extends StatelessWidget {
             decoration: BoxDecoration(color: Colors.orange),
           ),
           // Menggunakan _buildMenuItem
-          _buildMenuItem(
-            icon: Icons.home,
+          MenuItem(
+            iconMenu: Icons.home_filled,
             title: 'Home',
             onTap: () => {
-              PageRoutes.routeHome(context),
               Navigator.pop(context),
+              PageRoutes.routeHome(context),
             },
+            textColor: clrBlack,
+          ),
+          MenuItem(
+            iconMenu: Icons.file_copy,
+            title: 'History',
+            onTap: () => {Navigator.pop(context)},
+            textColor: clrBlack,
           ),
 
-          _buildMenuItem(
-            icon: Icons.settings,
-            title: 'Pengaturan',
-            onTap: () {
-              Navigator.pop(context);
-              // Navigasi ke halaman pengaturan di sini
-            },
+          MenuItem(
+            iconMenu: Icons.book,
+            title: 'Completed',
+            onTap: () => {Navigator.pop(context)},
+            textColor: clrBlack,
+          ),
+          MenuItem(
+            iconMenu: Icons.person,
+            title: 'User',
+            onTap: () => {Navigator.pop(context)},
+            textColor: clrBlack,
           ),
 
           const Divider(), // Garis pemisah
-
-          _buildMenuItem(
-            icon: Icons.logout,
+          MenuItem(
+            iconMenu: Icons.logout_outlined,
             title: title.isNotEmpty ? 'Logout' : 'Login',
-            onTap: title.isNotEmpty
-                ? () {
-                    Navigator.pop(context); // Tutup drawer
-                    _showLogoutDialog(context); // Panggil dialog logout
-                  }
-                : () {
-                    PageRoutes.routeLogin(context);
-                  },
-          ),
-        ],
-      ),
-    );
-  }
-
-  // --- HELPER METHODS ---
-
-  Widget _buildMenuItem({
-    required IconData icon,
-    required String title,
-    required VoidCallback onTap,
-  }) {
-    return ListTile(
-      leading: Icon(icon, color: clrBlack),
-      title: Text(title),
-      onTap: onTap,
-    );
-  }
-
-  void _showLogoutDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Logout'),
-        content: const Text('Are You Sure Logout?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Back'),
-          ),
-          TextButton(
-            onPressed: () async {
-              // Logika logout Anda di sini
-              Navigator.pop(context);
-              SharedPreferences prefs = await SharedPreferences.getInstance();
-              prefs.clear();
-              if (!context.mounted) return;
-              PageRoutes.routeLogin(context);
+            onTap: () {
+              // Tutup drawer
+              ShowDialogBox.show(
+                context: context,
+                title: 'Logout',
+                contentTitle: 'Are you sure logout ?',
+                onPressedNo: () {
+                  if (!context.mounted) return;
+                  Navigator.pop(context);
+                },
+                onPressedYes: () async {
+                  // Tutup dialog dulu
+                  Navigator.pop(context);
+                  // Hapus data session
+                  SharedPreferences prefs =
+                      await SharedPreferences.getInstance();
+                  await prefs.clear();
+                  // Cek mounted sebelum navigasi (best practice)
+                  if (!context.mounted) return;
+                  // Navigasi ke halaman login
+                  // Ganti PageRoutes dengan route yang kamu gunakan
+                  if (!context.mounted) return;
+                  PageRoutes.routeLoginFast(context);
+                },
+                textNo: 'Back',
+                textYes: 'Yes',
+                textColorNo: clrBlack,
+                textColorYes: clrRed,
+              );
             },
-            child: const Text('Yes', style: TextStyle(color: Colors.red)),
+            textColor: clrBlack,
           ),
         ],
       ),

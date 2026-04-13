@@ -35,4 +35,15 @@ class PageRoutes {
       context,
     ).pushReplacement(MaterialPageRoute(builder: (_) => const Home()));
   }
+
+  static Future<void> routeLoginFast(BuildContext context) async {
+    await Future.delayed(const Duration(milliseconds: 1));
+
+    // Cek apakah context masih aktif/valid di layar
+    if (!context.mounted) return;
+
+    Navigator.of(
+      context,
+    ).pushReplacement(MaterialPageRoute(builder: (_) => const Login()));
+  }
 }

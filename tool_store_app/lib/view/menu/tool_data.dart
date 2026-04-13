@@ -8,9 +8,7 @@ import 'package:tool_store_app/model/post_get_data.dart';
 import 'package:tool_store_app/view/custom/mixin/mixin_pref.dart';
 import 'package:tool_store_app/view/custom/navbar/sliver_appbars.dart';
 import 'package:tool_store_app/view/custom/navbar/sliver_fill_remaining.dart';
-import 'package:tool_store_app/view/custom/routes/page_routes.dart';
 import 'package:tool_store_app/view/menu/drawer.dart';
-import 'package:tool_store_app/view/menu/fm_input_tool.dart';
 import 'package:tool_store_app/view/menu/tool_data_copy.dart';
 import 'package:tool_store_app/view/var/var.dart';
 
@@ -61,8 +59,18 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                 Navigator.push(
                   context,
                   Platform.isIOS
-                      ? CupertinoPageRoute(builder: (_) => ToolDataCopy())
-                      : MaterialPageRoute(builder: (_) => ToolDataCopy()),
+                      ? CupertinoPageRoute(
+                          builder: (context) => ToolDataCopy(
+                            title: 'Add Data',
+                            onPressTailing: () {},
+                          ),
+                        )
+                      : MaterialPageRoute(
+                          builder: (context) => ToolDataCopy(
+                            title: 'Add Data',
+                            onPressTailing: () {},
+                          ),
+                        ),
                 );
               },
               onPressLeading: () {},

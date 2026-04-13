@@ -8,7 +8,6 @@ import 'package:tool_store_app/controller/api_url/api.dart';
 import 'package:tool_store_app/controller/api_url/post_list.dart';
 import 'package:tool_store_app/controller/cont_crud/cont_function_crud.dart';
 import 'package:tool_store_app/controller/cont_crud/redux/state.dart';
-import 'package:tool_store_app/view/menu/login.dart';
 import 'package:tool_store_app/view/var/var.dart';
 
 // DATA USER
@@ -88,9 +87,6 @@ Future login(String usernameApp, String passwordApp) async {
     final response = await dio.post(ApiUrl.contLogin, data: map);
     if (response.statusCode == 200) {
       final listUser = response.data;
-      print(listUser);
-      print(usernameApp);
-      print(passwordApp);
       if (listUser is String) {
         return jsonDecode(listUser);
       }
