@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:tool_store_app/view/menu/drawer/drawer.dart';
-import 'package:tool_store_app/view/menu/tooll/tool_form_input.dart';
+import 'package:tool_store_app/view/menu/user/user_form_input.dart';
 import 'package:tool_store_app/view/var/var.dart';
 
-class ToolForm extends StatefulWidget {
-  const ToolForm({
+class UserForm extends StatefulWidget {
+  const UserForm({
     super.key,
     required this.title,
     required this.onPressTailing,
@@ -14,10 +14,10 @@ class ToolForm extends StatefulWidget {
   final void Function()? onPressTailing;
 
   @override
-  State<ToolForm> createState() => _ToolFormState();
+  State<UserForm> createState() => _UserFormState();
 }
 
-class _ToolFormState extends State<ToolForm> {
+class _UserFormState extends State<UserForm> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -30,7 +30,7 @@ class _ToolFormState extends State<ToolForm> {
         backgroundColor: clrWhite,
       ),
       backgroundColor: clrWhite,
-      body: ToolFormInput(),
+      body: UserFormInput(title: 'Add Data', onPressTailing: () {}),
     );
   }
 }

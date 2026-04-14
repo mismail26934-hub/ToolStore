@@ -2,14 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:tool_store_app/view/var/var.dart';
 
-class UserForm extends StatefulWidget {
-  const UserForm({super.key});
+class UserFormInput extends StatefulWidget {
+  const UserFormInput({
+    super.key,
+    required this.title,
+    required this.onPressTailing,
+  });
+  final String title;
+  final void Function()? onPressTailing;
 
   @override
-  State<UserForm> createState() => _UserFormState();
+  State<UserFormInput> createState() => _UserFormInputState();
 }
 
-class _UserFormState extends State<UserForm> {
+class _UserFormInputState extends State<UserFormInput> {
   final _formKey = GlobalKey<FormState>();
   final Dio _dio = Dio(); // Inisialisasi Dio
 
@@ -74,7 +80,7 @@ class _UserFormState extends State<UserForm> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("ADD DATA USER")),
+      appBar: AppBar(title: const Text("Input Data User")),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(

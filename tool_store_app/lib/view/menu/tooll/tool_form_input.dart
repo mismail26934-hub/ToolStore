@@ -2,17 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:tool_store_app/view/custom/form/text_form_field.dart';
 import 'package:tool_store_app/view/var/var.dart';
 
-class FmInputDataTool extends StatefulWidget {
-  const FmInputDataTool({super.key});
+class ToolFormInput extends StatefulWidget {
+  const ToolFormInput({super.key});
 
   @override
-  State<FmInputDataTool> createState() => FmInputDataToolState();
+  State<ToolFormInput> createState() => ToolFormInputState();
 }
 
-class FmInputDataToolState extends State<FmInputDataTool> {
+class ToolFormInputState extends State<ToolFormInput> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(title: const Text("Input Data User")),
       body: Form(
         key: formKey,
         child: ListView(

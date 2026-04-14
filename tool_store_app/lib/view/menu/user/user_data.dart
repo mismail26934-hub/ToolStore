@@ -1,5 +1,3 @@
-import 'dart:io';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_redux/flutter_redux.dart';
 import 'package:tool_store_app/controller/cont_crud/redux/state.dart';
@@ -8,17 +6,17 @@ import 'package:tool_store_app/model/post_get_data.dart';
 import 'package:tool_store_app/view/custom/mixin/mixin_pref.dart';
 import 'package:tool_store_app/view/custom/navbar/sliver_appbars.dart';
 import 'package:tool_store_app/view/custom/navbar/sliver_fill_remaining.dart';
+import 'package:tool_store_app/view/custom/routes/page_routes.dart';
 import 'package:tool_store_app/view/menu/drawer/drawer.dart';
-import 'package:tool_store_app/view/menu/tooll/tool_form.dart';
 import 'package:tool_store_app/view/var/var.dart';
 
-class ToolData extends StatefulWidget {
-  const ToolData({super.key});
+class UserData extends StatefulWidget {
+  const UserData({super.key});
   @override
-  State<ToolData> createState() => _ToolDataState();
+  State<UserData> createState() => _UserDataState();
 }
 
-class _ToolDataState extends State<ToolData> with MixinPref {
+class _UserDataState extends State<UserData> with MixinPref {
   // 1. Buat variabel key di sini
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   @override
@@ -56,22 +54,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
             SliverAppbars(
               title: 'Large App Bar',
               onPressTailing: () {
-                Navigator.push(
-                  context,
-                  Platform.isIOS
-                      ? CupertinoPageRoute(
-                          builder: (context) => ToolDataCopy(
-                            title: 'Add Data',
-                            onPressTailing: () {},
-                          ),
-                        )
-                      : MaterialPageRoute(
-                          builder: (context) => ToolDataCopy(
-                            title: 'Add Data',
-                            onPressTailing: () {},
-                          ),
-                        ),
-                );
+                PageRoutes.routeUserForm(context, 'Add Data', () {});
               },
               onPressLeading: () {},
               textColor: Colors.black,

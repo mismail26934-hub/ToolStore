@@ -34,39 +34,33 @@ class DrawerMenu extends StatelessWidget {
           MenuItem(
             iconMenu: Icons.dashboard,
             title: 'Dashboard',
-            onTap: () => {
-              Navigator.pop(context),
-              PageRoutes.routeHome(context),
-            },
+            onTap: () => {},
             textColor: clrBlack,
           ),
           MenuItem(
             iconMenu: Icons.home_filled,
             title: 'Home',
-            onTap: () => {
-              Navigator.pop(context),
-              PageRoutes.routeHome(context),
-            },
+            onTap: () => {Navigator.pop(context)},
             textColor: clrBlack,
           ),
           MenuItem(
             iconMenu: Icons.file_copy,
             title: 'History',
-            onTap: () => {Navigator.pop(context)},
+            onTap: () => {},
             textColor: clrBlack,
           ),
 
           MenuItem(
             iconMenu: Icons.book,
             title: 'Completed',
-            onTap: () => {Navigator.pop(context)},
+            onTap: () => {},
             textColor: clrBlack,
           ),
           MenuItem(
             iconMenu: Icons.person,
             title: 'User',
             onTap: () => {
-              PageRoutes.routeUserForm(context),
+              PageRoutes.routeUser(context),
               Navigator.pop(context),
             },
             textColor: clrBlack,
