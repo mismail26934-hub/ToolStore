@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tool_store_app/view/custom/routes/page_routes.dart';
+import 'package:tool_store_app/view/custom/show_dialog/show_dialog.dart';
 import 'package:tool_store_app/view/var/var.dart';
 
 class UserFormInput extends StatefulWidget {
@@ -18,33 +21,27 @@ class UserFormInput extends StatefulWidget {
 class _UserFormInputState extends State<UserFormInput> {
   final _formKey = GlobalKey<FormState>();
   final Dio _dio = Dio(); // Inisialisasi Dio
-
-  // Controller
-  final TextEditingController _usernameController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _namaController = TextEditingController();
-  final TextEditingController _telpController = TextEditingController();
-
-  String selectedLevel = 'USER';
   bool _isLoading = false;
 
-  Future<void> submitData() async {
+  Future<void> submitData(String params) async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+    });
 
     // Persiapkan data FormData (sama seperti $_POST di PHP)
     FormData formData = FormData.fromMap({
-      "param": "ADD DATA USER",
-      "id_users": "0",
-      "username": _usernameController.text,
-      "password": _passwordController.text, // Akan di-MD5 oleh PHP
-      "nama_user": _namaController.text,
+      "param": params,
+      "id_users": iduserFormCont.text,
+      "username": usernameFormCont.text,
+      "password": passwordFormCont.text,
+      "nama_user": namaFormCont.text,
       "foto": "", // Kosongkan jika belum ada upload file
-      "id_tu": "1",
-      "no_telp": _telpController.text,
-      "token": "your_device_token",
-      "level": selectedLevel,
+      "id_tu": tuidFormCont.text,
+      "no_telp": telpFormCont.text,
+      "token": "",
+      "level": levelFormCont.text,
       "status": "Active",
     });
 
@@ -80,7 +77,42 @@ class _UserFormInputState extends State<UserFormInput> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Input Data User")),
+      appBar: AppBar(
+        actions: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: IconButton(
+              onPressed: () {
+                ShowDialogBox.show(
+                  context: context,
+                  title: 'WARNING !',
+                  contentTitle: 'Are you sure delete data ?',
+                  onPressedNo: () {
+                    if (!context.mounted) return;
+                    Navigator.pop(context);
+                  },
+                  onPressedYes: () async {
+                    // Tutup dialog dulu
+                    if (!context.mounted) return;
+                    Navigator.pop(context);
+                    submitData(paramDeleteDataUser);
+                  },
+                  textNo: 'Back',
+                  textYes: 'Yes',
+                  textColorNo: clrBlack,
+                  textColorYes: clrRed,
+                );
+              },
+              icon: Icon(Icons.delete, color: clrRed),
+            ),
+          ),
+        ],
+        title: Text(
+          iduserFormCont.text == ""
+              ? "Input Data User ${namaFormCont.text}"
+              : "Edit Data User ${namaFormCont.text}",
+        ),
+      ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
@@ -89,20 +121,24 @@ class _UserFormInputState extends State<UserFormInput> {
                 key: _formKey,
                 child: Column(
                   children: [
-                    _buildTextField(_usernameController, "Username"),
+                    _buildTextField(usernameFormCont, "Username"),
                     const SizedBox(height: 10),
                     _buildTextField(
-                      _passwordController,
+                      usernameFormCont,
                       "Password",
                       isPassword: true,
                     ),
                     const SizedBox(height: 10),
-                    _buildTextField(_namaController, "Nama Lengkap"),
+                    _buildTextField(namaFormCont, "Nama Lengkap"),
                     const SizedBox(height: 10),
-                    _buildTextField(_telpController, "No. Telp", isPhone: true),
+                    _buildTextField(telpFormCont, "No. Telp", isPhone: true),
+                    const SizedBox(height: 20),
+                    _buildTextField(tuidFormCont, "ID "),
                     const SizedBox(height: 20),
                     DropdownButtonFormField(
-                      initialValue: selectedLevel,
+                      initialValue: levelFormCont.text.isEmpty
+                          ? null
+                          : levelFormCont.text,
                       items:
                           [
                                 "USER",
@@ -118,7 +154,7 @@ class _UserFormInputState extends State<UserFormInput> {
                               )
                               .toList(),
                       onChanged: (val) =>
-                          setState(() => selectedLevel = val.toString()),
+                          setState(() => levelFormCont.text = val.toString()),
                       decoration: const InputDecoration(
                         labelText: "Level",
                         border: OutlineInputBorder(),
@@ -129,12 +165,41 @@ class _UserFormInputState extends State<UserFormInput> {
                       width: double.infinity,
                       height: 50,
                       child: ElevatedButton(
-                        onPressed: submitData,
+                        onPressed: () {
+                          if (_formKey.currentState!.validate()) {
+                            ShowDialogBox.show(
+                              context: context,
+                              title: 'Please make sure all data is correct',
+                              contentTitle: iduserFormCont.text == ""
+                                  ? 'Are you sure save data ?'
+                                  : ' Are you sure edit data ?',
+                              onPressedNo: () {
+                                if (!context.mounted) return;
+                                Navigator.pop(context);
+                              },
+                              onPressedYes: () async {
+                                // Tutup dialog dulu
+                                Navigator.pop(context);
+                                submitData(
+                                  iduserFormCont.text == ""
+                                      ? paramAddDataUser
+                                      : paramEditDataUser,
+                                );
+                                if (!context.mounted) return;
+                                PageRoutes.routeUser(context);
+                              },
+                              textNo: 'Cancel',
+                              textYes: 'Yes',
+                              textColorNo: clrBlack,
+                              textColorYes: clrOrange,
+                            );
+                          }
+                        },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.blueAccent,
                         ),
-                        child: const Text(
-                          "SAVE",
+                        child: Text(
+                          iduserFormCont.text == "" ? "SAVE" : "UPDATE",
                           style: TextStyle(color: Colors.white),
                         ),
                       ),

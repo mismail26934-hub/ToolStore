@@ -3,7 +3,8 @@ import 'package:tool_store_app/view/custom/form/text_form_field.dart';
 import 'package:tool_store_app/view/var/var.dart';
 
 class ToolFormInput extends StatefulWidget {
-  const ToolFormInput({super.key});
+  const ToolFormInput({super.key, required this.subtitle});
+  final String subtitle;
 
   @override
   State<ToolFormInput> createState() => ToolFormInputState();
@@ -13,7 +14,7 @@ class ToolFormInputState extends State<ToolFormInput> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Input Data User")),
+      appBar: AppBar(title: const Text("Input Data Tool")),
       body: Form(
         key: formKey,
         child: ListView(

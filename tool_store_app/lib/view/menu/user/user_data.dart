@@ -54,7 +54,16 @@ class _UserDataState extends State<UserData> with MixinPref {
             SliverAppbars(
               title: 'Large App Bar',
               onPressTailing: () {
-                PageRoutes.routeUserForm(context, 'Add Data', () {});
+                setState(() {
+                  iduserFormCont.clear();
+                  usernameFormCont.clear();
+                  passwordFormCont.clear();
+                  namaFormCont.clear();
+                  telpFormCont.clear();
+                  tuidFormCont.clear();
+                  levelFormCont.clear();
+                });
+                PageRoutes.routeUserForm(context, 'ADD DATA', () {});
               },
               onPressLeading: () {},
               textColor: Colors.black,
@@ -105,7 +114,25 @@ class _UserDataState extends State<UserData> with MixinPref {
                           ],
                         ),
                         leading: Icon(Icons.remove_red_eye),
-                        trailing: Icon(Icons.edit_document),
+                        trailing: IconButton(
+                          onPressed: () {
+                            setState(() {
+                              iduserFormCont.text = users.idUsers;
+                              usernameFormCont.text = users.username;
+                              passwordFormCont.text = users.password;
+                              namaFormCont.text = users.namaUser;
+                              telpFormCont.text = users.noTelp;
+                              tuidFormCont.text = users.idTU;
+                              levelFormCont.text = users.level;
+                            });
+                            PageRoutes.routeUserForm(
+                              context,
+                              'EDIT DATA',
+                              () {},
+                            );
+                          },
+                          icon: Icon(Icons.edit_document),
+                        ),
                       ),
                     );
                   }, childCount: state.users.length),

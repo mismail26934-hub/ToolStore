@@ -30,7 +30,7 @@ class _ToolFormState extends State<ToolForm> {
         backgroundColor: clrWhite,
       ),
       backgroundColor: clrWhite,
-      body: ToolFormInput(),
+      body: ToolFormInput(subtitle: ''),
     );
   }
 }

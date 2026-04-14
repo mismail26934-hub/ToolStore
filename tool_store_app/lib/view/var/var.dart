@@ -12,6 +12,9 @@ Color clrRed = Colors.red;
 Color clrGreen = Colors.green;
 double btnFontSize = 15.0;
 String paramViewDataUser = 'VIEW DATA USER';
+String paramAddDataUser = 'ADD DATA USER';
+String paramEditDataUser = 'EDIT DATA USER';
+String paramDeleteDataUser = 'DELETED DATA USER';
 String errors = "";
 String messages = "";
 String cekInternet = "Check Internet Connection";
@@ -36,6 +39,12 @@ String idTu = "";
 String status = "";
 String foto = "";
 
+List<PostList?>? list;
+late bool isLoading;
+bool isLoadingLogin = true;
+bool loadingLogin = false;
+
+// Controller Data Tool
 final formKey = GlobalKey<FormState>();
 final formNumberController = TextEditingController();
 final categoryController = TextEditingController();
@@ -45,10 +54,14 @@ final commentRequester = TextEditingController();
 final commentSuperior = TextEditingController();
 final commentServiceAdmin = TextEditingController();
 final commentServiceHead = TextEditingController();
+// Controller Login
 final username = TextEditingController();
 final password = TextEditingController();
-
-List<PostList?>? list;
-late bool isLoading;
-bool isLoadingLogin = true;
-bool loadingLogin = false;
+// Controller User
+final TextEditingController iduserFormCont = TextEditingController();
+final TextEditingController usernameFormCont = TextEditingController();
+final TextEditingController passwordFormCont = TextEditingController();
+final TextEditingController namaFormCont = TextEditingController();
+final TextEditingController telpFormCont = TextEditingController();
+final TextEditingController tuidFormCont = TextEditingController();
+final TextEditingController levelFormCont = TextEditingController();

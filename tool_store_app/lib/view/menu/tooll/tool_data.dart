@@ -61,13 +61,13 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                   Platform.isIOS
                       ? CupertinoPageRoute(
                           builder: (context) => ToolForm(
-                            title: 'Add Data',
+                            title: 'ADD DATA',
                             onPressTailing: () {},
                           ),
                         )
                       : MaterialPageRoute(
                           builder: (context) => ToolForm(
-                            title: 'Add Data',
+                            title: 'ADD DATA',
                             onPressTailing: () {},
                           ),
                         ),

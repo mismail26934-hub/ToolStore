@@ -30,7 +30,7 @@ class _UserFormState extends State<UserForm> {
         backgroundColor: clrWhite,
       ),
       backgroundColor: clrWhite,
-      body: UserFormInput(title: 'Add Data', onPressTailing: () {}),
+      body: UserFormInput(title: 'FORM USER', onPressTailing: () {}),
     );
   }
 }

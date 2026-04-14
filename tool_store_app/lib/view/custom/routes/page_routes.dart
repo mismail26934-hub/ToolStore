@@ -37,17 +37,6 @@ class PageRoutes {
     ).pushReplacement(MaterialPageRoute(builder: (_) => const Home()));
   }
 
-  static Future<void> routeLoginFast(BuildContext context) async {
-    await Future.delayed(const Duration(milliseconds: 1));
-
-    // Cek apakah context masih aktif/valid di layar
-    if (!context.mounted) return;
-
-    Navigator.of(
-      context,
-    ).pushReplacement(MaterialPageRoute(builder: (_) => const Login()));
-  }
-
   static Future<void> routeUser(BuildContext context) async {
     await Future.delayed(const Duration(milliseconds: 1));
 
@@ -57,6 +46,17 @@ class PageRoutes {
     Navigator.of(
       context,
     ).pushReplacement(MaterialPageRoute(builder: (_) => const UserData()));
+  }
+
+  static Future<void> routeLoginFast(BuildContext context) async {
+    await Future.delayed(const Duration(milliseconds: 1));
+
+    // Cek apakah context masih aktif/valid di layar
+    if (!context.mounted) return;
+
+    Navigator.of(
+      context,
+    ).pushReplacement(MaterialPageRoute(builder: (_) => const Login()));
   }
 
   static Future<void> routeUserForm(
@@ -69,7 +69,7 @@ class PageRoutes {
     // Cek apakah context masih aktif/valid di layar
     if (!context.mounted) return;
 
-    Navigator.of(context).pushReplacement(
+    Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => UserForm(title: titles, onPressTailing: onPressTailing),
       ),

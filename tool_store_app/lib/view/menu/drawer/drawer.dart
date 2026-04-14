@@ -38,9 +38,12 @@ class DrawerMenu extends StatelessWidget {
             textColor: clrBlack,
           ),
           MenuItem(
-            iconMenu: Icons.home_filled,
-            title: 'Home',
-            onTap: () => {Navigator.pop(context)},
+            iconMenu: Icons.file_present,
+            title: 'Tool Data',
+            onTap: () => {
+              PageRoutes.routeHome(context),
+              Navigator.pop(context),
+            },
             textColor: clrBlack,
           ),
           MenuItem(

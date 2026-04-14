@@ -83,7 +83,7 @@ class PostList {
 
   factory PostList.fromJson(Map<String, dynamic> json) {
     return PostList(
-      idUsers: json['idUsers'] ?? "",
+      idUsers: json['id_users'] ?? "",
       username: json['username'] ?? "",
       password: json['password'] ?? "",
       namaUser: json['nama_user'] ?? "",
