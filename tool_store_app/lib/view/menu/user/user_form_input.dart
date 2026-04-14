@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
+import 'package:tool_store_app/view/var/var.dart';
 
 class UserForm extends StatefulWidget {
   const UserForm({super.key});
@@ -18,7 +19,7 @@ class _UserFormState extends State<UserForm> {
   final TextEditingController _namaController = TextEditingController();
   final TextEditingController _telpController = TextEditingController();
 
-  String selectedLevel = 'User';
+  String selectedLevel = 'USER';
   bool _isLoading = false;
 
   Future<void> submitData() async {
@@ -53,18 +54,18 @@ class _UserFormState extends State<UserForm> {
         debugPrint("Respon Server: ${response.data}");
 
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Berhasil menyimpan data via Dio!")),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("Save Data Success")));
         Navigator.pop(context);
       }
     } on DioException catch (e) {
       // Handle error spesifik Dio
-      String errorMessage =
-          e.response?.data?.toString() ?? "Terjadi kesalahan jaringan";
+      String errorMessage = e.response?.data?.toString() ?? cekInternet;
+      if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text("Gagal: $errorMessage")));
+      ).showSnackBar(SnackBar(content: Text("Failed: $errorMessage")));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -73,7 +74,7 @@ class _UserFormState extends State<UserForm> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Input User (Dio)")),
+      appBar: AppBar(title: const Text("ADD DATA USER")),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
@@ -95,12 +96,21 @@ class _UserFormState extends State<UserForm> {
                     _buildTextField(_telpController, "No. Telp", isPhone: true),
                     const SizedBox(height: 20),
                     DropdownButtonFormField(
-                      value: selectedLevel,
-                      items: ["Admin", "User"]
-                          .map(
-                            (e) => DropdownMenuItem(value: e, child: Text(e)),
-                          )
-                          .toList(),
+                      initialValue: selectedLevel,
+                      items:
+                          [
+                                "USER",
+                                "ADMIN",
+                                "MECHANIC",
+                                "SERVICE_ADMIN",
+                                "HEAD_SERVICE",
+                                "TOOL_KEEPER",
+                              ]
+                              .map(
+                                (e) =>
+                                    DropdownMenuItem(value: e, child: Text(e)),
+                              )
+                              .toList(),
                       onChanged: (val) =>
                           setState(() => selectedLevel = val.toString()),
                       decoration: const InputDecoration(
@@ -118,7 +128,7 @@ class _UserFormState extends State<UserForm> {
                           backgroundColor: Colors.blueAccent,
                         ),
                         child: const Text(
-                          "KIRIM DATA",
+                          "SAVE",
                           style: TextStyle(color: Colors.white),
                         ),
                       ),
@@ -144,8 +154,7 @@ class _UserFormState extends State<UserForm> {
         labelText: label,
         border: const OutlineInputBorder(),
       ),
-      validator: (value) =>
-          value!.isEmpty ? "Bidang ini tidak boleh kosong" : null,
+      validator: (value) => value!.isEmpty ? "Required !" : null,
     );
   }
 }

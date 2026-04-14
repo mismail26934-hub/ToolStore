@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:tool_store_app/view/var/var.dart';
 
 class ShowDialogBox {
   static void show({

@@ -65,7 +65,10 @@ class DrawerMenu extends StatelessWidget {
           MenuItem(
             iconMenu: Icons.person,
             title: 'User',
-            onTap: () => {Navigator.pop(context)},
+            onTap: () => {
+              PageRoutes.routeUserForm(context),
+              Navigator.pop(context),
+            },
             textColor: clrBlack,
           ),
 
