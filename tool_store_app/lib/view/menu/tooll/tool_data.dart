@@ -179,7 +179,35 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                           ],
                         ),
                         leading: Icon(Icons.remove_red_eye),
-                        trailing: Icon(Icons.edit_document),
+                        trailing: IconButton(
+                          onPressed: () {
+                            _postContForm(
+                              idFormCont.text = forms.idForm,
+                              formNoCont.text = forms.formNo,
+                              servNameCont.text = forms.formServName,
+                              servCommentCont.text = forms.formServComment,
+                              dateServNameCont.text = forms.formDateServName,
+                              checkedByCont.text = forms.formCheckBy,
+                              dateCheckByCont.text = forms.formDateCheckBy,
+                              superiorAprdCont.text = forms.formSuperiorAprd,
+                              superiorCommentCont.text =
+                                  forms.formSuperiorComment,
+                              sadminCommentCont.text = forms.formSadminComment,
+                              sheadAprdCont.text = forms.formSheadAprd,
+                              sheadCommentCont.text = forms.formSheadComment,
+                              dateUpdateCont.text = forms.fromDateUpdate,
+                              userUpdateCont.text = forms.formUserUpdate,
+                              dateSuperiorAprdCont.text =
+                                  forms.formDateSuperiorAprd,
+                              dateSadminCommentCont.text =
+                                  forms.formDateSadminComment,
+                              dateSheadAprdCont.text = forms.formDateSheadAprd,
+                              milestoneCont.text = forms.formMilestone,
+                              statusOrderCont.text = forms.formStatusOrder,
+                            );
+                          },
+                          icon: Icon(Icons.edit),
+                        ),
                       ),
                     );
                   }, childCount: state.forms.length),

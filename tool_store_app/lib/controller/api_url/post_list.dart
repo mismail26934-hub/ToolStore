@@ -27,7 +27,7 @@ class PostList {
   late String formDateSuperiorAprd;
   late String formDateSadminComment;
   late String formDateSheadAprd;
-  late String formmilestone;
+  late String formMilestone;
   late String formStatusOrder;
 
   late String idFormDetail;
@@ -76,7 +76,7 @@ class PostList {
     required this.formDateSuperiorAprd,
     required this.formDateSadminComment,
     required this.formDateSheadAprd,
-    required this.formmilestone,
+    required this.formMilestone,
     required this.formStatusOrder,
 
     required this.idFormDetail,
@@ -127,7 +127,7 @@ class PostList {
       formDateSuperiorAprd: json['form_date_superior_aprd'] ?? "",
       formDateSadminComment: json['form_date_sadmin_comment'] ?? "",
       formDateSheadAprd: json['form_date_shead_aprd'] ?? "",
-      formmilestone: json['form_milestone'] ?? "",
+      formMilestone: json['form_milestone'] ?? "",
       formStatusOrder: json['form_status_order'] ?? "",
 
       idFormDetail: json['idFormDetail'] ?? "",
