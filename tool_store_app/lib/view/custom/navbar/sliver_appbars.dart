@@ -1,19 +1,21 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:tool_store_app/view/responsive/dimensions.dart';
+import 'package:tool_store_app/view/var/var.dart';
 
 class SliverAppbars extends StatefulWidget {
   const SliverAppbars({
     super.key,
     required this.title,
     required this.onPressTailing,
+    required this.iconTailing,
     required this.onPressLeading,
+    required this.iconLeading,
     required this.textColor,
   });
 
   final String title;
   final void Function()? onPressTailing, onPressLeading;
   final Color textColor;
+  final Icon iconTailing, iconLeading;
 
   @override
   State<SliverAppbars> createState() => _SliverAppbarsState();
@@ -24,30 +26,26 @@ class _SliverAppbarsState extends State<SliverAppbars> {
   Widget build(BuildContext context) {
     return SliverAppBar.medium(
       expandedHeight: (MediaQuery.sizeOf(context).width < mobileWidth)
-          ? 100
+          ? 80
           : 10,
       centerTitle: true,
       pinned: true,
       stretch: true,
-      backgroundColor: Colors.white,
-      foregroundColor: Colors.black,
-      shadowColor: Colors.white,
-      surfaceTintColor: Colors.white,
-      leading: IconButton(onPressed: () {}, icon: Icon(Icons.menu)),
-      title: Text(
-        '',
-        style: GoogleFonts.robotoFlex().copyWith(fontWeight: FontWeight.bold),
-      ),
+      backgroundColor: clrOrange,
+      foregroundColor: clrBlack,
+      shadowColor: clrWhite,
+      surfaceTintColor: clrWhite,
+      title: Text('', style: Theme.of(context).textTheme.titleLarge),
       flexibleSpace: FlexibleSpaceBar(
         centerTitle: true,
         stretchModes: [StretchMode.fadeTitle],
         title: Text(
-          'Large App Bar',
-          style: GoogleFonts.robotoFlex().copyWith(fontWeight: FontWeight.bold),
+          widget.title,
+          style: Theme.of(context).textTheme.titleLarge,
         ),
       ),
       actions: [
-        IconButton(onPressed: widget.onPressTailing, icon: Icon(Icons.add)),
+        IconButton(onPressed: widget.onPressTailing, icon: widget.iconTailing),
       ],
     );
   }

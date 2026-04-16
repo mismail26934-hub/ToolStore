@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tool_store_app/view/var/var.dart';
 
 class TextFormFields extends StatefulWidget {
   const TextFormFields({
@@ -20,13 +21,16 @@ class TextFormFields extends StatefulWidget {
 class _TextFormFieldsState extends State<TextFormFields> {
   @override
   Widget build(BuildContext context) {
-    return TextFormField(
-      controller: widget.controllers,
-      decoration: InputDecoration(
-        labelText: widget.labelTexts,
-        border: const OutlineInputBorder(),
+    return Padding(
+      padding: EdgeInsets.all(paddingForm),
+      child: TextFormField(
+        controller: widget.controllers,
+        decoration: InputDecoration(
+          labelText: widget.labelTexts,
+          border: const OutlineInputBorder(),
+        ),
+        validator: widget.validators,
       ),
-      validator: widget.validators,
     );
   }
 }
