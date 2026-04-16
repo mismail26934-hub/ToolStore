@@ -1,9 +1,9 @@
 import 'package:tool_store_app/controller/api_url/post_list.dart';
 
 class UserState {
-  late final List<PostList> users;
-  late bool isLoading;
-  late final String? error;
+  final List<PostList> users;
+  final bool isLoading;
+  final String? error;
 
   UserState({this.users = const [], this.isLoading = false, this.error});
 
@@ -20,21 +20,25 @@ class UserState {
   }
 }
 
-class FormState {
-  late final List<PostList> forms;
-  late bool isLoading;
-  late final String? error;
+class FormsState {
+  final List<PostList> forms;
+  final bool isLoadingTool;
+  final String? error;
 
-  FormState({this.forms = const [], this.isLoading = false, this.error});
+  FormsState({this.forms = const [], this.isLoadingTool = false, this.error});
 
   // Factory untuk state awal
-  factory FormState.initial() => FormState(forms: [], isLoading: false);
+  factory FormsState.initial() => FormsState(forms: [], isLoadingTool: false);
 
-  FormState copyWith({List<PostList>? forms, bool? isLoading, String? error}) {
-    return FormState(
+  FormsState copyWith({
+    List<PostList>? forms,
+    bool? isLoadingTool,
+    String? error,
+  }) {
+    return FormsState(
       // Jika parameter baru (list) null, gunakan nilai yang sudah ada (this.list)
       forms: forms ?? this.forms,
-      isLoading: isLoading ?? this.isLoading,
+      isLoadingTool: isLoadingTool ?? this.isLoadingTool,
       error: error ?? this.error,
     );
   }
@@ -42,10 +46,12 @@ class FormState {
 
 class AppState {
   final UserState userState;
-  final FormState formState;
+  final FormsState formsState;
 
-  AppState({required this.userState, required this.formState});
+  AppState({required this.userState, required this.formsState});
 
-  factory AppState.initial() =>
-      AppState(userState: UserState.initial(), formState: FormState.initial());
+  factory AppState.initial() => AppState(
+    userState: UserState.initial(),
+    formsState: FormsState.initial(),
+  );
 }

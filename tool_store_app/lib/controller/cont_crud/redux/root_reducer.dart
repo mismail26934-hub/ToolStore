@@ -1,5 +1,5 @@
 import 'package:redux/redux.dart';
-import 'package:tool_store_app/controller/cont_crud/cont_function_crud.dart';
+import 'package:tool_store_app/controller/cont_crud/redux/cont_function_crud.dart';
 import 'package:tool_store_app/controller/cont_crud/redux/state.dart';
 
 final userReducer = combineReducers<UserState>([
@@ -14,15 +14,18 @@ final userReducer = combineReducers<UserState>([
   ).call,
 ]);
 
-final formReducer = combineReducers<FormState>([
-  TypedReducer<FormState, FetchUsersAction>(
-    (state, action) => state.copyWith(forms: [], isLoading: true, error: null),
+final formReducer = combineReducers<FormsState>([
+  TypedReducer<FormsState, FetchDatasAction>(
+    (state, action) =>
+        state.copyWith(forms: [], isLoadingTool: true, error: null),
   ).call,
-  TypedReducer<FormState, UsersLoadedAction>(
-    (state, action) => state.copyWith(isLoading: false, forms: action.users),
+  TypedReducer<FormsState, DatasLoadedAction>(
+    (state, action) =>
+        state.copyWith(isLoadingTool: false, forms: action.forms),
   ).call,
-  TypedReducer<FormState, UsersErrorAction>(
-    (state, action) => state.copyWith(isLoading: false, error: action.errors),
+  TypedReducer<FormsState, DatasErrorAction>(
+    (state, action) =>
+        state.copyWith(isLoadingTool: false, error: action.errors),
   ).call,
 ]);
 
@@ -30,6 +33,6 @@ final formReducer = combineReducers<FormState>([
 AppState appReducer(AppState state, dynamic action) {
   return AppState(
     userState: userReducer(state.userState, action),
-    formState: formReducer(state.formState, action),
+    formsState: formReducer(state.formsState, action),
   );
 }

@@ -25,6 +25,31 @@ class _UserDataState extends State<UserData> with MixinPref {
     refreshPref();
   }
 
+  void _postContUser(
+    String idUsers,
+    username,
+    password,
+    namaUser,
+    noTelp,
+    idTU,
+    level,
+  ) {
+    setState(() {
+      iduserFormCont.text = idUsers;
+      usernameFormCont.text = username;
+      passwordFormCont.text = password;
+      namaFormCont.text = namaUser;
+      telpFormCont.text = noTelp;
+      tuidFormCont.text = idTU;
+      levelFormCont.text = level;
+    });
+    PageRoutes.routeUserForm(
+      context,
+      iduserFormCont.text.isEmpty ? 'ADD DATA' : 'EDIT DATA',
+      () {},
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -35,7 +60,7 @@ class _UserDataState extends State<UserData> with MixinPref {
         onRefresh: () async {
           await store.dispatch(
             getDataUser(
-              param: 'VIEW DATA USER',
+              param: 'VIEW DATA FORM',
               idUsers: '',
               username: '',
               password: '',
@@ -52,18 +77,9 @@ class _UserDataState extends State<UserData> with MixinPref {
         child: CustomScrollView(
           slivers: [
             SliverAppbars(
-              title: 'Large App Bar',
+              title: titleDataUser,
               onPressTailing: () {
-                setState(() {
-                  iduserFormCont.clear();
-                  usernameFormCont.clear();
-                  passwordFormCont.clear();
-                  namaFormCont.clear();
-                  telpFormCont.clear();
-                  tuidFormCont.clear();
-                  levelFormCont.clear();
-                });
-                PageRoutes.routeUserForm(context, 'ADD DATA', () {});
+                _postContUser("", "", "", "", "", "", "");
               },
               onPressLeading: () {},
               textColor: Colors.black,
@@ -116,19 +132,14 @@ class _UserDataState extends State<UserData> with MixinPref {
                         leading: Icon(Icons.remove_red_eye),
                         trailing: IconButton(
                           onPressed: () {
-                            setState(() {
-                              iduserFormCont.text = users.idUsers;
-                              usernameFormCont.text = users.username;
-                              passwordFormCont.text = users.password;
-                              namaFormCont.text = users.namaUser;
-                              telpFormCont.text = users.noTelp;
-                              tuidFormCont.text = users.idTU;
-                              levelFormCont.text = users.level;
-                            });
-                            PageRoutes.routeUserForm(
-                              context,
-                              'EDIT DATA',
-                              () {},
+                            _postContUser(
+                              users.idUsers,
+                              users.username,
+                              users.password,
+                              users.namaUser,
+                              users.noTelp,
+                              users.idTU,
+                              users.level,
                             );
                           },
                           icon: Icon(Icons.edit_document),

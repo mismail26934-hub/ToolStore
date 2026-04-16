@@ -39,7 +39,10 @@ class _SliverAppbarsState extends State<SliverAppbars> {
       flexibleSpace: FlexibleSpaceBar(
         centerTitle: true,
         stretchModes: [StretchMode.fadeTitle],
-        title: Text(titleApp, style: Theme.of(context).textTheme.titleLarge),
+        title: Text(
+          widget.title,
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
       ),
       actions: [
         IconButton(onPressed: widget.onPressTailing, icon: widget.iconTailing),

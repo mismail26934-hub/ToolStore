@@ -14,3 +14,17 @@ class UsersErrorAction {
   final String errors;
   UsersErrorAction(this.errors);
 }
+
+class FetchDatasAction {}
+
+class DatasLoadedAction {
+  // Dipanggil saat data berhasil didapat
+  final List<PostList> forms;
+  DatasLoadedAction(this.forms);
+}
+
+class DatasErrorAction {
+  // Dipanggil jika terjadi error
+  final String errors;
+  DatasErrorAction(this.errors);
+}

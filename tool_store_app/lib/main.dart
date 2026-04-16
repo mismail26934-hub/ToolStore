@@ -14,7 +14,7 @@ void main() {
   WidgetsFlutterBinding.ensureInitialized();
   store.dispatch(
     getDataUser(
-      param: 'VIEW DATA USER',
+      param: paramViewDataUser,
       idUsers: '',
       username: '',
       password: '',
@@ -25,6 +25,25 @@ void main() {
       token: '',
       level: '',
       status: '',
+    ),
+  );
+  store.dispatch(
+    getDataTool(
+      param: paramViewDataForm,
+      idFrom: '',
+      formNo: '',
+      formServName: '',
+      formCheckBy: '',
+      formDateCheckBy: '',
+      formDateServName: '',
+      formServComment: '',
+      formSuperiorAprd: '',
+      formSuperiorComment: '',
+      formSadminComment: '',
+      formSheadAprd: '',
+      formSheadComment: '',
+      fromDateUpdate: '',
+      formUserUpdate: '',
     ),
   );
 }

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tool_store_app/view/custom/routes/page_routes.dart';
 import 'package:tool_store_app/view/custom/show_dialog/show_dialog.dart';
 import 'package:tool_store_app/view/var/var.dart';
@@ -124,7 +123,7 @@ class _UserFormInputState extends State<UserFormInput> {
                     _buildTextField(usernameFormCont, "Username"),
                     const SizedBox(height: 10),
                     _buildTextField(
-                      usernameFormCont,
+                      passwordFormCont,
                       "Password",
                       isPassword: true,
                     ),
@@ -145,6 +144,7 @@ class _UserFormInputState extends State<UserFormInput> {
                                 "ADMIN",
                                 "MECHANIC",
                                 "SERVICE_ADMIN",
+                                "SUPERIOR",
                                 "HEAD_SERVICE",
                                 "TOOL_KEEPER",
                               ]
@@ -159,6 +159,12 @@ class _UserFormInputState extends State<UserFormInput> {
                         labelText: "Level",
                         border: OutlineInputBorder(),
                       ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please select a Level !';
+                        }
+                        return null;
+                      },
                     ),
                     const SizedBox(height: 30),
                     SizedBox(

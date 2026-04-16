@@ -11,10 +11,7 @@ Color clrBlack = Colors.black;
 Color clrRed = Colors.red;
 Color clrGreen = Colors.green;
 double btnFontSize = 15.0;
-String paramViewDataUser = 'VIEW DATA USER';
-String paramAddDataUser = 'ADD DATA USER';
-String paramEditDataUser = 'EDIT DATA USER';
-String paramDeleteDataUser = 'DELETED DATA USER';
+
 String errors = "";
 String messages = "";
 String cekInternet = "Check Internet Connection";
@@ -39,25 +36,48 @@ String idTu = "";
 String status = "";
 String foto = "";
 
+final formKey = GlobalKey<FormState>();
 List<PostList?>? list;
 late bool isLoading;
 bool isLoadingLogin = true;
 bool loadingLogin = false;
 
-// Controller Data Tool
-final formKey = GlobalKey<FormState>();
-final formNumberController = TextEditingController();
-final categoryController = TextEditingController();
-final checkedBy = TextEditingController();
-final dateCreateForm = TextEditingController();
-final commentRequester = TextEditingController();
-final commentSuperior = TextEditingController();
-final commentServiceAdmin = TextEditingController();
-final commentServiceHead = TextEditingController();
 // Controller Login
 final username = TextEditingController();
 final password = TextEditingController();
+
+// Controller Data Tool
+String titleDataTool = 'DATA TOOL ';
+String paramViewDataForm = 'VIEW DATA FORM';
+String paramAddDataForm = 'ADD DATA FORM';
+String paramEditDataForm = 'EDIT DATA FORM';
+String paramDeleteDataForm = 'DELETED DATA FORM';
+
+final idFormCont = TextEditingController();
+final formNoCont = TextEditingController();
+final servNameCont = TextEditingController();
+final servCommentCont = TextEditingController();
+final servCommentCategoryCont = TextEditingController();
+final dateServNameCont = TextEditingController();
+final checkedByCont = TextEditingController();
+final dateCheckByCont = TextEditingController();
+final superiorAprdCont = TextEditingController();
+final superiorCommentCont = TextEditingController();
+final sadminCommentCont = TextEditingController();
+final sheadAprdCont = TextEditingController();
+final sheadCommentCont = TextEditingController();
+final dateUpdateCont = TextEditingController();
+final userUpdateCont = TextEditingController();
+final formDateSuperiorAprd = TextEditingController();
+final formDateSadminComment = TextEditingController();
+final formDateSheadAprd = TextEditingController();
+
 // Controller User
+String titleDataUser = 'DATA USER ';
+String paramViewDataUser = 'VIEW DATA USER';
+String paramAddDataUser = 'ADD DATA USER';
+String paramEditDataUser = 'EDIT DATA USER';
+String paramDeleteDataUser = 'DELETED DATA USER';
 final TextEditingController iduserFormCont = TextEditingController();
 final TextEditingController usernameFormCont = TextEditingController();
 final TextEditingController passwordFormCont = TextEditingController();
