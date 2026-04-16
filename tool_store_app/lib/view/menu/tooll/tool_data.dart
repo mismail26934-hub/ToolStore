@@ -1,5 +1,3 @@
-import 'dart:io';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_redux/flutter_redux.dart';
 import 'package:tool_store_app/controller/cont_crud/redux/state.dart';
@@ -8,7 +6,6 @@ import 'package:tool_store_app/model/post_get_data.dart';
 import 'package:tool_store_app/view/custom/mixin/mixin_pref.dart';
 import 'package:tool_store_app/view/custom/navbar/sliver_appbars.dart';
 import 'package:tool_store_app/view/custom/navbar/sliver_fill_remaining.dart';
-import 'package:tool_store_app/view/custom/routes/page_routes.dart';
 import 'package:tool_store_app/view/menu/drawer/drawer.dart';
 import 'package:tool_store_app/view/menu/tooll/tool_form.dart';
 import 'package:tool_store_app/view/var/var.dart';
@@ -46,6 +43,8 @@ class _ToolDataState extends State<ToolData> with MixinPref {
     dateSuperiorAprd,
     dateSadminComment,
     dateSheadAprd,
+    milestone,
+    statusOrder,
   ) {
     setState(() {
       idFormCont.text = idForm;
@@ -62,20 +61,11 @@ class _ToolDataState extends State<ToolData> with MixinPref {
       sheadCommentCont.text = sheadComment;
       dateUpdateCont.text = dateUpdate;
       userUpdateCont.text = userUpdate;
-      formDateSuperiorAprd.text = dateSuperiorAprd;
-      formDateSadminComment.text = dateSadminComment;
-      formDateSheadAprd.text = dateSheadAprd;
-      if (idForm == "") {
-        servCommentCategoryCont.clear();
-      } else {
-        if (servCommentCategoryCont.text == "MISSING" ||
-            servCommentCategoryCont.text == "DAMAGE" ||
-            servCommentCategoryCont.text == "ADDITIONAL") {
-          servNameCont.text = "HOLDER";
-        } else {
-          servNameCont.text = "NON HOLDER";
-        }
-      }
+      dateSuperiorAprdCont.text = dateSuperiorAprd;
+      dateSadminCommentCont.text = dateSadminComment;
+      dateSheadAprdCont.text = dateSheadAprd;
+      milestoneCont.text = milestone;
+      statusOrderCont.text = statusOrder;
     });
     Navigator.push(
       context,
@@ -122,6 +112,8 @@ class _ToolDataState extends State<ToolData> with MixinPref {
               title: titleDataTool,
               onPressTailing: () {
                 _postContForm(
+                  "",
+                  "",
                   "",
                   "",
                   "",

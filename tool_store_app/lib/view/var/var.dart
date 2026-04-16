@@ -57,7 +57,6 @@ final idFormCont = TextEditingController();
 final formNoCont = TextEditingController();
 final servNameCont = TextEditingController();
 final servCommentCont = TextEditingController();
-final servCommentCategoryCont = TextEditingController();
 final dateServNameCont = TextEditingController();
 final checkedByCont = TextEditingController();
 final dateCheckByCont = TextEditingController();
@@ -68,9 +67,11 @@ final sheadAprdCont = TextEditingController();
 final sheadCommentCont = TextEditingController();
 final dateUpdateCont = TextEditingController();
 final userUpdateCont = TextEditingController();
-final formDateSuperiorAprd = TextEditingController();
-final formDateSadminComment = TextEditingController();
-final formDateSheadAprd = TextEditingController();
+final dateSuperiorAprdCont = TextEditingController();
+final dateSadminCommentCont = TextEditingController();
+final dateSheadAprdCont = TextEditingController();
+final milestoneCont = TextEditingController();
+final statusOrderCont = TextEditingController();
 
 // Controller User
 String titleDataUser = 'DATA USER ';

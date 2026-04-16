@@ -39,6 +39,8 @@ class PostList {
   late String actionNote;
   late String formDetailDate;
   late String formDetailUser;
+  late String valType;
+  late String partValue;
 
   late String idActionNote;
   late String actionNoteDesc;
@@ -86,6 +88,8 @@ class PostList {
     required this.actionNote,
     required this.formDetailDate,
     required this.formDetailUser,
+    required this.valType,
+    required this.partValue,
 
     required this.idActionNote,
     required this.actionNoteDesc,
@@ -132,9 +136,11 @@ class PostList {
       pnDesc: json['pnDesc'] ?? "",
       qty: json['qty'] ?? "",
       explan: json['explan'] ?? "",
-      actionNote: json['actionNote'] ?? "",
-      formDetailDate: json['formDetailDate'] ?? "",
-      formDetailUser: json['formDetailUser'] ?? "",
+      actionNote: json['action_note'] ?? "",
+      formDetailDate: json['form_detail_date'] ?? "",
+      formDetailUser: json['form_detail_user'] ?? "",
+      valType: json['val_type'] ?? "",
+      partValue: json['part_value'] ?? "",
 
       idActionNote: json['idActionNote'] ?? "",
       actionNoteDesc: json['actionNoteDesc'] ?? "",

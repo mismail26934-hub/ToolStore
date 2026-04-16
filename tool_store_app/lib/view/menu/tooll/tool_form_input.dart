@@ -40,14 +40,14 @@ class ToolFormInputState extends State<ToolFormInput> {
                   bottom: 5.0,
                 ),
                 child: DropdownButtonFormField(
-                  initialValue: servCommentCategoryCont.text.isEmpty
+                  initialValue: statusOrderCont.text.isEmpty
                       ? null
-                      : servCommentCategoryCont.text,
+                      : statusOrderCont.text,
                   items: ["HOLDER", "NON HOLDER"]
                       .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                       .toList(),
                   onChanged: (val) => setState(() {
-                    servCommentCategoryCont.text = val.toString();
+                    statusOrderCont.text = val.toString();
                     servCommentCont.clear();
                   }),
                   decoration: const InputDecoration(
@@ -74,14 +74,14 @@ class ToolFormInputState extends State<ToolFormInput> {
                       ? null
                       : servCommentCont.text,
                   items:
-                      (servCommentCategoryCont.text == "HOLDER"
+                      (statusOrderCont.text == "HOLDER"
                               ? ["MISSING", "DAMAGE", "ADDITIONAL"]
                               : ["BUDGET", "NON BUDGET"])
                           .map(
                             (e) => DropdownMenuItem(value: e, child: Text(e)),
                           )
                           .toList(),
-                  onChanged: servCommentCategoryCont.text.isEmpty
+                  onChanged: statusOrderCont.text.isEmpty
                       ? null
                       : (val) => setState(
                           () => servCommentCont.text = val.toString(),
