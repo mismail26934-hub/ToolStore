@@ -46,19 +46,15 @@ class _SplashScreenState extends State<SplashScreen> with MixinPref {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 // Icon yang sama dengan halaman Login
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: clrOrange.withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Hero(
-                    tag: 'logo-app',
-                    child: Icon(
-                      Icons.lock_person_rounded,
-                      size: 100,
-                      color: clrOrange,
+                Hero(
+                  tag: 'logo-app',
+                  child: Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: clrOrange.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
                     ),
+                    child: Icon(Icons.handyman, size: 100, color: clrOrange),
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -68,7 +64,7 @@ class _SplashScreenState extends State<SplashScreen> with MixinPref {
                   tag: 'text-app',
                   child: Material(
                     color: Colors.transparent,
-                    child: const Text(
+                    child: Text(
                       "Data Tool Monitoring",
                       style: TextStyle(
                         fontSize: 24,
@@ -80,12 +76,18 @@ class _SplashScreenState extends State<SplashScreen> with MixinPref {
                   ),
                 ),
                 const SizedBox(height: 8),
-                Text(
-                  "Monitoring System",
-                  style: TextStyle(
-                    color: Colors.grey[500],
-                    fontSize: 14,
-                    fontWeight: FontWeight.w400,
+                Hero(
+                  tag: 'subtitle',
+                  child: Material(
+                    color: Colors.transparent,
+                    child: Text(
+                      "Monitoring System",
+                      style: TextStyle(
+                        color: Colors.grey[500],
+                        fontSize: 14,
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
                   ),
                 ),
               ],

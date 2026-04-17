@@ -18,7 +18,7 @@ class _LoginState extends State<Login> {
       backgroundColor: Colors.grey[100], // Background lembut
       body: Center(
         child: SingleChildScrollView(
-          padding: EdgeInsets.all(24.0),
+          padding: EdgeInsets.all(20.0),
           child: Form(
             key: formKey,
             child: Column(
@@ -27,10 +27,13 @@ class _LoginState extends State<Login> {
                 // Logo atau Icon
                 Hero(
                   tag: 'logo-app',
-                  child: Icon(
-                    Icons.lock_person_rounded,
-                    size: 80,
-                    color: clrOrange,
+                  child: Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: clrOrange.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.handyman, size: 100, color: clrOrange),
                   ),
                 ),
                 SizedBox(height: 16),
@@ -51,12 +54,18 @@ class _LoginState extends State<Login> {
                     ),
                   ),
                 ),
-                Text(
-                  "Please Login !",
-                  style: TextStyle(
-                    color: Colors.grey[500],
-                    fontSize: 14,
-                    fontWeight: FontWeight.w400,
+                Hero(
+                  tag: 'subtitle',
+                  child: Material(
+                    color: Colors.transparent,
+                    child: Text(
+                      "Please Login !",
+                      style: TextStyle(
+                        color: Colors.grey[500],
+                        fontSize: 14,
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
                   ),
                 ),
                 SizedBox(height: 32),

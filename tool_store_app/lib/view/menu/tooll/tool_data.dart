@@ -6,6 +6,7 @@ import 'package:tool_store_app/model/post_get_data.dart';
 import 'package:tool_store_app/view/custom/mixin/mixin_pref.dart';
 import 'package:tool_store_app/view/custom/navbar/sliver_appbars.dart';
 import 'package:tool_store_app/view/custom/navbar/sliver_fill_remaining.dart';
+import 'package:tool_store_app/view/custom/routes/page_routes.dart';
 import 'package:tool_store_app/view/menu/drawer/drawer.dart';
 import 'package:tool_store_app/view/menu/tooll/tool_form.dart';
 import 'package:tool_store_app/view/var/var.dart';
@@ -84,137 +85,151 @@ class _ToolDataState extends State<ToolData> with MixinPref {
       key: _scaffoldKey,
       backgroundColor: clrWhite,
       drawer: DrawerMenu(title: name),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          await store.dispatch(
-            getDataTool(
-              param: paramViewDataForm,
-              idFrom: '',
-              formNo: '',
-              formServName: '',
-              formCheckBy: '',
-              formDateCheckBy: '',
-              formDateServName: '',
-              formServComment: '',
-              formSuperiorAprd: '',
-              formSuperiorComment: '',
-              formSadminComment: '',
-              formSheadAprd: '',
-              formSheadComment: '',
-              fromDateUpdate: '',
-              formUserUpdate: '',
-            ),
-          );
-        },
-        child: CustomScrollView(
-          slivers: [
-            SliverAppbars(
-              title: titleDataTool,
-              onPressTailing: () {
-                _postContForm(
-                  "",
-                  "",
-                  "",
-                  "",
-                  "",
-                  "",
-                  "",
-                  "",
-                  "",
-                  "",
-                  "",
-                  "",
-                  "",
-                  "",
-                  "",
-                  "",
-                  "",
-                  "",
-                  "",
-                );
-              },
-              onPressLeading: () {},
-              textColor: Colors.black,
-              iconTailing: Icon(Icons.add),
-              iconLeading: Icon(Icons.menu),
-            ),
-            StoreConnector<AppState, FormsState>(
-              converter: (store) => store.state.formsState,
-              builder: (context, state) {
-                // 1. Tampilan saat Loading
-                if (state.isLoadingTool) {
-                  return SliverFillRemaiings(
-                    errors: state.error ?? "Loading",
-                    hasScrollBodys: false,
+      body: SafeArea(
+        child: RefreshIndicator(
+          onRefresh: () async {
+            await store.dispatch(
+              getDataTool(
+                param: paramViewDataForm,
+                idFrom: '',
+                formNo: '',
+                formServName: '',
+                formCheckBy: '',
+                formDateCheckBy: '',
+                formDateServName: '',
+                formServComment: '',
+                formSuperiorAprd: '',
+                formSuperiorComment: '',
+                formSadminComment: '',
+                formSheadAprd: '',
+                formSheadComment: '',
+                fromDateUpdate: '',
+                formUserUpdate: '',
+              ),
+            );
+          },
+          child: CustomScrollView(
+            slivers: [
+              SliverAppbars(
+                title: titleDataTool,
+                onPressTailing: () {
+                  _postContForm(
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
                   );
-                }
-                // 2. Tampilan saat Error
-                if (state.error != null) {
-                  return SliverFillRemaiings(
-                    errors: state.error ?? "Loading",
-                    hasScrollBodys: false,
-                  );
-                }
-                // 3. Tampilan saat Data Kosong
-                if (state.forms.isEmpty) {
-                  return SliverFillRemaiings(
-                    errors: state.error ?? "Loading",
-                    hasScrollBodys: false,
-                  );
-                }
-                return SliverList(
-                  delegate: SliverChildBuilderDelegate((context, index) {
-                    final forms = state.forms[index];
-                    return Card(
-                      child: ListTile(
-                        title: SelectableText(
-                          forms.formNo,
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        subtitle: Column(
-                          mainAxisAlignment: MainAxisAlignment.start,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            SelectableText('Category : ${forms.formServName}'),
-                          ],
-                        ),
-                        leading: Icon(Icons.remove_red_eye),
-                        trailing: IconButton(
-                          onPressed: () {
-                            _postContForm(
-                              idFormCont.text = forms.idForm,
-                              formNoCont.text = forms.formNo,
-                              servNameCont.text = forms.formServName,
-                              servCommentCont.text = forms.formServComment,
-                              dateServNameCont.text = forms.formDateServName,
-                              checkedByCont.text = forms.formCheckBy,
-                              dateCheckByCont.text = forms.formDateCheckBy,
-                              superiorAprdCont.text = forms.formSuperiorAprd,
-                              superiorCommentCont.text =
-                                  forms.formSuperiorComment,
-                              sadminCommentCont.text = forms.formSadminComment,
-                              sheadAprdCont.text = forms.formSheadAprd,
-                              sheadCommentCont.text = forms.formSheadComment,
-                              dateUpdateCont.text = forms.fromDateUpdate,
-                              userUpdateCont.text = forms.formUserUpdate,
-                              dateSuperiorAprdCont.text =
-                                  forms.formDateSuperiorAprd,
-                              dateSadminCommentCont.text =
-                                  forms.formDateSadminComment,
-                              dateSheadAprdCont.text = forms.formDateSheadAprd,
-                              milestoneCont.text = forms.formMilestone,
-                              statusOrderCont.text = forms.formStatusOrder,
-                            );
-                          },
-                          icon: Icon(Icons.edit),
-                        ),
-                      ),
+                },
+                onPressLeading: () {},
+                textColor: Colors.black,
+                iconTailing: Icon(Icons.add),
+                iconLeading: Icon(Icons.menu),
+              ),
+              StoreConnector<AppState, FormsState>(
+                converter: (store) => store.state.formsState,
+                builder: (context, state) {
+                  // 1. Tampilan saat Loading
+                  if (state.isLoadingTool) {
+                    return SliverFillRemaiings(
+                      errors: state.error ?? "Loading",
+                      hasScrollBodys: false,
                     );
-                  }, childCount: state.forms.length),
-                );
-              },
-            ),
-          ],
+                  }
+                  // 2. Tampilan saat Error
+                  if (state.error != null) {
+                    return SliverFillRemaiings(
+                      errors: state.error ?? "Loading",
+                      hasScrollBodys: false,
+                    );
+                  }
+                  // 3. Tampilan saat Data Kosong
+                  if (state.forms.isEmpty) {
+                    return SliverFillRemaiings(
+                      errors: state.error ?? "Loading",
+                      hasScrollBodys: false,
+                    );
+                  }
+                  return SliverList(
+                    delegate: SliverChildBuilderDelegate((context, index) {
+                      final forms = state.forms[index];
+                      return Card(
+                        child: ListTile(
+                          title: SelectableText(
+                            forms.formNo,
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          subtitle: Column(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              SelectableText(
+                                'Category : ${forms.formServName}',
+                              ),
+                            ],
+                          ),
+                          leading: IconButton(
+                            onPressed: () {
+                              PageRoutes.routeUserFormDetail(
+                                context,
+                                'multiple',
+                              );
+                            },
+                            icon: Icon(Icons.remove_red_eye),
+                          ),
+                          trailing: IconButton(
+                            onPressed: () {
+                              _postContForm(
+                                idFormCont.text = forms.idForm,
+                                formNoCont.text = forms.formNo,
+                                servNameCont.text = forms.formServName,
+                                servCommentCont.text = forms.formServComment,
+                                dateServNameCont.text = forms.formDateServName,
+                                checkedByCont.text = forms.formCheckBy,
+                                dateCheckByCont.text = forms.formDateCheckBy,
+                                superiorAprdCont.text = forms.formSuperiorAprd,
+                                superiorCommentCont.text =
+                                    forms.formSuperiorComment,
+                                sadminCommentCont.text =
+                                    forms.formSadminComment,
+                                sheadAprdCont.text = forms.formSheadAprd,
+                                sheadCommentCont.text = forms.formSheadComment,
+                                dateUpdateCont.text = forms.fromDateUpdate,
+                                userUpdateCont.text = forms.formUserUpdate,
+                                dateSuperiorAprdCont.text =
+                                    forms.formDateSuperiorAprd,
+                                dateSadminCommentCont.text =
+                                    forms.formDateSadminComment,
+                                dateSheadAprdCont.text =
+                                    forms.formDateSheadAprd,
+                                milestoneCont.text = forms.formMilestone,
+                                statusOrderCont.text = forms.formStatusOrder,
+                              );
+                            },
+                            icon: Icon(Icons.edit),
+                          ),
+                        ),
+                      );
+                    }, childCount: state.forms.length),
+                  );
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );

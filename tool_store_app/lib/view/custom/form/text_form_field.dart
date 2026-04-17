@@ -27,6 +27,7 @@ class _TextFormFieldsState extends State<TextFormFields> {
         controller: widget.controllers,
         decoration: InputDecoration(
           labelText: widget.labelTexts,
+          labelStyle: Theme.of(context).textTheme.titleSmall,
           border: const OutlineInputBorder(),
         ),
         validator: widget.validators,

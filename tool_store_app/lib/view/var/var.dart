@@ -46,7 +46,7 @@ bool loadingLogin = false;
 final username = TextEditingController();
 final password = TextEditingController();
 
-// Controller Data Tool
+// Controller FORM
 String titleDataTool = 'DATA TOOL ';
 String paramViewDataForm = 'VIEW DATA FORM';
 String paramAddDataForm = 'ADD DATA FORM';
@@ -72,6 +72,20 @@ final dateSadminCommentCont = TextEditingController();
 final dateSheadAprdCont = TextEditingController();
 final milestoneCont = TextEditingController();
 final statusOrderCont = TextEditingController();
+
+// Controller FORM DETAIL
+List<TextEditingController> totalFormDetailCont = [];
+List<TextEditingController> idFormDetailCont = [];
+List<TextEditingController> formCommentCont = [];
+List<TextEditingController> pnGroupCont = [];
+List<TextEditingController> pnDescCont = [];
+List<TextEditingController> qtyCont = [];
+List<TextEditingController> explanCont = [];
+List<TextEditingController> actionNoteCont = [];
+List<TextEditingController> valTypeCont = [];
+List<TextEditingController> partValueCont = [];
+final formDetailDate = TextEditingController();
+final formDetailUser = TextEditingController();
 
 // Controller User
 String titleDataUser = 'DATA USER ';
