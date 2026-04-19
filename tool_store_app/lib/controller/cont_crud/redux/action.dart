@@ -28,3 +28,10 @@ class DatasErrorAction {
   final String errors;
   DatasErrorAction(this.errors);
 }
+
+class UpdateToolFormAction {
+  // Gunakan Map atau buat field satu per satu sesuai kebutuhan
+  final Map<String, dynamic> payload;
+
+  UpdateToolFormAction(this.payload);
+}

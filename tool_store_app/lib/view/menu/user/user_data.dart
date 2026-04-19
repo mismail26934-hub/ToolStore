@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_redux/flutter_redux.dart';
 import 'package:tool_store_app/controller/cont_crud/redux/state.dart';
 import 'package:tool_store_app/controller/cont_crud/redux/store.dart';
+import 'package:tool_store_app/controller/function/funct.dart';
 import 'package:tool_store_app/model/post_get_data.dart';
 import 'package:tool_store_app/view/custom/mixin/mixin_pref.dart';
 import 'package:tool_store_app/view/custom/navbar/sliver_appbars.dart';
 import 'package:tool_store_app/view/custom/navbar/sliver_fill_remaining.dart';
-import 'package:tool_store_app/view/custom/routes/page_routes.dart';
 import 'package:tool_store_app/view/menu/drawer/drawer.dart';
 import 'package:tool_store_app/view/var/var.dart';
 
@@ -25,31 +25,6 @@ class _UserDataState extends State<UserData> with MixinPref {
     refreshPref();
   }
 
-  void _postContUser(
-    String idUsers,
-    username,
-    password,
-    namaUser,
-    noTelp,
-    idTU,
-    level,
-  ) {
-    setState(() {
-      iduserFormCont.text = idUsers;
-      usernameFormCont.text = username;
-      passwordFormCont.text = password;
-      namaFormCont.text = namaUser;
-      telpFormCont.text = noTelp;
-      tuidFormCont.text = idTU;
-      levelFormCont.text = level;
-    });
-    PageRoutes.routeUserForm(
-      context,
-      iduserFormCont.text.isEmpty ? 'ADD DATA' : 'EDIT DATA',
-      () {},
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -60,7 +35,7 @@ class _UserDataState extends State<UserData> with MixinPref {
         onRefresh: () async {
           await store.dispatch(
             getDataUser(
-              param: 'VIEW DATA FORM',
+              param: paramViewDataUser,
               idUsers: '',
               username: '',
               password: '',
@@ -79,7 +54,7 @@ class _UserDataState extends State<UserData> with MixinPref {
             SliverAppbars(
               title: titleDataUser,
               onPressTailing: () {
-                _postContUser("", "", "", "", "", "", "");
+                postContUser("", "", "", "", "", "", "", context);
               },
               onPressLeading: () {},
               textColor: Colors.black,
@@ -92,21 +67,21 @@ class _UserDataState extends State<UserData> with MixinPref {
                 // 1. Tampilan saat Loading
                 if (state.isLoading) {
                   return SliverFillRemaiings(
-                    errors: state.error ?? "Loading",
+                    errors: "Loading",
                     hasScrollBodys: false,
                   );
                 }
                 // 2. Tampilan saat Error
                 if (state.error != null) {
                   return SliverFillRemaiings(
-                    errors: state.error ?? "Loading",
+                    errors: state.error ?? '${state.error}',
                     hasScrollBodys: false,
                   );
                 }
                 // 3. Tampilan saat Data Kosong
                 if (state.users.isEmpty) {
                   return SliverFillRemaiings(
-                    errors: state.error ?? "Loading",
+                    errors: state.error ?? "No Record Data Found",
                     hasScrollBodys: false,
                   );
                 }
@@ -132,7 +107,7 @@ class _UserDataState extends State<UserData> with MixinPref {
                         leading: Icon(Icons.remove_red_eye),
                         trailing: IconButton(
                           onPressed: () {
-                            _postContUser(
+                            postContUser(
                               users.idUsers,
                               users.username,
                               users.password,
@@ -140,6 +115,7 @@ class _UserDataState extends State<UserData> with MixinPref {
                               users.noTelp,
                               users.idTU,
                               users.level,
+                              context,
                             );
                           },
                           icon: Icon(Icons.edit_document),

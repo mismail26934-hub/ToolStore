@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:tool_store_app/view/menu/home/home.dart';
 import 'package:tool_store_app/view/menu/splash_login/login.dart';
 import 'package:tool_store_app/view/menu/tooll/tool_form_multiple_input.dart';
+import 'package:tool_store_app/view/menu/tooll/tool_item.dart';
 import 'package:tool_store_app/view/menu/user/user_data.dart';
 import 'package:tool_store_app/view/menu/user/user_form.dart';
 
@@ -91,5 +92,14 @@ class PageRoutes {
         builder: (_) => ToolFormMultipleInput(subtitle: subtitle),
       ),
     );
+  }
+
+  static Future<void> routeToolItem(BuildContext context, subtitle) async {
+    await Future.delayed(const Duration(milliseconds: 1));
+
+    // Cek apakah context masih aktif/valid di layar
+    if (!context.mounted) return;
+
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => ToolItem()));
   }
 }

@@ -46,6 +46,7 @@ ThunkAction<AppState> getDataUser({
       dio.options.receiveTimeout = const Duration(seconds: 20);
       final response = await dio.post(ApiUrl.contDataUser, data: map);
       List<PostList> listUser = parseResponse(response.data);
+      print(response.data);
       // Dispatch ke store (Redux)
       store.dispatch(UsersLoadedAction(listUser));
       return listUser;
@@ -65,7 +66,10 @@ ThunkAction<AppState> getDataUser({
         throw Exception("Server Down ($messages)");
       }
     } catch (e) {
-      return [];
+      // Pastikan kirim action error agar state.isLoading jadi false
+      store.dispatch(UsersErrorAction(e.toString()));
+      // Lempar error agar RefreshIndicator tahu ini sudah selesai
+      throw Exception(e);
     }
   };
 }

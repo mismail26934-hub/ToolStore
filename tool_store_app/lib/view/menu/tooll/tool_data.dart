@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_redux/flutter_redux.dart';
 import 'package:tool_store_app/controller/cont_crud/redux/state.dart';
 import 'package:tool_store_app/controller/cont_crud/redux/store.dart';
+import 'package:tool_store_app/controller/function/funct.dart';
 import 'package:tool_store_app/model/post_get_data.dart';
 import 'package:tool_store_app/view/custom/mixin/mixin_pref.dart';
 import 'package:tool_store_app/view/custom/navbar/sliver_appbars.dart';
 import 'package:tool_store_app/view/custom/navbar/sliver_fill_remaining.dart';
 import 'package:tool_store_app/view/custom/routes/page_routes.dart';
 import 'package:tool_store_app/view/menu/drawer/drawer.dart';
-import 'package:tool_store_app/view/menu/tooll/tool_form.dart';
 import 'package:tool_store_app/view/var/var.dart';
 
 class ToolData extends StatefulWidget {
@@ -24,59 +24,6 @@ class _ToolDataState extends State<ToolData> with MixinPref {
   void initState() {
     super.initState();
     refreshPref();
-  }
-
-  void _postContForm(
-    String idForm,
-    formNo,
-    servName,
-    servComment,
-    dateServName,
-    checkedBy,
-    dateCheckBy,
-    superiorAprd,
-    superiorComment,
-    sadminComment,
-    sheadAprd,
-    sheadComment,
-    dateUpdate,
-    userUpdate,
-    dateSuperiorAprd,
-    dateSadminComment,
-    dateSheadAprd,
-    milestone,
-    statusOrder,
-  ) {
-    setState(() {
-      idFormCont.text = idForm;
-      formNoCont.text = formNo;
-      servNameCont.text = servName;
-      servCommentCont.text = servComment;
-      dateServNameCont.text = dateServName;
-      checkedByCont.text = checkedBy;
-      dateCheckByCont.text = dateCheckBy;
-      superiorAprdCont.text = superiorAprd;
-      superiorCommentCont.text = superiorComment;
-      sadminCommentCont.text = sadminComment;
-      sheadAprdCont.text = sheadAprd;
-      sheadCommentCont.text = sheadComment;
-      dateUpdateCont.text = dateUpdate;
-      userUpdateCont.text = userUpdate;
-      dateSuperiorAprdCont.text = dateSuperiorAprd;
-      dateSadminCommentCont.text = dateSadminComment;
-      dateSheadAprdCont.text = dateSheadAprd;
-      milestoneCont.text = milestone;
-      statusOrderCont.text = statusOrder;
-    });
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ToolForm(
-          title: iduserFormCont.text.isEmpty ? 'ADD DATA' : 'EDIT DATA',
-          onPressTailing: () {},
-        ),
-      ),
-    );
   }
 
   @override
@@ -113,7 +60,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
               SliverAppbars(
                 title: titleDataTool,
                 onPressTailing: () {
-                  _postContForm(
+                  postContForm(
                     "",
                     "",
                     "",
@@ -133,6 +80,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                     "",
                     "",
                     "",
+                    context,
                   );
                 },
                 onPressLeading: () {},
@@ -146,21 +94,21 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                   // 1. Tampilan saat Loading
                   if (state.isLoadingTool) {
                     return SliverFillRemaiings(
-                      errors: state.error ?? "Loading",
+                      errors: "Loading",
                       hasScrollBodys: false,
                     );
                   }
                   // 2. Tampilan saat Error
                   if (state.error != null) {
                     return SliverFillRemaiings(
-                      errors: state.error ?? "Loading",
+                      errors: state.error ?? '${state.error}',
                       hasScrollBodys: false,
                     );
                   }
                   // 3. Tampilan saat Data Kosong
                   if (state.forms.isEmpty) {
                     return SliverFillRemaiings(
-                      errors: state.error ?? "Loading",
+                      errors: state.error ?? "No Record Data Found",
                       hasScrollBodys: false,
                     );
                   }
@@ -189,11 +137,11 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                                 'multiple',
                               );
                             },
-                            icon: Icon(Icons.remove_red_eye),
+                            icon: Icon(Icons.add),
                           ),
                           trailing: IconButton(
                             onPressed: () {
-                              _postContForm(
+                              postContForm(
                                 idFormCont.text = forms.idForm,
                                 formNoCont.text = forms.formNo,
                                 servNameCont.text = forms.formServName,
@@ -218,6 +166,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                                     forms.formDateSheadAprd,
                                 milestoneCont.text = forms.formMilestone,
                                 statusOrderCont.text = forms.formStatusOrder,
+                                context,
                               );
                             },
                             icon: Icon(Icons.edit),

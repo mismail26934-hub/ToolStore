@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:tool_store_app/controller/api_url/post_list.dart';
 
 const mobileWidth = 600;
 double paddingForm = 5.0;
@@ -37,8 +36,8 @@ String status = "";
 String foto = "";
 
 final formKey = GlobalKey<FormState>();
-List<PostList?>? list;
-late bool isLoading;
+// List<PostList?>? list;
+// late bool isLoading;
 bool isLoadingLogin = true;
 bool loadingLogin = false;
 

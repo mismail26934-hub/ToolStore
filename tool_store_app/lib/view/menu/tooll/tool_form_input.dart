@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tool_store_app/controller/function/funct.dart';
 import 'package:tool_store_app/view/custom/form/text_form_field.dart';
 import 'package:tool_store_app/view/var/var.dart';
 
@@ -41,6 +42,7 @@ class ToolFormInputState extends State<ToolFormInput> {
                     bottom: 5.0,
                   ),
                   child: DropdownButtonFormField(
+                    style: Theme.of(context).textTheme.titleSmall,
                     initialValue: statusOrderCont.text.isEmpty
                         ? null
                         : statusOrderCont.text,
@@ -51,9 +53,10 @@ class ToolFormInputState extends State<ToolFormInput> {
                       statusOrderCont.text = val.toString();
                       servCommentCont.clear();
                     }),
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
+                      labelStyle: Theme.of(context).textTheme.titleSmall,
                       labelText: "Status Order",
-                      border: OutlineInputBorder(),
+                      border: const OutlineInputBorder(),
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
@@ -71,6 +74,7 @@ class ToolFormInputState extends State<ToolFormInput> {
                     bottom: 5.0,
                   ),
                   child: DropdownButtonFormField(
+                    style: Theme.of(context).textTheme.titleSmall,
                     initialValue: servCommentCont.text.isEmpty
                         ? null
                         : servCommentCont.text,
@@ -87,7 +91,8 @@ class ToolFormInputState extends State<ToolFormInput> {
                         : (val) => setState(
                             () => servCommentCont.text = val.toString(),
                           ),
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
+                      labelStyle: Theme.of(context).textTheme.titleSmall,
                       labelText: "Category",
                       border: OutlineInputBorder(),
                     ),
@@ -99,16 +104,29 @@ class ToolFormInputState extends State<ToolFormInput> {
                     },
                   ),
                 ),
-                TextFormFields(
-                  labelTexts: 'Create Date',
-                  textColor: Colors.black,
-                  controllers: dateServNameCont,
-                  validators: (dtCreateFm) {
-                    if (dtCreateFm == null || dtCreateFm.isEmpty) {
-                      return 'Required !';
-                    }
-                    return null;
-                  },
+                Flex(
+                  direction: Axis.horizontal,
+                  children: [
+                    IconButton(
+                      onPressed: () {
+                        selectDate(context, dateServNameCont, () {});
+                      },
+                      icon: Icon(Icons.date_range),
+                    ),
+                    Expanded(
+                      child: TextFormFields(
+                        labelTexts: 'Create Date',
+                        textColor: Colors.black,
+                        controllers: dateServNameCont,
+                        validators: (dtCreateFm) {
+                          if (dtCreateFm == null || dtCreateFm.isEmpty) {
+                            return 'Required !';
+                          }
+                          return null;
+                        },
+                      ),
+                    ),
+                  ],
                 ),
                 TextFormFields(
                   labelTexts: 'Serviceman',
@@ -154,16 +172,29 @@ class ToolFormInputState extends State<ToolFormInput> {
                     return null;
                   },
                 ),
-                TextFormFields(
-                  labelTexts: 'Check Date',
-                  textColor: Colors.black,
-                  controllers: dateCheckByCont,
-                  validators: (cmtReq) {
-                    if (cmtReq == null || cmtReq.isEmpty) {
-                      return 'Required !';
-                    }
-                    return null;
-                  },
+                Flex(
+                  direction: Axis.horizontal,
+                  children: [
+                    IconButton(
+                      onPressed: () {
+                        selectDate(context, dateCheckByCont, () {});
+                      },
+                      icon: Icon(Icons.date_range),
+                    ),
+                    Expanded(
+                      child: TextFormFields(
+                        labelTexts: 'Check Date',
+                        textColor: Colors.black,
+                        controllers: dateCheckByCont,
+                        validators: (cmtReq) {
+                          if (cmtReq == null || cmtReq.isEmpty) {
+                            return 'Required !';
+                          }
+                          return null;
+                        },
+                      ),
+                    ),
+                  ],
                 ),
 
                 TextFormFields(

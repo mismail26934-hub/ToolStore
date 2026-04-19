@@ -17,12 +17,12 @@ class DrawerMenu extends StatelessWidget {
           // Header Drawer
           UserAccountsDrawerHeader(
             accountName: Text(
-              title,
-              style: Theme.of(context).textTheme.titleMedium,
+              title.toUpperCase(),
+              style: Theme.of(context).textTheme.titleLarge,
             ),
             accountEmail: Text(
               level,
-              style: Theme.of(context).textTheme.titleMedium,
+              style: Theme.of(context).textTheme.titleSmall,
             ),
             currentAccountPicture: CircleAvatar(
               backgroundColor: Colors.white,
@@ -34,7 +34,7 @@ class DrawerMenu extends StatelessWidget {
           MenuItem(
             iconMenu: Icons.dashboard,
             title: 'Dashboard',
-            onTap: () => {},
+            onTap: () => {PageRoutes.routeToolItem(context, "")},
             textColor: clrBlack,
           ),
           MenuItem(

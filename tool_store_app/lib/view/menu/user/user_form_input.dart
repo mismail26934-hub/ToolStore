@@ -147,6 +147,8 @@ class _UserFormInputState extends State<UserFormInput> {
                                 "SUPERIOR",
                                 "HEAD_SERVICE",
                                 "TOOL_KEEPER",
+                                "COUNTER",
+                                "GA",
                               ]
                               .map(
                                 (e) =>

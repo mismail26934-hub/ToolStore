@@ -28,6 +28,8 @@ class _TextFormFieldsState extends State<TextFormFields> {
         decoration: InputDecoration(
           labelText: widget.labelTexts,
           labelStyle: Theme.of(context).textTheme.titleSmall,
+          hintStyle: Theme.of(context).textTheme.titleSmall,
+          floatingLabelStyle: Theme.of(context).textTheme.titleSmall,
           border: const OutlineInputBorder(),
         ),
         validator: widget.validators,
