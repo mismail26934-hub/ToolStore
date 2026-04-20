@@ -73,6 +73,10 @@ final milestoneCont = TextEditingController();
 final statusOrderCont = TextEditingController();
 
 // Controller FORM DETAIL
+String paramViewDataTool = 'VIEW DATA TOOL';
+String paramAddDataTool = 'ADD DATA TOOL';
+String paramEditDataTool = 'EDIT DATA TOOL';
+String paramDeleteDataTool = 'DELETED DATA TOOL';
 List<TextEditingController> totalFormDetailCont = [];
 List<TextEditingController> idFormDetailCont = [];
 List<TextEditingController> formCommentCont = [];
@@ -83,8 +87,8 @@ List<TextEditingController> explanCont = [];
 List<TextEditingController> actionNoteCont = [];
 List<TextEditingController> valTypeCont = [];
 List<TextEditingController> partValueCont = [];
-final formDetailDate = TextEditingController();
-final formDetailUser = TextEditingController();
+final formDetailDateCont = TextEditingController();
+final formDetailUserCont = TextEditingController();
 
 // Controller User
 String titleDataUser = 'DATA USER ';

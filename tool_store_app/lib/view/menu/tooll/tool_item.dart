@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_redux/flutter_redux.dart';
+import 'package:tool_store_app/controller/api_url/post_list.dart';
 import 'package:tool_store_app/controller/cont_crud/redux/state.dart';
 import 'package:tool_store_app/view/custom/build_detail.dart/build_detail.dart';
 
@@ -11,7 +12,6 @@ class ToolItem extends StatefulWidget {
 }
 
 class _ToolItemState extends State<ToolItem> {
-  List<String> categories = ["MISSING", "DAMAGE", "ADDITIONAL"];
   @override
   Widget build(BuildContext context) {
     return StoreConnector<AppState, FormsState>(
@@ -33,7 +33,7 @@ class _ToolItemState extends State<ToolItem> {
                       forms.formNo,
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
-                    subtitle: Text('Status: ${forms.formStatusOrder}'),
+                    subtitle: Text('Status: ${forms.formServComment}'),
                     leading: CircleAvatar(child: Text("${index + 1}")),
                     // Bagian Detail yang Muncul Saat Diklik (Sub Items)
                     children: [
@@ -42,10 +42,7 @@ class _ToolItemState extends State<ToolItem> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            BuildDetail(
-                              label: "Category",
-                              value: forms.formServName,
-                            ),
+                            BuildDetail(label: "Category", value: forms.idForm),
                             BuildDetail(
                               label: "Serviceman",
                               value: forms.formServName,
@@ -83,69 +80,95 @@ class _ToolItemState extends State<ToolItem> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                TextButton.icon(
-                                  onPressed: () {},
-                                  label: Text('Reject'),
-                                  style: TextButton.styleFrom(
-                                    minimumSize: const Size(100, 40),
-                                    // Mengatur warna teks dan ikon
-                                    foregroundColor: Colors.black,
-                                    // Menambahkan border
-                                    side: const BorderSide(
-                                      color: Colors.red,
-                                      width: 1,
-                                    ),
-                                    // Mengatur kelengkungan sudut (rounded)
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(5),
+                                Expanded(
+                                  flex: 1,
+                                  child: TextButton.icon(
+                                    onPressed: () {},
+                                    label: Text('Reject'),
+                                    style: TextButton.styleFrom(
+                                      minimumSize: const Size(100, 40),
+                                      // Mengatur warna teks dan ikon
+                                      foregroundColor: Colors.black,
+                                      // Menambahkan border
+                                      side: const BorderSide(
+                                        color: Colors.red,
+                                        width: 1,
+                                      ),
+                                      // Mengatur kelengkungan sudut (rounded)
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(5),
+                                      ),
                                     ),
                                   ),
                                 ),
-                                TextButton.icon(
-                                  onPressed: () {},
-                                  label: Text('Approve'),
-                                  style: TextButton.styleFrom(
-                                    minimumSize: const Size(100, 40),
-                                    // Mengatur warna teks dan ikon
-                                    foregroundColor: Colors.black,
-                                    // Menambahkan border
-                                    side: const BorderSide(
-                                      color: Colors.black,
-                                      width: 1,
-                                    ),
-                                    // Mengatur kelengkungan sudut (rounded)
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(5),
+                                SizedBox(
+                                  width: MediaQuery.of(context).size.width / 4,
+                                ),
+                                Expanded(
+                                  flex: 1,
+                                  child: TextButton.icon(
+                                    onPressed: () {},
+                                    label: Text('Approve'),
+                                    style: TextButton.styleFrom(
+                                      minimumSize: const Size(100, 40),
+                                      // Mengatur warna teks dan ikon
+                                      foregroundColor: Colors.black,
+                                      // Menambahkan border
+                                      side: const BorderSide(
+                                        color: Colors.black,
+                                        width: 1,
+                                      ),
+                                      // Mengatur kelengkungan sudut (rounded)
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(5),
+                                      ),
                                     ),
                                   ),
                                 ),
                               ],
                             ),
-                            ...categories
-                                .where((cat) => cat == "DAMAGE")
-                                .map(
-                                  (cat) => Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 4.0,
-                                    ),
-                                    child: Row(
+                            const Divider(),
+                            StoreConnector<AppState, List<PostList>>(
+                              converter: (store) {
+                                final allData =
+                                    store.state.formsDetailState.formsDetail;
+                                return allData
+                                    .where(
+                                      (item) => item.idForm == forms.idForm,
+                                    )
+                                    .toList();
+                              },
+                              builder: (context, filteredList) {
+                                return ListView.builder(
+                                  shrinkWrap: true,
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  itemCount: filteredList.length,
+                                  itemBuilder: (context, index) {
+                                    final item = filteredList[index];
+                                    // Sekarang 'filteredList' bisa dikenali
+                                    return Row(
                                       mainAxisAlignment:
                                           MainAxisAlignment.spaceBetween,
                                       children: [
                                         const Text(
-                                          "Category:",
+                                          "Form No : ",
                                           style: TextStyle(color: Colors.black),
                                         ),
-                                        Text(
-                                          cat,
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.w500,
+                                        Expanded(
+                                          child: Text(
+                                            item.formComment,
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.w500,
+                                            ),
                                           ),
                                         ),
                                       ],
-                                    ),
-                                  ),
-                                ),
+                                    );
+                                  },
+                                );
+                              },
+                            ),
+                            const Divider(),
                           ],
                         ),
                       ),

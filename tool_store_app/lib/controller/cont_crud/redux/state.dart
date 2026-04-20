@@ -12,7 +12,7 @@ class UserState {
 
   UserState copyWith({List<PostList>? users, bool? isLoading, String? error}) {
     return UserState(
-      // Jika parameter baru (list) null, gunakan nilai yang sudah ada (this.list)
+      // Jika parameter baru (list) null, gunakan nilai yang sudah ada (this.users)
       users: users ?? this.users,
       isLoading: isLoading ?? this.isLoading,
       error: error ?? this.error,
@@ -36,9 +36,38 @@ class FormsState {
     String? error,
   }) {
     return FormsState(
-      // Jika parameter baru (list) null, gunakan nilai yang sudah ada (this.list)
+      // Jika parameter baru (list) null, gunakan nilai yang sudah ada (this.forms)
       forms: forms ?? this.forms,
       isLoadingTool: isLoadingTool ?? this.isLoadingTool,
+      error: error ?? this.error,
+    );
+  }
+}
+
+class FormsDetailState {
+  final List<PostList> formsDetail;
+  final bool isLoadingToolDetail;
+  final String? error;
+
+  FormsDetailState({
+    this.formsDetail = const [],
+    this.isLoadingToolDetail = false,
+    this.error,
+  });
+
+  // Factory untuk state awal
+  factory FormsDetailState.initial() =>
+      FormsDetailState(formsDetail: [], isLoadingToolDetail: false);
+
+  FormsDetailState copyWith({
+    List<PostList>? formsDetail,
+    bool? isLoadingToolDetail,
+    String? error,
+  }) {
+    return FormsDetailState(
+      // Jika parameter baru (list) null, gunakan nilai yang sudah ada (this.formsDetail)
+      formsDetail: formsDetail ?? this.formsDetail,
+      isLoadingToolDetail: isLoadingToolDetail ?? this.isLoadingToolDetail,
       error: error ?? this.error,
     );
   }
@@ -47,11 +76,17 @@ class FormsState {
 class AppState {
   final UserState userState;
   final FormsState formsState;
+  final FormsDetailState formsDetailState;
 
-  AppState({required this.userState, required this.formsState});
+  AppState({
+    required this.userState,
+    required this.formsState,
+    required this.formsDetailState,
+  });
 
   factory AppState.initial() => AppState(
     userState: UserState.initial(),
     formsState: FormsState.initial(),
+    formsDetailState: FormsDetailState.initial(),
   );
 }

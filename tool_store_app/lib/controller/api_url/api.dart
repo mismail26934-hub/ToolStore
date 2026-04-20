@@ -7,6 +7,7 @@ class ApiUrl {
   static String folderUser = 'user';
   static String fileContUser = 'cont_user.php';
   static String fileContTool = 'cont_form.php';
+  static String fileContToolDetail = 'cont_form_detail.php';
   static String fileLogin = 'login.php';
 
   static String contDataUser =
@@ -15,4 +16,6 @@ class ApiUrl {
       "$server/$folderApiTool/$folderApiToolStore/$folderController/$fileContTool";
   static String contLogin =
       "$server/$folderApiTool/$folderApiToolStore/$folderController/$fileLogin";
+  static String contDataToolDetail =
+      "$server/$folderApiTool/$folderApiToolStore/$folderController/$fileContToolDetail";
 }

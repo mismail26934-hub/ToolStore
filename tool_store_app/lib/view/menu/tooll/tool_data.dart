@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_redux/flutter_redux.dart';
+import 'package:tool_store_app/controller/api_url/post_list.dart';
 import 'package:tool_store_app/controller/cont_crud/redux/state.dart';
 import 'package:tool_store_app/controller/cont_crud/redux/store.dart';
 import 'package:tool_store_app/controller/function/funct.dart';
 import 'package:tool_store_app/model/post_get_data.dart';
+import 'package:tool_store_app/view/custom/build_detail.dart/build_detail.dart';
 import 'package:tool_store_app/view/custom/mixin/mixin_pref.dart';
 import 'package:tool_store_app/view/custom/navbar/sliver_appbars.dart';
 import 'package:tool_store_app/view/custom/navbar/sliver_fill_remaining.dart';
-import 'package:tool_store_app/view/custom/routes/page_routes.dart';
 import 'package:tool_store_app/view/menu/drawer/drawer.dart';
 import 'package:tool_store_app/view/var/var.dart';
 
@@ -116,61 +117,336 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                     delegate: SliverChildBuilderDelegate((context, index) {
                       final forms = state.forms[index];
                       return Card(
-                        child: ListTile(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(
+                            15.0,
+                          ), // Ubah angka ini sesuai keinginan
+                        ),
+                        child: ExpansionTile(
+                          shape: const Border(),
+                          initiallyExpanded: true,
                           title: SelectableText(
                             forms.formNo,
-                            style: TextStyle(fontWeight: FontWeight.bold),
+                            style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
-                          subtitle: Column(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              SelectableText(
-                                'Category : ${forms.formServName}',
+                          subtitle: SelectableText(
+                            'Status: ${forms.formServComment}',
+                          ),
+                          leading: CircleAvatar(child: Text("${index + 1}")),
+                          // Bagian Detail yang Muncul Saat Diklik (Sub Items)
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.all(16.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  BuildDetail(
+                                    label: "Category",
+                                    value: forms.idForm,
+                                  ),
+                                  BuildDetail(
+                                    label: "Serviceman",
+                                    value: forms.formServName,
+                                  ),
+                                  BuildDetail(
+                                    label: "Create Date",
+                                    value: forms.formDateServName,
+                                  ),
+                                  BuildDetail(
+                                    label: "Checked By",
+                                    value: forms.formCheckBy,
+                                  ),
+                                  const Divider(),
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      IconButton(
+                                        icon: const Icon(Icons.delete),
+                                        onPressed: () {
+                                          // Panggil fungsi postContForm kamu di sini
+                                          // postContForm(forms.idForm, forms.formNo, ... , context);
+                                        },
+                                      ),
+                                      // Tombol Edit yang kamu buat sebelumnya
+                                      IconButton(
+                                        icon: const Icon(Icons.edit),
+                                        onPressed: () {
+                                          postContForm(
+                                            forms.idForm,
+                                            forms.formNo,
+                                            forms.formServName,
+                                            forms.formServComment,
+                                            forms.formDateServName,
+                                            forms.formCheckBy,
+                                            forms.formDateCheckBy,
+                                            forms.formSuperiorAprd,
+                                            forms.formSuperiorComment,
+                                            forms.formSadminComment,
+                                            forms.formSheadAprd,
+                                            forms.formSheadComment,
+                                            forms.fromDateUpdate,
+                                            forms.formUserUpdate,
+                                            forms.formDateSuperiorAprd,
+                                            forms.formDateSadminComment,
+                                            forms.formDateSheadAprd,
+                                            forms.formMilestone,
+                                            forms.formStatusOrder,
+                                            context,
+                                          );
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 10),
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Expanded(
+                                        flex: 1,
+                                        child: TextButton.icon(
+                                          icon: Icon(Icons.cancel, size: 15.0),
+                                          onPressed: () {},
+                                          label: Text(
+                                            'Reject',
+                                            style: Theme.of(
+                                              context,
+                                            ).textTheme.labelSmall,
+                                          ),
+                                          style: TextButton.styleFrom(
+                                            minimumSize: const Size(100, 40),
+                                            // Mengatur warna teks dan ikon
+                                            foregroundColor: Colors.black,
+                                            // Menambahkan border
+                                            side: const BorderSide(
+                                              color: Colors.red,
+                                              width: 1,
+                                            ),
+                                            // Mengatur kelengkungan sudut (rounded)
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(5),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      SizedBox(width: 5),
+                                      Expanded(
+                                        flex: 1,
+                                        child: TextButton.icon(
+                                          icon: Icon(Icons.check, size: 15.0),
+                                          onPressed: () {},
+                                          label: Text(
+                                            'Approve',
+                                            style: Theme.of(
+                                              context,
+                                            ).textTheme.labelSmall,
+                                          ),
+                                          style: TextButton.styleFrom(
+                                            minimumSize: const Size(100, 40),
+                                            // Mengatur warna teks dan ikon
+                                            foregroundColor: Colors.black,
+                                            // Menambahkan border
+                                            side: const BorderSide(
+                                              color: Colors.black,
+                                              width: 1,
+                                            ),
+                                            // Mengatur kelengkungan sudut (rounded)
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(5),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      SizedBox(width: 5),
+                                      Expanded(
+                                        flex: 1,
+                                        child: TextButton.icon(
+                                          icon: Icon(Icons.add, size: 15.0),
+                                          onPressed: () {},
+                                          label: Text(
+                                            'Add',
+                                            style: Theme.of(
+                                              context,
+                                            ).textTheme.labelSmall,
+                                          ),
+                                          style: TextButton.styleFrom(
+                                            minimumSize: const Size(100, 40),
+                                            // Mengatur warna teks dan ikon
+                                            foregroundColor: Colors.black,
+                                            // Menambahkan border
+                                            side: const BorderSide(
+                                              color: Colors.black,
+                                              width: 1,
+                                            ),
+                                            // Mengatur kelengkungan sudut (rounded)
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(5),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const Divider(),
+                                  StoreConnector<AppState, List<PostList>>(
+                                    converter: (store) {
+                                      final allData = store
+                                          .state
+                                          .formsDetailState
+                                          .formsDetail;
+                                      return allData
+                                          .where(
+                                            (item) =>
+                                                item.idForm == forms.idForm,
+                                          )
+                                          .toList();
+                                    },
+                                    builder: (context, filteredList) {
+                                      return ListView.builder(
+                                        shrinkWrap: true,
+                                        physics:
+                                            const NeverScrollableScrollPhysics(),
+                                        itemCount: filteredList.length,
+                                        itemBuilder: (context, index) {
+                                          final item = filteredList[index];
+                                          // Sekarang 'filteredList' bisa dikenali
+                                          return Column(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.start,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                'ITEM : ${index + 1}',
+                                                style: Theme.of(
+                                                  context,
+                                                ).textTheme.titleSmall,
+                                              ),
+                                              Row(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment
+                                                        .spaceBetween,
+                                                children: [
+                                                  Text(
+                                                    "Part No : ",
+                                                    style: Theme.of(
+                                                      context,
+                                                    ).textTheme.labelLarge,
+                                                  ),
+                                                  Expanded(
+                                                    child: SelectableText(
+                                                      item.formComment,
+                                                      style: const TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.w500,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                              Row(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment
+                                                        .spaceBetween,
+                                                children: [
+                                                  Text(
+                                                    "Part Desc : ",
+                                                    style: Theme.of(
+                                                      context,
+                                                    ).textTheme.labelLarge,
+                                                  ),
+                                                  Expanded(
+                                                    child: SelectableText(
+                                                      item.pnDesc,
+                                                      style: const TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.w500,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                              Row(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment
+                                                        .spaceBetween,
+                                                children: [
+                                                  Text(
+                                                    "Qty : ",
+                                                    style: Theme.of(
+                                                      context,
+                                                    ).textTheme.labelLarge,
+                                                  ),
+                                                  Expanded(
+                                                    child: SelectableText(
+                                                      item.qty,
+                                                      style: const TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.w500,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                              Row(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment
+                                                        .spaceBetween,
+                                                children: [
+                                                  Text(
+                                                    "Explanation : ",
+                                                    style: Theme.of(
+                                                      context,
+                                                    ).textTheme.labelLarge,
+                                                  ),
+                                                  Expanded(
+                                                    child: SelectableText(
+                                                      item.explan,
+                                                      style: const TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.w500,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                              Row(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment
+                                                        .spaceBetween,
+                                                children: [
+                                                  Text(
+                                                    "Action Note : A/B/C/D : ",
+                                                    style: Theme.of(
+                                                      context,
+                                                    ).textTheme.labelLarge,
+                                                  ),
+                                                  Expanded(
+                                                    child: SelectableText(
+                                                      item.actionNote,
+                                                      style: const TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.w500,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                              const Divider(),
+                                            ],
+                                          );
+                                        },
+                                      );
+                                    },
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
-                          leading: IconButton(
-                            onPressed: () {
-                              PageRoutes.routeUserFormDetail(
-                                context,
-                                'multiple',
-                              );
-                            },
-                            icon: Icon(Icons.add),
-                          ),
-                          trailing: IconButton(
-                            onPressed: () {
-                              postContForm(
-                                idFormCont.text = forms.idForm,
-                                formNoCont.text = forms.formNo,
-                                servNameCont.text = forms.formServName,
-                                servCommentCont.text = forms.formServComment,
-                                dateServNameCont.text = forms.formDateServName,
-                                checkedByCont.text = forms.formCheckBy,
-                                dateCheckByCont.text = forms.formDateCheckBy,
-                                superiorAprdCont.text = forms.formSuperiorAprd,
-                                superiorCommentCont.text =
-                                    forms.formSuperiorComment,
-                                sadminCommentCont.text =
-                                    forms.formSadminComment,
-                                sheadAprdCont.text = forms.formSheadAprd,
-                                sheadCommentCont.text = forms.formSheadComment,
-                                dateUpdateCont.text = forms.fromDateUpdate,
-                                userUpdateCont.text = forms.formUserUpdate,
-                                dateSuperiorAprdCont.text =
-                                    forms.formDateSuperiorAprd,
-                                dateSadminCommentCont.text =
-                                    forms.formDateSadminComment,
-                                dateSheadAprdCont.text =
-                                    forms.formDateSheadAprd,
-                                milestoneCont.text = forms.formMilestone,
-                                statusOrderCont.text = forms.formStatusOrder,
-                                context,
-                              );
-                            },
-                            icon: Icon(Icons.edit),
-                          ),
+                            ),
+                          ],
                         ),
                       );
                     }, childCount: state.forms.length),

@@ -15,11 +15,13 @@ class _BuildDetailState extends State<BuildDetail> {
       padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
         children: [
-          Text(
+          SelectableText(
             "${widget.label}: ",
             style: const TextStyle(fontWeight: FontWeight.bold),
           ),
-          Expanded(child: Text(widget.value.isEmpty ? "-" : widget.value)),
+          Expanded(
+            child: SelectableText(widget.value.isEmpty ? "-" : widget.value),
+          ),
         ],
       ),
     );

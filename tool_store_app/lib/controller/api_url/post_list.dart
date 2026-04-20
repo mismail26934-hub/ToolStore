@@ -110,7 +110,7 @@ class PostList {
       level: json['level'] ?? "",
       status: json['status'] ?? "",
 
-      idForm: json['id_from'] ?? "",
+      idForm: json['id_form'] ?? "",
       formNo: json['form_no'] ?? "",
       formServName: json['form_serv_name'] ?? "",
       formServComment: json['form_serv_comment'] ?? "",
@@ -130,10 +130,10 @@ class PostList {
       formMilestone: json['form_milestone'] ?? "",
       formStatusOrder: json['form_status_order'] ?? "",
 
-      idFormDetail: json['idFormDetail'] ?? "",
-      formComment: json['formComment'] ?? "",
-      pnGroup: json['pnGroup'] ?? "",
-      pnDesc: json['pnDesc'] ?? "",
+      idFormDetail: json['id_form_detail'] ?? "",
+      formComment: json['form_comment'] ?? "",
+      pnGroup: json['pn_group'] ?? "",
+      pnDesc: json['pn_desc'] ?? "",
       qty: json['qty'] ?? "",
       explan: json['explan'] ?? "",
       actionNote: json['action_note'] ?? "",
@@ -142,10 +142,10 @@ class PostList {
       valType: json['val_type'] ?? "",
       partValue: json['part_value'] ?? "",
 
-      idActionNote: json['idActionNote'] ?? "",
-      actionNoteDesc: json['actionNoteDesc'] ?? "",
-      actionDateUpdate: json['actionDateUpdate'] ?? "",
-      actionNoteUser: json['actionNoteUser'] ?? "",
+      idActionNote: json['id_action_note'] ?? "",
+      actionNoteDesc: json['action_note_desc'] ?? "",
+      actionDateUpdate: json['action_date_update'] ?? "",
+      actionNoteUser: json['action_note_user'] ?? "",
     );
   }
 }

@@ -29,10 +29,28 @@ final formReducer = combineReducers<FormsState>([
   ).call,
 ]);
 
+final formsDetailReducer = combineReducers<FormsDetailState>([
+  TypedReducer<FormsDetailState, FetchDataToolsAction>(
+    (state, action) =>
+        state.copyWith(formsDetail: [], isLoadingToolDetail: true, error: null),
+  ).call,
+  TypedReducer<FormsDetailState, DataToolsLoadedAction>(
+    (state, action) => state.copyWith(
+      isLoadingToolDetail: false,
+      formsDetail: action.formsDetail,
+    ),
+  ).call,
+  TypedReducer<FormsDetailState, DataToolsErrorAction>(
+    (state, action) =>
+        state.copyWith(isLoadingToolDetail: false, error: action.errors),
+  ).call,
+]);
+
 // Reducer UTAMA
 AppState appReducer(AppState state, dynamic action) {
   return AppState(
     userState: userReducer(state.userState, action),
     formsState: formReducer(state.formsState, action),
+    formsDetailState: formsDetailReducer(state.formsDetailState, action),
   );
 }

@@ -46,7 +46,6 @@ ThunkAction<AppState> getDataUser({
       dio.options.receiveTimeout = const Duration(seconds: 20);
       final response = await dio.post(ApiUrl.contDataUser, data: map);
       List<PostList> listUser = parseResponse(response.data);
-      print(response.data);
       // Dispatch ke store (Redux)
       store.dispatch(UsersLoadedAction(listUser));
       return listUser;
@@ -74,7 +73,7 @@ ThunkAction<AppState> getDataUser({
   };
 }
 
-// Data Tool
+// DATA TOOL
 ThunkAction<AppState> getDataTool({
   required String param,
   required String idFrom,
@@ -137,7 +136,10 @@ ThunkAction<AppState> getDataTool({
         throw Exception("Server Down ($messages)");
       }
     } catch (e) {
-      return [];
+      // Pastikan kirim action error agar state.isLoading jadi false
+      store.dispatch(DatasErrorAction(e.toString()));
+      // Lempar error agar RefreshIndicator tahu ini sudah selesai
+      throw Exception(e);
     }
   };
 }
@@ -193,4 +195,69 @@ Future writeSR(
 Future getPref() async {
   SharedPreferences prefs = await SharedPreferences.getInstance();
   return prefs;
+}
+
+// DATA DETAIL TOOL
+ThunkAction<AppState> getDataToolDetail({
+  required String param,
+  required String idFormDetail,
+  required String idFrom,
+  required String formComment,
+  required String pnGroup,
+  required String pnDesc,
+  required String qty,
+  required String explan,
+  required String actionNote,
+  required String valType,
+  required String partValue,
+  required String formDetailDate,
+  required String formDetailUser,
+}) {
+  return (Store<AppState> store) async {
+    store.dispatch(FetchDataToolsAction());
+    var map = FormData.fromMap({
+      'param': param,
+      'id_form_detail ': idFormDetail,
+      'id_from': idFrom,
+      'form_comment': formComment,
+      'pn_group': pnGroup,
+      'pn_desc': pnDesc,
+      'qty': qty,
+      'explan': explan,
+      'action_note': actionNote,
+      'val_type': valType,
+      'part_value': partValue,
+      'form_detail_date': formDetailDate,
+      'form_detail_user': formDetailUser,
+    });
+
+    var dio = Dio();
+    try {
+      dio.options.connectTimeout = const Duration(seconds: 20);
+      dio.options.receiveTimeout = const Duration(seconds: 20);
+      final response = await dio.post(ApiUrl.contDataToolDetail, data: map);
+      List<PostList> listToolDetail = parseResponse(response.data);
+      print(response.data);
+      // Dispatch ke store (Redux)
+      store.dispatch(DataToolsLoadedAction(listToolDetail));
+      return listToolDetail;
+    } on DioException catch (e) {
+      if (e.type == DioExceptionType.connectionError ||
+          e.error is SocketException ||
+          e.type == DioExceptionType.connectionTimeout) {
+        // Anda bisa melempar error agar ditangkap oleh UI (FutureBuilder/Provider)
+        errors = cekInternet;
+        messages = "(${e.message})";
+        store.dispatch(DataToolsErrorAction(errors));
+        throw Exception(cekInternet);
+      } else {
+        errors = serverDown;
+        messages = "(${e.message})";
+        store.dispatch(DataToolsErrorAction(errors));
+        throw Exception("Server Down ($messages)");
+      }
+    } catch (e) {
+      return [];
+    }
+  };
 }

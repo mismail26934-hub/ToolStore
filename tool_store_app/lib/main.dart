@@ -46,6 +46,23 @@ void main() {
       formUserUpdate: '',
     ),
   );
+  store.dispatch(
+    getDataToolDetail(
+      param: 'VIEW DATA TOOL',
+      idFormDetail: '',
+      idFrom: '',
+      formComment: '',
+      pnGroup: '',
+      pnDesc: '',
+      qty: '',
+      explan: '',
+      actionNote: '',
+      valType: '',
+      partValue: '',
+      formDetailDate: '',
+      formDetailUser: '',
+    ),
+  );
 }
 
 class MyApp extends StatefulWidget {
