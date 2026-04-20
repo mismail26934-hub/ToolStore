@@ -78,6 +78,7 @@ String paramAddDataTool = 'ADD DATA TOOL';
 String paramEditDataTool = 'EDIT DATA TOOL';
 String paramDeleteDataTool = 'DELETED DATA TOOL';
 List<TextEditingController> totalFormDetailCont = [];
+List<TextEditingController> idFormToolCont = [];
 List<TextEditingController> idFormDetailCont = [];
 List<TextEditingController> formCommentCont = [];
 List<TextEditingController> pnGroupCont = [];

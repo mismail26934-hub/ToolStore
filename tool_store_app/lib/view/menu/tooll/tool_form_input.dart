@@ -42,19 +42,27 @@ class ToolFormInputState extends State<ToolFormInput> {
                     bottom: 5.0,
                   ),
                   child: DropdownButtonFormField(
-                    style: Theme.of(context).textTheme.titleSmall,
+                    style: Theme.of(context).textTheme.labelMedium,
                     initialValue: statusOrderCont.text.isEmpty
                         ? null
                         : statusOrderCont.text,
                     items: ["HOLDER", "NON HOLDER"]
-                        .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                        .map(
+                          (e) => DropdownMenuItem(
+                            value: e,
+                            child: Text(
+                              e,
+                              style: Theme.of(context).textTheme.labelMedium,
+                            ),
+                          ),
+                        )
                         .toList(),
                     onChanged: (val) => setState(() {
                       statusOrderCont.text = val.toString();
                       servCommentCont.clear();
                     }),
                     decoration: InputDecoration(
-                      labelStyle: Theme.of(context).textTheme.titleSmall,
+                      labelStyle: Theme.of(context).textTheme.labelMedium,
                       labelText: "Status Order",
                       border: const OutlineInputBorder(),
                     ),
@@ -74,7 +82,7 @@ class ToolFormInputState extends State<ToolFormInput> {
                     bottom: 5.0,
                   ),
                   child: DropdownButtonFormField(
-                    style: Theme.of(context).textTheme.titleSmall,
+                    style: Theme.of(context).textTheme.labelMedium,
                     initialValue: servCommentCont.text.isEmpty
                         ? null
                         : servCommentCont.text,
@@ -83,7 +91,15 @@ class ToolFormInputState extends State<ToolFormInput> {
                                 ? ["MISSING", "DAMAGE", "ADDITIONAL"]
                                 : ["BUDGET", "NON BUDGET"])
                             .map(
-                              (e) => DropdownMenuItem(value: e, child: Text(e)),
+                              (e) => DropdownMenuItem(
+                                value: e,
+                                child: Text(
+                                  e,
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.labelMedium,
+                                ),
+                              ),
                             )
                             .toList(),
                     onChanged: statusOrderCont.text.isEmpty
@@ -92,7 +108,7 @@ class ToolFormInputState extends State<ToolFormInput> {
                             () => servCommentCont.text = val.toString(),
                           ),
                     decoration: InputDecoration(
-                      labelStyle: Theme.of(context).textTheme.titleSmall,
+                      labelStyle: Theme.of(context).textTheme.labelMedium,
                       labelText: "Category",
                       border: OutlineInputBorder(),
                     ),

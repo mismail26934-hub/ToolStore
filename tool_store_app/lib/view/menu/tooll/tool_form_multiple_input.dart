@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:tool_store_app/view/custom/form/text_form_field.dart';
+import 'package:tool_store_app/view/custom/routes/page_routes.dart';
+import 'package:tool_store_app/view/custom/show_dialog/show_dialog.dart';
 import 'package:tool_store_app/view/var/var.dart'; // Pastikan formKey ada di sini
 
 class ToolFormMultipleInput extends StatefulWidget {
@@ -12,44 +14,104 @@ class ToolFormMultipleInput extends StatefulWidget {
 
 class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
   // Gunakan underscore (_) untuk menandakan variabel private
-  final List<TextEditingController> _controllers = [];
-
-  void _addRow() {
-    setState(() {
-      _controllers.add(TextEditingController());
-    });
-  }
-
-  void _removeRow(int i) {
-    if (_controllers.length > 1) {
-      // Sisakan minimal 1 baris
-      setState(() {
-        _controllers[i].dispose();
-        _controllers.removeAt(i);
-      });
-    }
-  }
-
+  // final List<TextEditingController> _controllers = [];
   @override
   void initState() {
     super.initState();
-    _addRow(); // Tambah baris pertama saat startup
+    _addRow();
+  }
+
+  void _addRow() {
+    setState(() {
+      idFormToolCont.add(TextEditingController());
+      idFormDetailCont.add(TextEditingController());
+      formCommentCont.add(TextEditingController());
+      pnGroupCont.add(TextEditingController());
+      pnDescCont.add(TextEditingController());
+      qtyCont.add(TextEditingController());
+      explanCont.add(TextEditingController());
+      actionNoteCont.add(TextEditingController());
+      valTypeCont.add(TextEditingController());
+      partValueCont.add(TextEditingController());
+    });
   }
 
   @override
   void dispose() {
-    // BERSIHKAN MEMORI: Wajib dilakukan di Flutter
-    for (var controller in _controllers) {
-      controller.dispose();
+    // Fungsi pembantu agar tidak menulis satu-satu
+    void disposeList(List<TextEditingController> list) {
+      for (var controller in list) {
+        controller.dispose();
+      }
+      list.clear(); // Bersihkan list agar tidak duplikat saat buka kembali
     }
+
+    disposeList(idFormToolCont);
+    disposeList(idFormDetailCont);
+    disposeList(formCommentCont);
+    disposeList(pnGroupCont);
+    disposeList(pnDescCont);
+    disposeList(qtyCont);
+    disposeList(explanCont);
+    disposeList(actionNoteCont);
+    disposeList(valTypeCont);
+    disposeList(partValueCont);
+
     super.dispose();
+  }
+
+  void _removeRow(int i) {
+    if (idFormToolCont.length > 1) {
+      // Sisakan minimal 1 baris
+      setState(() {
+        idFormToolCont.removeAt(i);
+        idFormToolCont[i].dispose();
+
+        idFormDetailCont.removeAt(i);
+        idFormDetailCont[i].dispose();
+
+        formCommentCont.removeAt(i);
+        formCommentCont[i].dispose();
+
+        pnGroupCont.removeAt(i);
+        pnGroupCont[i].dispose();
+
+        pnDescCont.removeAt(i);
+        pnDescCont[i].dispose();
+
+        qtyCont.removeAt(i);
+        qtyCont[i].dispose();
+
+        explanCont.removeAt(i);
+        explanCont[i].dispose();
+
+        actionNoteCont.removeAt(i);
+        actionNoteCont[i].dispose();
+
+        valTypeCont.removeAt(i);
+        valTypeCont[i].dispose();
+
+        partValueCont.removeAt(i);
+        partValueCont[i].dispose();
+      });
+    }
   }
 
   void _submitData() {
     if (formKey.currentState!.validate()) {
       // Ambil semua data teks
-      List<String> dataValues = _controllers.map((c) => c.text).toList();
-      print("Data siap kirim ke API: $dataValues");
+      List<Map<String, dynamic>> allItems = [];
+      for (var i = 0; i < idFormToolCont.length; i++) {
+        allItems.add({
+          "pn_group": pnGroupCont[i].text,
+          "qty": qtyCont[i].text,
+          "description": pnDescCont[i].text,
+          "explanation": explanCont[i].text,
+          "action_note": actionNoteCont[i].text,
+          // Tambahkan field lainnya sesuai kebutuhan API
+        });
+      }
+      print("Data siap kirim ke API: $allItems");
       // Lanjutkan dengan http.post ke PHP di sini
     }
   }
@@ -58,7 +120,7 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Input Data ${widget.subtitle}"),
+        title: Text(widget.subtitle),
         actions: [
           IconButton(onPressed: _addRow, icon: const Icon(Icons.add_circle)),
         ],
@@ -71,10 +133,10 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
               Expanded(
                 child: ListView.builder(
                   padding: const EdgeInsets.all(16.0),
-                  itemCount: _controllers.length,
+                  itemCount: idFormToolCont.length,
                   itemBuilder: (context, i) {
                     return Card(
-                      // Menggunakan Card agar tiap grup input lebih rapi
+                      color: clrWhite,
                       margin: const EdgeInsets.only(bottom: 15.0),
                       child: Padding(
                         padding: const EdgeInsets.all(5.0),
@@ -108,7 +170,7 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
                                   child: TextFormFields(
                                     labelTexts: 'PN GROUP CONSIST',
                                     textColor: Colors.black,
-                                    controllers: _controllers[i],
+                                    controllers: pnGroupCont[i],
                                     validators: (value) =>
                                         (value == null || value.isEmpty)
                                         ? 'Required !'
@@ -120,7 +182,7 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
                                   child: TextFormFields(
                                     labelTexts: 'QTY',
                                     textColor: Colors.black,
-                                    controllers: _controllers[i],
+                                    controllers: qtyCont[i],
                                     validators: (value) =>
                                         (value == null || value.isEmpty)
                                         ? 'Required !'
@@ -132,7 +194,7 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
                                   child: TextFormFields(
                                     labelTexts: 'DESCRIPTION',
                                     textColor: Colors.black,
-                                    controllers: _controllers[i],
+                                    controllers: pnDescCont[i],
                                     validators: (value) =>
                                         (value == null || value.isEmpty)
                                         ? 'Required !'
@@ -142,7 +204,6 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
                               ],
                             ),
                             const SizedBox(height: 10),
-                            // Tambahkan field lain jika perlu, tanpa Expanded
                             Row(
                               children: [
                                 Expanded(
@@ -150,7 +211,7 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
                                   child: TextFormFields(
                                     labelTexts: 'EXPLANATION',
                                     textColor: Colors.black,
-                                    controllers: _controllers[i],
+                                    controllers: explanCont[i],
                                     validators: (value) =>
                                         (value == null || value.isEmpty)
                                         ? 'Required !'
@@ -162,7 +223,7 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
                                   child: TextFormFields(
                                     labelTexts: 'ACTION NOTE (A/B/C/D)',
                                     textColor: Colors.black,
-                                    controllers: _controllers[i],
+                                    controllers: actionNoteCont[i],
                                     validators: (value) =>
                                         (value == null || value.isEmpty)
                                         ? 'Required !'
@@ -178,16 +239,43 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
                   },
                 ),
               ),
-              // Tombol Simpan di bagian bawah
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16.0),
+              Padding(
+                padding: EdgeInsets.all(paddingForm),
                 child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
-                  onPressed: _submitData,
-                  child: const Text(
-                    "SIMPAN SEMUA DATA",
-                    style: TextStyle(color: Colors.white),
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: const Size(double.infinity, 50),
+                    backgroundColor: clrBtnPrimary,
+                    foregroundColor: clrBtnPrimaryFgBlack,
+                  ),
+                  onPressed: () {
+                    ShowDialogBox.show(
+                      context: context,
+                      title: 'Please make sure all data is correct',
+                      contentTitle: widget.subtitle == "Add Data"
+                          ? 'Are you sure save data ?'
+                          : ' Are you sure edit data ?',
+                      onPressedNo: () {
+                        if (!context.mounted) return;
+                        Navigator.pop(context);
+                      },
+                      onPressedYes: () async {
+                        // Tutup dialog dulu
+                        Navigator.pop(context);
+                        _submitData();
+                        if (!context.mounted) return;
+                      },
+                      textNo: 'Cancel',
+                      textYes: 'Yes',
+                      textColorNo: clrBlack,
+                      textColorYes: clrOrange,
+                    );
+                  },
+                  child: Text(
+                    'SAVE',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: btnFontSize,
+                    ),
                   ),
                 ),
               ),

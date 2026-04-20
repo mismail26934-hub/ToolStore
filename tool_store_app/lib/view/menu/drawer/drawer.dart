@@ -34,7 +34,7 @@ class DrawerMenu extends StatelessWidget {
           MenuItem(
             iconMenu: Icons.dashboard,
             title: 'Dashboard',
-            onTap: () => {PageRoutes.routeToolItem(context, "")},
+            onTap: () => {},
             textColor: clrBlack,
           ),
           MenuItem(

@@ -9,6 +9,8 @@ import 'package:tool_store_app/view/custom/build_detail.dart/build_detail.dart';
 import 'package:tool_store_app/view/custom/mixin/mixin_pref.dart';
 import 'package:tool_store_app/view/custom/navbar/sliver_appbars.dart';
 import 'package:tool_store_app/view/custom/navbar/sliver_fill_remaining.dart';
+import 'package:tool_store_app/view/custom/routes/page_routes.dart';
+import 'package:tool_store_app/view/custom/show_dialog/show_dialog.dart';
 import 'package:tool_store_app/view/menu/drawer/drawer.dart';
 import 'package:tool_store_app/view/var/var.dart';
 
@@ -117,6 +119,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                     delegate: SliverChildBuilderDelegate((context, index) {
                       final forms = state.forms[index];
                       return Card(
+                        color: clrWhite,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(
                             15.0,
@@ -168,9 +171,8 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                                           // postContForm(forms.idForm, forms.formNo, ... , context);
                                         },
                                       ),
-                                      // Tombol Edit yang kamu buat sebelumnya
                                       IconButton(
-                                        icon: const Icon(Icons.edit),
+                                        icon: const Icon(Icons.edit_document),
                                         onPressed: () {
                                           postContForm(
                                             forms.idForm,
@@ -207,20 +209,45 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                                         flex: 1,
                                         child: TextButton.icon(
                                           icon: Icon(Icons.cancel, size: 15.0),
-                                          onPressed: () {},
+                                          onPressed: () {
+                                            ShowDialogBox.show(
+                                              context: context,
+                                              title:
+                                                  'Please make sure all data is correct',
+                                              contentTitle:
+                                                  ' Are you sure reject ?',
+                                              onPressedNo: () {
+                                                if (!context.mounted) return;
+                                                Navigator.pop(context);
+                                              },
+                                              onPressedYes: () async {
+                                                // Tutup dialog dulu
+                                                Navigator.pop(context);
+                                                if (!context.mounted) return;
+                                              },
+                                              textNo: 'Cancel',
+                                              textYes: 'Yes',
+                                              textColorNo: clrBlack,
+                                              textColorYes: clrOrange,
+                                            );
+                                          },
                                           label: Text(
                                             'Reject',
-                                            style: Theme.of(
-                                              context,
-                                            ).textTheme.labelSmall,
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .labelSmall
+                                                ?.copyWith(color: clrWhite),
                                           ),
                                           style: TextButton.styleFrom(
+                                            shadowColor: clrWhite,
+                                            iconColor: clrWhite,
+                                            backgroundColor: clrRed,
                                             minimumSize: const Size(100, 40),
                                             // Mengatur warna teks dan ikon
-                                            foregroundColor: Colors.black,
+                                            foregroundColor: clrWhite,
                                             // Menambahkan border
-                                            side: const BorderSide(
-                                              color: Colors.red,
+                                            side: BorderSide(
+                                              color: clrRed,
                                               width: 1,
                                             ),
                                             // Mengatur kelengkungan sudut (rounded)
@@ -235,21 +262,49 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                                       Expanded(
                                         flex: 1,
                                         child: TextButton.icon(
-                                          icon: Icon(Icons.check, size: 15.0),
-                                          onPressed: () {},
+                                          icon: Icon(
+                                            Icons.approval,
+                                            size: 15.0,
+                                          ),
+                                          onPressed: () {
+                                            ShowDialogBox.show(
+                                              context: context,
+                                              title:
+                                                  'Please make sure all data is correct',
+                                              contentTitle:
+                                                  ' Are you sure approve ?',
+                                              onPressedNo: () {
+                                                if (!context.mounted) return;
+                                                Navigator.pop(context);
+                                              },
+                                              onPressedYes: () async {
+                                                // Tutup dialog dulu
+                                                Navigator.pop(context);
+                                                if (!context.mounted) return;
+                                              },
+                                              textNo: 'Cancel',
+                                              textYes: 'Yes',
+                                              textColorNo: clrBlack,
+                                              textColorYes: clrOrange,
+                                            );
+                                          },
                                           label: Text(
                                             'Approve',
-                                            style: Theme.of(
-                                              context,
-                                            ).textTheme.labelSmall,
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .labelSmall
+                                                ?.copyWith(color: clrWhite),
                                           ),
                                           style: TextButton.styleFrom(
+                                            shadowColor: clrWhite,
+                                            iconColor: clrWhite,
+                                            backgroundColor: clrGreen,
                                             minimumSize: const Size(100, 40),
                                             // Mengatur warna teks dan ikon
-                                            foregroundColor: Colors.black,
+                                            foregroundColor: clrWhite,
                                             // Menambahkan border
-                                            side: const BorderSide(
-                                              color: Colors.black,
+                                            side: BorderSide(
+                                              color: clrGreen,
                                               width: 1,
                                             ),
                                             // Mengatur kelengkungan sudut (rounded)
@@ -265,20 +320,29 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                                         flex: 1,
                                         child: TextButton.icon(
                                           icon: Icon(Icons.add, size: 15.0),
-                                          onPressed: () {},
+                                          onPressed: () {
+                                            PageRoutes.routeUserFormDetail(
+                                              context,
+                                              'Add Data',
+                                            );
+                                          },
                                           label: Text(
                                             'Add',
-                                            style: Theme.of(
-                                              context,
-                                            ).textTheme.labelSmall,
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .labelSmall
+                                                ?.copyWith(color: clrWhite),
                                           ),
                                           style: TextButton.styleFrom(
+                                            shadowColor: clrWhite,
+                                            iconColor: clrWhite,
+                                            backgroundColor: Colors.blue,
                                             minimumSize: const Size(100, 40),
                                             // Mengatur warna teks dan ikon
-                                            foregroundColor: Colors.black,
+                                            foregroundColor: clrWhite,
                                             // Menambahkan border
-                                            side: const BorderSide(
-                                              color: Colors.black,
+                                            side: BorderSide(
+                                              color: Colors.blue,
                                               width: 1,
                                             ),
                                             // Mengatur kelengkungan sudut (rounded)
@@ -320,11 +384,25 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                                             crossAxisAlignment:
                                                 CrossAxisAlignment.start,
                                             children: [
-                                              Text(
-                                                'ITEM : ${index + 1}',
-                                                style: Theme.of(
-                                                  context,
-                                                ).textTheme.titleSmall,
+                                              Row(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment
+                                                        .spaceBetween,
+                                                children: [
+                                                  Text(
+                                                    'ITEM : ${index + 1}',
+                                                    style: Theme.of(
+                                                      context,
+                                                    ).textTheme.titleSmall,
+                                                  ),
+                                                  IconButton(
+                                                    onPressed: () {},
+                                                    icon: Icon(
+                                                      Icons.edit,
+                                                      size: 15,
+                                                    ),
+                                                  ),
+                                                ],
                                               ),
                                               Row(
                                                 mainAxisAlignment:

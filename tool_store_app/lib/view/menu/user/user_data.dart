@@ -89,6 +89,7 @@ class _UserDataState extends State<UserData> with MixinPref {
                   delegate: SliverChildBuilderDelegate((context, index) {
                     final users = state.users[index];
                     return Card(
+                      color: clrWhite,
                       child: ListTile(
                         title: SelectableText(
                           users.username,
