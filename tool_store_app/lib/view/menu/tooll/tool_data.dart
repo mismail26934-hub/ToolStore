@@ -120,11 +120,6 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                       final forms = state.forms[index];
                       return Card(
                         color: clrWhite,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(
-                            15.0,
-                          ), // Ubah angka ini sesuai keinginan
-                        ),
                         child: ExpansionTile(
                           shape: const Border(),
                           initiallyExpanded: true,
@@ -135,7 +130,13 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                           subtitle: SelectableText(
                             'Status: ${forms.formServComment}',
                           ),
-                          leading: CircleAvatar(child: Text("${index + 1}")),
+                          leading: CircleAvatar(
+                            backgroundColor: clrOrange,
+                            child: Text(
+                              "${index + 1}",
+                              style: TextStyle(color: clrBlack),
+                            ),
+                          ),
                           // Bagian Detail yang Muncul Saat Diklik (Sub Items)
                           children: [
                             Padding(
@@ -143,33 +144,13 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  BuildDetail(
-                                    label: "Category",
-                                    value: forms.idForm,
-                                  ),
-                                  BuildDetail(
-                                    label: "Serviceman",
-                                    value: forms.formServName,
-                                  ),
-                                  BuildDetail(
-                                    label: "Create Date",
-                                    value: forms.formDateServName,
-                                  ),
-                                  BuildDetail(
-                                    label: "Checked By",
-                                    value: forms.formCheckBy,
-                                  ),
-                                  const Divider(),
                                   Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
                                     children: [
-                                      IconButton(
-                                        icon: const Icon(Icons.delete),
-                                        onPressed: () {
-                                          // Panggil fungsi postContForm kamu di sini
-                                          // postContForm(forms.idForm, forms.formNo, ... , context);
-                                        },
+                                      Expanded(
+                                        child: BuildDetail(
+                                          label: "Category",
+                                          value: forms.idForm,
+                                        ),
                                       ),
                                       IconButton(
                                         icon: const Icon(Icons.edit_document),
@@ -200,7 +181,19 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                                       ),
                                     ],
                                   ),
-                                  const SizedBox(height: 10),
+                                  BuildDetail(
+                                    label: "Serviceman",
+                                    value: forms.formServName,
+                                  ),
+                                  BuildDetail(
+                                    label: "Create Date",
+                                    value: forms.formDateServName,
+                                  ),
+                                  BuildDetail(
+                                    label: "Checked By",
+                                    value: forms.formCheckBy,
+                                  ),
+                                  const Divider(),
                                   Row(
                                     mainAxisAlignment:
                                         MainAxisAlignment.spaceBetween,
@@ -322,7 +315,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                                           onPressed: () {
                                             PageRoutes.routeUserFormDetail(
                                               context,
-                                              'Add Data',
+                                              'ADD DATA',
                                             );
                                           },
                                           label: Text(
@@ -374,8 +367,8 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                                         physics:
                                             const NeverScrollableScrollPhysics(),
                                         itemCount: filteredList.length,
-                                        itemBuilder: (context, index) {
-                                          final item = filteredList[index];
+                                        itemBuilder: (context, ii) {
+                                          final item = filteredList[ii];
                                           // Sekarang 'filteredList' bisa dikenali
                                           return Column(
                                             mainAxisAlignment:
@@ -389,13 +382,28 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                                                         .spaceBetween,
                                                 children: [
                                                   Text(
-                                                    'ITEM : ${index + 1}',
+                                                    'ITEM : ${ii + 1}',
                                                     style: Theme.of(
                                                       context,
                                                     ).textTheme.titleSmall,
                                                   ),
                                                   IconButton(
-                                                    onPressed: () {},
+                                                    onPressed: () {
+                                                      postMultipleToolCont(
+                                                        '${ii + 1}',
+                                                        item.idForm,
+                                                        item.idFormDetail,
+                                                        item.formComment,
+                                                        item.pnGroup,
+                                                        item.pnDesc,
+                                                        item.qty,
+                                                        item.explan,
+                                                        item.actionNote,
+                                                        item.valType,
+                                                        item.partValue,
+                                                        context,
+                                                      );
+                                                    },
                                                     icon: Icon(
                                                       Icons.edit,
                                                       size: 15,

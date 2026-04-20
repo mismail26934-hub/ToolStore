@@ -22,14 +22,6 @@ class _UserFormState extends State<UserForm> {
   Widget build(BuildContext context) {
     return Scaffold(
       drawer: DrawerMenu(title: name),
-      appBar: AppBar(
-        title: Text(
-          widget.title,
-          style: Theme.of(context).textTheme.titleLarge,
-        ),
-        backgroundColor: clrWhite,
-      ),
-      backgroundColor: clrWhite,
       body: UserFormInput(title: 'FORM USER', onPressTailing: () {}),
     );
   }

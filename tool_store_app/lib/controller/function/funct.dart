@@ -124,3 +124,46 @@ Future<void> selectDate(
     onSelected();
   }
 }
+
+void postMultipleToolCont(
+  String ii,
+  idFormTool,
+  idFormDetail,
+  formComment,
+  pnGroup,
+  pnDesc,
+  qty,
+  explan,
+  actionNote,
+  valType,
+  partValue,
+  BuildContext context,
+) {
+  idFormToolCont.clear();
+  idFormDetailCont.clear();
+  formCommentCont.clear();
+  pnGroupCont.clear();
+  pnDescCont.clear();
+  qtyCont.clear();
+  explanCont.clear();
+  actionNoteCont.clear();
+  valTypeCont.clear();
+  partValueCont.clear();
+
+  idFormToolCont.add(TextEditingController(text: idFormTool ?? ""));
+  idFormDetailCont.add(TextEditingController(text: idFormDetail ?? ""));
+  formCommentCont.add(TextEditingController(text: formComment ?? ""));
+  pnGroupCont.add(TextEditingController(text: pnGroup ?? ""));
+  pnDescCont.add(TextEditingController(text: pnDesc ?? ""));
+  qtyCont.add(TextEditingController(text: qty ?? ""));
+  explanCont.add(TextEditingController(text: explan ?? ""));
+  actionNoteCont.add(TextEditingController(text: actionNote ?? ""));
+  valTypeCont.add(TextEditingController(text: valType ?? ""));
+  partValueCont.add(TextEditingController(text: partValue ?? ""));
+  itemCont.text = ii.toString();
+
+  PageRoutes.routeUserFormDetail(
+    context,
+    idFormToolCont.isEmpty ? 'ADD DATA' : 'EDIT DATA',
+  );
+}

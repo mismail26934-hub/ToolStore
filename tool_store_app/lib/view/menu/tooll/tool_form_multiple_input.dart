@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:tool_store_app/view/custom/form/text_form_field.dart';
-import 'package:tool_store_app/view/custom/routes/page_routes.dart';
 import 'package:tool_store_app/view/custom/show_dialog/show_dialog.dart';
 import 'package:tool_store_app/view/var/var.dart'; // Pastikan formKey ada di sini
 
@@ -62,7 +61,6 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
 
   void _removeRow(int i) {
     if (idFormToolCont.length > 1) {
-      // Sisakan minimal 1 baris
       setState(() {
         idFormToolCont[i].dispose();
         idFormToolCont.removeAt(i);
@@ -122,7 +120,9 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
       appBar: AppBar(
         title: Text(widget.subtitle),
         actions: [
-          IconButton(onPressed: _addRow, icon: const Icon(Icons.add_circle)),
+          widget.subtitle == "ADD DATA"
+              ? IconButton(onPressed: _addRow, icon: Icon(Icons.add_circle))
+              : Container(),
         ],
       ),
       body: SafeArea(
@@ -133,7 +133,9 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
               Expanded(
                 child: ListView.builder(
                   padding: const EdgeInsets.all(16.0),
-                  itemCount: idFormToolCont.length,
+                  itemCount: widget.subtitle == "ADD DATA"
+                      ? idFormToolCont.length
+                      : 1,
                   itemBuilder: (context, i) {
                     return Card(
                       color: clrWhite,
@@ -147,7 +149,9 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
-                                  "ITEM ${i + 1}",
+                                  widget.subtitle == "ADD DATA"
+                                      ? "ITEM ${i + 1}"
+                                      : "ITEM ${itemCont.text}",
                                   style: const TextStyle(
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -157,7 +161,32 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
                                     Icons.delete_outline,
                                     color: Colors.red,
                                   ),
-                                  onPressed: () => _removeRow(i),
+                                  onPressed: widget.subtitle == "ADD DATA"
+                                      ? () {
+                                          _removeRow(i);
+                                        }
+                                      : () {
+                                          ShowDialogBox.show(
+                                            context: context,
+                                            title:
+                                                'Delete ${pnGroupCont[i].text}',
+                                            contentTitle:
+                                                ' Are you sure delete this data ?',
+                                            onPressedNo: () {
+                                              if (!context.mounted) return;
+                                              Navigator.pop(context);
+                                            },
+                                            onPressedYes: () async {
+                                              // Tutup dialog dulu
+                                              Navigator.pop(context);
+                                              if (!context.mounted) return;
+                                            },
+                                            textNo: 'Cancel',
+                                            textYes: 'Yes',
+                                            textColorNo: clrBlack,
+                                            textColorYes: clrOrange,
+                                          );
+                                        },
                                 ),
                               ],
                             ),
@@ -189,8 +218,11 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
                                         : null,
                                   ),
                                 ),
+                              ],
+                            ),
+                            Row(
+                              children: [
                                 Expanded(
-                                  flex: 3,
                                   child: TextFormFields(
                                     labelTexts: 'DESCRIPTION',
                                     textColor: Colors.black,
@@ -251,7 +283,7 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
                     ShowDialogBox.show(
                       context: context,
                       title: 'Please make sure all data is correct',
-                      contentTitle: widget.subtitle == "Add Data"
+                      contentTitle: widget.subtitle == "ADD DATA"
                           ? 'Are you sure save data ?'
                           : ' Are you sure edit data ?',
                       onPressedNo: () {
@@ -271,7 +303,7 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
                     );
                   },
                   child: Text(
-                    'SAVE',
+                    widget.subtitle == "ADD DATA" ? 'SAVE' : 'UPDATE',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: btnFontSize,

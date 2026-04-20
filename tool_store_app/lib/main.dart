@@ -78,14 +78,21 @@ class _MyAppState extends State<MyApp> with MixinPref {
     return StoreProvider<AppState>(
       store: store,
       child: MaterialApp(
-        color: clrOrange,
+        color: clrWhite,
         scrollBehavior: WebCustomScrollBehavior(),
         debugShowCheckedModeBanner: false,
         home: SplashScreen(),
         theme: ThemeData(
+          appBarTheme: AppBarTheme(
+            backgroundColor: clrOrange,
+            foregroundColor: Colors.black,
+          ),
+          drawerTheme: DrawerThemeData(backgroundColor: clrWhite),
+          scaffoldBackgroundColor: clrWhite,
           useMaterial3: true,
+          dialogTheme: DialogThemeData(backgroundColor: clrWhite),
           colorScheme: ColorScheme.fromSeed(
-            seedColor: clrOrange,
+            seedColor: clrWhite,
             primary: clrOrange,
           ),
           textTheme: TextTheme(

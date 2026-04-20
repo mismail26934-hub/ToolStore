@@ -22,14 +22,6 @@ class _ToolFormState extends State<ToolForm> {
   Widget build(BuildContext context) {
     return Scaffold(
       drawer: DrawerMenu(title: name),
-      appBar: AppBar(
-        title: Text(
-          widget.title,
-          style: Theme.of(context).textTheme.titleLarge,
-        ),
-        backgroundColor: clrWhite,
-      ),
-      backgroundColor: clrWhite,
       body: SafeArea(child: ToolFormInput(subtitle: '')),
     );
   }

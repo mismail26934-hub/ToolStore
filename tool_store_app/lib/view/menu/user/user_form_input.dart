@@ -102,7 +102,7 @@ class _UserFormInputState extends State<UserFormInput> {
                   textColorYes: clrRed,
                 );
               },
-              icon: Icon(Icons.delete, color: clrRed),
+              icon: Icon(Icons.delete, color: clrBlack),
             ),
           ),
         ],

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:tool_store_app/controller/function/funct.dart';
 import 'package:tool_store_app/view/custom/form/text_form_field.dart';
+import 'package:tool_store_app/view/custom/show_dialog/show_dialog.dart';
 import 'package:tool_store_app/view/var/var.dart';
 
 class ToolFormInput extends StatefulWidget {
@@ -15,7 +16,38 @@ class ToolFormInputState extends State<ToolFormInput> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Input Data Tool")),
+      appBar: AppBar(
+        title: Text(
+          idFormCont.text != ""
+              ? "Edit Data Tool ${formNoCont.text}"
+              : "Add Data Tool ${formNoCont.text}",
+        ),
+        actions: [
+          IconButton(
+            onPressed: () {
+              ShowDialogBox.show(
+                context: context,
+                title: 'Delete ${formNoCont.text}',
+                contentTitle: ' Are you sure delete this data ?',
+                onPressedNo: () {
+                  if (!context.mounted) return;
+                  Navigator.pop(context);
+                },
+                onPressedYes: () async {
+                  // Tutup dialog dulu
+                  Navigator.pop(context);
+                  if (!context.mounted) return;
+                },
+                textNo: 'Cancel',
+                textYes: 'Yes',
+                textColorNo: clrBlack,
+                textColorYes: clrOrange,
+              );
+            },
+            icon: Icon(Icons.delete),
+          ),
+        ],
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16.0),
