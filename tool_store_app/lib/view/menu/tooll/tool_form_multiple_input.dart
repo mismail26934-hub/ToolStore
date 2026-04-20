@@ -64,35 +64,35 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
     if (idFormToolCont.length > 1) {
       // Sisakan minimal 1 baris
       setState(() {
-        idFormToolCont.removeAt(i);
         idFormToolCont[i].dispose();
+        idFormToolCont.removeAt(i);
 
-        idFormDetailCont.removeAt(i);
         idFormDetailCont[i].dispose();
+        idFormDetailCont.removeAt(i);
 
-        formCommentCont.removeAt(i);
         formCommentCont[i].dispose();
+        formCommentCont.removeAt(i);
 
-        pnGroupCont.removeAt(i);
         pnGroupCont[i].dispose();
+        pnGroupCont.removeAt(i);
 
-        pnDescCont.removeAt(i);
         pnDescCont[i].dispose();
+        pnDescCont.removeAt(i);
 
-        qtyCont.removeAt(i);
         qtyCont[i].dispose();
+        qtyCont.removeAt(i);
 
-        explanCont.removeAt(i);
         explanCont[i].dispose();
+        explanCont.removeAt(i);
 
-        actionNoteCont.removeAt(i);
         actionNoteCont[i].dispose();
+        actionNoteCont.removeAt(i);
 
-        valTypeCont.removeAt(i);
         valTypeCont[i].dispose();
+        valTypeCont.removeAt(i);
 
-        partValueCont.removeAt(i);
         partValueCont[i].dispose();
+        partValueCont.removeAt(i);
       });
     }
   }

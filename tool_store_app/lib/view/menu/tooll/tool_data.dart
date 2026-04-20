@@ -212,8 +212,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                                           onPressed: () {
                                             ShowDialogBox.show(
                                               context: context,
-                                              title:
-                                                  'Please make sure all data is correct',
+                                              title: 'Reject Request Approval',
                                               contentTitle:
                                                   ' Are you sure reject ?',
                                               onPressedNo: () {
