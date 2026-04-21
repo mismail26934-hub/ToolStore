@@ -9,6 +9,7 @@ class PostList {
   late String token;
   late String level;
   late String status;
+  late String superiorId;
 
   late String idForm;
   late String formNo;
@@ -58,6 +59,7 @@ class PostList {
     required this.token,
     required this.level,
     required this.status,
+    required this.superiorId,
 
     required this.idForm,
     required this.formNo,
@@ -109,6 +111,7 @@ class PostList {
       token: json['token'] ?? "",
       level: json['level'] ?? "",
       status: json['status'] ?? "",
+      superiorId: json['superior_id'] ?? "",
 
       idForm: json['id_form'] ?? "",
       formNo: json['form_no'] ?? "",
