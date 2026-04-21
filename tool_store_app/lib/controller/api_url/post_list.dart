@@ -48,6 +48,23 @@ class PostList {
   late String actionDateUpdate;
   late String actionNoteUser;
 
+  late String idPo;
+  late String poNo;
+  late String dateUpdatePo;
+  late String userUpdatePo;
+
+  late String idSo;
+  late String so;
+  late String eta;
+  late String noteSo;
+  late String dateUpdateSo;
+  late String idUpdateSo;
+
+  late String namaSuperior;
+  late String statusSuperior;
+  late String userIdInputSuperior;
+  late String dateInputSuperior;
+
   PostList({
     required this.idUsers,
     required this.username,
@@ -97,6 +114,23 @@ class PostList {
     required this.actionNoteDesc,
     required this.actionDateUpdate,
     required this.actionNoteUser,
+
+    required this.idPo,
+    required this.poNo,
+    required this.dateUpdatePo,
+    required this.userUpdatePo,
+
+    required this.idSo,
+    required this.so,
+    required this.eta,
+    required this.noteSo,
+    required this.dateUpdateSo,
+    required this.idUpdateSo,
+
+    required this.namaSuperior,
+    required this.statusSuperior,
+    required this.userIdInputSuperior,
+    required this.dateInputSuperior,
   });
 
   factory PostList.fromJson(Map<String, dynamic> json) {
@@ -149,6 +183,23 @@ class PostList {
       actionNoteDesc: json['action_note_desc'] ?? "",
       actionDateUpdate: json['action_date_update'] ?? "",
       actionNoteUser: json['action_note_user'] ?? "",
+
+      idPo: json['id_po'] ?? "",
+      poNo: json['po_no'] ?? "",
+      dateUpdatePo: json['date_update_po'] ?? "",
+      userUpdatePo: json['user_update_po'] ?? "",
+
+      idSo: json['id_so'] ?? "",
+      so: json['so'] ?? "",
+      eta: json['eta'] ?? "",
+      noteSo: json['note_so'] ?? "",
+      dateUpdateSo: json['date_update_so	'] ?? "",
+      idUpdateSo: json['id_update_so'] ?? "",
+
+      namaSuperior: json['nama_superior'] ?? "",
+      statusSuperior: json['status_superior'] ?? "",
+      userIdInputSuperior: json['user_id_input_superior'] ?? "",
+      dateInputSuperior: json['date_input_superior'] ?? "",
     );
   }
 }
