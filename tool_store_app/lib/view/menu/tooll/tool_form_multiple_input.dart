@@ -97,7 +97,6 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
 
   void _submitData() {
     if (formKey.currentState!.validate()) {
-      // Ambil semua data teks
       List<Map<String, dynamic>> allItems = [];
       for (var i = 0; i < idFormToolCont.length; i++) {
         allItems.add({
@@ -106,7 +105,6 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
           "description": pnDescCont[i].text,
           "explanation": explanCont[i].text,
           "action_note": actionNoteCont[i].text,
-          // Tambahkan field lainnya sesuai kebutuhan API
         });
       }
       print("Data siap kirim ke API: $allItems");
@@ -191,7 +189,6 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
                               ],
                             ),
                             const Divider(),
-                            // JANGAN gunakan Expanded di sini
                             Row(
                               children: [
                                 Expanded(

@@ -45,6 +45,45 @@ class DataToolsErrorAction {
   DataToolsErrorAction(this.errors);
 }
 
+// PO
+class FetchDataPO {}
+
+class DataPOLoadedAction {
+  final List<PostList> poS;
+  DataPOLoadedAction(this.poS);
+}
+
+class DataPOErrorAction {
+  final String errors;
+  DataPOErrorAction(this.errors);
+}
+
+// SO
+class FetchDataSO {}
+
+class DataSOLoadedAction {
+  final List<PostList> so;
+  DataSOLoadedAction(this.so);
+}
+
+class DataSOErrorAction {
+  final String errors;
+  DataSOErrorAction(this.errors);
+}
+
+// SUPERRIOR
+class FetchDataSuperrior {}
+
+class DataSuperriorLoadedAction {
+  final List<PostList> superrior;
+  DataSuperriorLoadedAction(this.superrior);
+}
+
+class DataSuperriorErrorAction {
+  final String errors;
+  DataSuperriorErrorAction(this.errors);
+}
+
 //MULTIPLE ADD
 class UpdateToolFormAction {
   // Gunakan Map atau buat field satu per satu sesuai kebutuhan

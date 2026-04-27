@@ -40,6 +40,8 @@ final formKey = GlobalKey<FormState>();
 // late bool isLoading;
 bool isLoadingLogin = true;
 bool loadingLogin = false;
+bool expandeds = true;
+bool isExpanded = true;
 
 // Controller Login
 final username = TextEditingController();
@@ -91,6 +93,24 @@ List<TextEditingController> valTypeCont = [];
 List<TextEditingController> partValueCont = [];
 final formDetailDateCont = TextEditingController();
 final formDetailUserCont = TextEditingController();
+
+// Controller PO
+String paramViewDataPO = 'VIEW DATA PO';
+String paramAddDataPO = 'ADD DATA PO';
+String paramEditDataPO = 'EDIT DATA PO';
+String paramDeleteDataPO = 'DELETED DATA PO';
+
+// Controller SO
+String paramViewDataSO = 'VIEW DATA SO';
+String paramAddDataSO = 'ADD DATA SO';
+String paramEditDataSO = 'EDIT DATA SO';
+String paramDeleteDataSO = 'DELETED DATA SO';
+
+// Controller Superrior
+String paramViewDataSuperrior = 'VIEW DATA SUPERRIOR';
+String paramAddDataSuperrior = 'ADD DATA SUPERRIOR';
+String paramEditDataSuperrior = 'EDIT DATA SUPERRIOR';
+String paramDeleteDataSuperrior = 'DELETED DATA SUPERRIOR';
 
 // Controller User
 String titleDataUser = 'DATA USER ';

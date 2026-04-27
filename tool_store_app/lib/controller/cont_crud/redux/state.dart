@@ -73,20 +73,116 @@ class FormsDetailState {
   }
 }
 
+class PosDetailState {
+  final List<PostList> posDetail;
+  final bool isLoadingPO;
+  final String? error;
+
+  PosDetailState({
+    this.posDetail = const [],
+    this.isLoadingPO = false,
+    this.error,
+  });
+
+  // Factory untuk state awal
+  factory PosDetailState.initial() =>
+      PosDetailState(posDetail: [], isLoadingPO: false);
+
+  PosDetailState copyWith({
+    List<PostList>? posDetail,
+    bool? isLoadingPO,
+    String? error,
+  }) {
+    return PosDetailState(
+      // Jika parameter baru (list) null, gunakan nilai yang sudah ada (this.poDetail)
+      posDetail: posDetail ?? this.posDetail,
+      isLoadingPO: isLoadingPO ?? this.isLoadingPO,
+      error: error ?? this.error,
+    );
+  }
+}
+
+class SosDetailState {
+  final List<PostList> sosDetail;
+  final bool isLoadingSO;
+  final String? error;
+
+  SosDetailState({
+    this.sosDetail = const [],
+    this.isLoadingSO = false,
+    this.error,
+  });
+
+  // Factory untuk state awal
+  factory SosDetailState.initial() =>
+      SosDetailState(sosDetail: [], isLoadingSO: false);
+
+  SosDetailState copyWith({
+    List<PostList>? sosDetail,
+    bool? isLoadingSO,
+    String? error,
+  }) {
+    return SosDetailState(
+      // Jika parameter baru (list) null, gunakan nilai yang sudah ada (this.formsDetail)
+      sosDetail: sosDetail ?? this.sosDetail,
+      isLoadingSO: isLoadingSO ?? this.isLoadingSO,
+      error: error ?? this.error,
+    );
+  }
+}
+
+class SuperriorState {
+  final List<PostList> superriorS;
+  final bool isLoadingSuperrior;
+  final String? error;
+
+  SuperriorState({
+    this.superriorS = const [],
+    this.isLoadingSuperrior = false,
+    this.error,
+  });
+
+  // Factory untuk state awal
+  factory SuperriorState.initial() =>
+      SuperriorState(superriorS: [], isLoadingSuperrior: false);
+
+  SuperriorState copyWith({
+    List<PostList>? superriorS,
+    bool? isLoadingSuperrior,
+    String? error,
+  }) {
+    return SuperriorState(
+      // Jika parameter baru (list) null, gunakan nilai yang sudah ada (this.formsDetail)
+      superriorS: superriorS ?? this.superriorS,
+      isLoadingSuperrior: isLoadingSuperrior ?? this.isLoadingSuperrior,
+      error: error ?? this.error,
+    );
+  }
+}
+
 class AppState {
   final UserState userState;
   final FormsState formsState;
   final FormsDetailState formsDetailState;
+  final PosDetailState posDetailState;
+  final SosDetailState sosDetailState;
+  final SuperriorState superriorState;
 
   AppState({
     required this.userState,
     required this.formsState,
     required this.formsDetailState,
+    required this.posDetailState,
+    required this.sosDetailState,
+    required this.superriorState,
   });
 
   factory AppState.initial() => AppState(
     userState: UserState.initial(),
     formsState: FormsState.initial(),
     formsDetailState: FormsDetailState.initial(),
+    posDetailState: PosDetailState.initial(),
+    sosDetailState: SosDetailState.initial(),
+    superriorState: SuperriorState.initial(),
   );
 }

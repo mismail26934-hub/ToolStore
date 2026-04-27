@@ -261,3 +261,160 @@ ThunkAction<AppState> getDataToolDetail({
     }
   };
 }
+
+// DATA PO
+ThunkAction<AppState> getDataPO({
+  required String param,
+  required String idPO,
+  required String idFormDetail,
+  required String poNO,
+  required String dateUpdatePO,
+  required String userUpdatePO,
+}) {
+  return (Store<AppState> store) async {
+    store.dispatch(FetchDataPO());
+    var map = FormData.fromMap({
+      'param': param,
+      'id_po ': idPO,
+      'id_form_detail': idFormDetail,
+      'po_no': poNO,
+      'date_update_po': dateUpdatePO,
+      'user_update_po': userUpdatePO,
+    });
+
+    var dio = Dio();
+    try {
+      dio.options.connectTimeout = const Duration(seconds: 20);
+      dio.options.receiveTimeout = const Duration(seconds: 20);
+      final response = await dio.post(ApiUrl.contPO, data: map);
+      List<PostList> listPO = parseResponse(response.data);
+      print(response.data);
+      // Dispatch ke store (Redux)
+      store.dispatch(DataPOLoadedAction(listPO));
+      return listPO;
+    } on DioException catch (e) {
+      if (e.type == DioExceptionType.connectionError ||
+          e.error is SocketException ||
+          e.type == DioExceptionType.connectionTimeout) {
+        // Anda bisa melempar error agar ditangkap oleh UI (FutureBuilder/Provider)
+        errors = cekInternet;
+        messages = "(${e.message})";
+        store.dispatch(DataPOErrorAction(errors));
+        throw Exception(cekInternet);
+      } else {
+        errors = serverDown;
+        messages = "(${e.message})";
+        store.dispatch(DataPOErrorAction(errors));
+        throw Exception("Server Down ($messages)");
+      }
+    } catch (e) {
+      return [];
+    }
+  };
+}
+
+// DATA SO
+ThunkAction<AppState> getDataSO({
+  required String param,
+  required String idSo,
+  required String idFormDetail,
+  required String so,
+  required String eta,
+  required String noteSo,
+  required String dateUpdateSo,
+  required String idUpdateSo,
+}) {
+  return (Store<AppState> store) async {
+    store.dispatch(FetchDataSO());
+    var map = FormData.fromMap({
+      'param': param,
+      'id_so ': idSo,
+      'id_form_detail': idFormDetail,
+      'so': so,
+      'eta': eta,
+      'note_so': noteSo,
+      'date_update_so': dateUpdateSo,
+      'id_update_so': idUpdateSo,
+    });
+
+    var dio = Dio();
+    try {
+      dio.options.connectTimeout = const Duration(seconds: 20);
+      dio.options.receiveTimeout = const Duration(seconds: 20);
+      final response = await dio.post(ApiUrl.contSO, data: map);
+      List<PostList> listSO = parseResponse(response.data);
+      print(response.data);
+      // Dispatch ke store (Redux)
+      store.dispatch(DataSOLoadedAction(listSO));
+      return listSO;
+    } on DioException catch (e) {
+      if (e.type == DioExceptionType.connectionError ||
+          e.error is SocketException ||
+          e.type == DioExceptionType.connectionTimeout) {
+        // Anda bisa melempar error agar ditangkap oleh UI (FutureBuilder/Provider)
+        errors = cekInternet;
+        messages = "(${e.message})";
+        store.dispatch(DataSOErrorAction(errors));
+        throw Exception(cekInternet);
+      } else {
+        errors = serverDown;
+        messages = "(${e.message})";
+        store.dispatch(DataSOErrorAction(errors));
+        throw Exception("Server Down ($messages)");
+      }
+    } catch (e) {
+      return [];
+    }
+  };
+}
+
+// DATA SUPERRIOR
+ThunkAction<AppState> getDataSuperrior({
+  required String param,
+  required String superiorId,
+  required String namaSuperior,
+  required String statusSuperior,
+  required String userIdInputSuperior,
+  required String dateInputSuperior,
+}) {
+  return (Store<AppState> store) async {
+    store.dispatch(FetchDataSO());
+    var map = FormData.fromMap({
+      'param': param,
+      'superior_id ': superiorId,
+      'nama_superior': namaSuperior,
+      'status_superior': statusSuperior,
+      'user_id_input_superior': userIdInputSuperior,
+      'date_input_superior': dateInputSuperior,
+    });
+
+    var dio = Dio();
+    try {
+      dio.options.connectTimeout = const Duration(seconds: 20);
+      dio.options.receiveTimeout = const Duration(seconds: 20);
+      final response = await dio.post(ApiUrl.contSuperrior, data: map);
+      List<PostList> listSuperrior = parseResponse(response.data);
+      print(response.data);
+      // Dispatch ke store (Redux)
+      store.dispatch(DataSuperriorLoadedAction(listSuperrior));
+      return listSuperrior;
+    } on DioException catch (e) {
+      if (e.type == DioExceptionType.connectionError ||
+          e.error is SocketException ||
+          e.type == DioExceptionType.connectionTimeout) {
+        // Anda bisa melempar error agar ditangkap oleh UI (FutureBuilder/Provider)
+        errors = cekInternet;
+        messages = "(${e.message})";
+        store.dispatch(DataSuperriorErrorAction(errors));
+        throw Exception(cekInternet);
+      } else {
+        errors = serverDown;
+        messages = "(${e.message})";
+        store.dispatch(DataSuperriorErrorAction(errors));
+        throw Exception("Server Down ($messages)");
+      }
+    } catch (e) {
+      return [];
+    }
+  };
+}

@@ -27,6 +27,7 @@ void main() {
       status: '',
     ),
   );
+
   store.dispatch(
     getDataTool(
       param: paramViewDataForm,
@@ -46,9 +47,10 @@ void main() {
       formUserUpdate: '',
     ),
   );
+
   store.dispatch(
     getDataToolDetail(
-      param: 'VIEW DATA TOOL',
+      param: paramViewDataTool,
       idFormDetail: '',
       idFrom: '',
       formComment: '',
@@ -61,6 +63,41 @@ void main() {
       partValue: '',
       formDetailDate: '',
       formDetailUser: '',
+    ),
+  );
+
+  store.dispatch(
+    getDataPO(
+      param: paramViewDataPO,
+      idPO: '',
+      idFormDetail: '',
+      poNO: '',
+      dateUpdatePO: '',
+      userUpdatePO: '',
+    ),
+  );
+
+  store.dispatch(
+    getDataSO(
+      param: paramViewDataSO,
+      idSo: '',
+      idFormDetail: '',
+      so: '',
+      eta: '',
+      noteSo: '',
+      dateUpdateSo: '',
+      idUpdateSo: '',
+    ),
+  );
+
+  store.dispatch(
+    getDataSuperrior(
+      param: paramViewDataSuperrior,
+      superiorId: '',
+      namaSuperior: '',
+      statusSuperior: '',
+      userIdInputSuperior: '',
+      dateInputSuperior: '',
     ),
   );
 }
