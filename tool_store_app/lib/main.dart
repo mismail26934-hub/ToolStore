@@ -8,10 +8,17 @@ import 'package:tool_store_app/view/custom/mixin/mixin_pref.dart';
 import 'package:tool_store_app/view/custom/web_custom/web_custom_berhaviour.dart';
 import 'package:tool_store_app/view/menu/splash_login/splash.dart';
 import 'package:tool_store_app/view/var/var.dart';
+import 'package:flutter/services.dart';
 
 void main() {
-  runApp(const MyApp());
   WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]).then((_) {
+    runApp(const MyApp());
+  });
+
   store.dispatch(
     getDataUser(
       param: paramViewDataUser,

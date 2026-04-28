@@ -40,7 +40,8 @@ class _DashboardState extends State<Dashboard> {
                     final childAspectRatio = cardWidth / cardHeight;
 
                     return GridView.count(
-                      physics: const NeverScrollableScrollPhysics(),
+                      shrinkWrap: false,
+                      physics: const AlwaysScrollableScrollPhysics(),
                       crossAxisCount: 2,
                       crossAxisSpacing: crossAxisSpacing,
                       mainAxisSpacing: mainAxisSpacing,
@@ -141,6 +142,8 @@ class _DashboardHeader extends StatelessWidget {
             children: [
               _buildMenuButton(),
               const Spacer(),
+              _buildSearchButton(),
+              const SizedBox(width: 8),
               _buildNotificationBadge(context),
             ],
           ),
@@ -213,6 +216,21 @@ class _DashboardHeader extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSearchButton() {
+    return Material(
+      color: Colors.white.withValues(alpha: 0.16),
+      borderRadius: BorderRadius.circular(_buttonRadius),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(_buttonRadius),
+        onTap: () {},
+        child: const Padding(
+          padding: EdgeInsets.all(10),
+          child: Icon(Icons.search_rounded, color: Colors.white, size: 20),
+        ),
       ),
     );
   }
@@ -308,24 +326,32 @@ class _DashboardCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                const Spacer(),
-                Text(
-                  title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    height: 1.15,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Colors.grey.shade700,
-                    height: 1.2,
+                const SizedBox(height: 10),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          height: 1.15,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        subtitle,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Colors.grey.shade700,
+                          height: 1.2,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],

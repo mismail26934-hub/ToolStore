@@ -19,6 +19,62 @@ class UserData extends StatefulWidget {
 class _UserDataState extends State<UserData> with MixinPref {
   // 1. Buat variabel key di sini
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  String _searchField = 'all';
+
+  static const Map<String, String> _searchFieldLabels = {
+    'all': 'Semua',
+    'username': 'Username',
+    'name': 'Name',
+    'phone': 'No.Telp',
+    'level': 'Level',
+    'status': 'Status',
+  };
+
+  void _onSearchChanged(String value) {
+    setState(() {
+      _searchQuery = value.trim();
+    });
+  }
+
+  void _clearSearch() {
+    _searchController.clear();
+    setState(() {
+      _searchQuery = '';
+      _searchField = 'all';
+    });
+  }
+
+  bool _matchesSearch(dynamic users) {
+    if (_searchQuery.isEmpty) return true;
+    final query = _searchQuery.toLowerCase();
+
+    String normalize(dynamic value) => value.toString().toLowerCase();
+
+    switch (_searchField) {
+      case 'username':
+        return normalize(users.username).contains(query);
+      case 'name':
+        return normalize(users.namaUser).contains(query);
+      case 'phone':
+        return normalize(users.noTelp).contains(query);
+      case 'level':
+        return normalize(users.level).contains(query);
+      case 'status':
+        return normalize(users.status).contains(query);
+      case 'all':
+      default:
+        final candidates = <dynamic>[
+          users.username,
+          users.namaUser,
+          users.noTelp,
+          users.level,
+          users.status,
+        ];
+        return candidates.any((value) => normalize(value).contains(query));
+    }
+  }
 
   String _displayValue(String? value) {
     if (value == null || value.trim().isEmpty) {
@@ -202,6 +258,125 @@ class _UserDataState extends State<UserData> with MixinPref {
   }
 
   @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Widget _buildSearchBar() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: TextField(
+              controller: _searchController,
+              onChanged: _onSearchChanged,
+              textInputAction: TextInputAction.search,
+              decoration: InputDecoration(
+                hintText: 'Cari data user...',
+                hintStyle: TextStyle(color: Colors.grey.shade500),
+                prefixIcon: Icon(Icons.search, color: clrOrange),
+                filled: true,
+                fillColor: Colors.orange.shade50,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 12,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.orange.shade200),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.orange.shade200),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: clrOrange, width: 1.4),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            decoration: BoxDecoration(
+              color: Colors.orange.shade50,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.orange.shade200),
+            ),
+            child: DropdownButton<String>(
+              value: _searchField,
+              underline: const SizedBox.shrink(),
+              iconEnabledColor: clrOrange,
+              borderRadius: BorderRadius.circular(12),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Colors.orange.shade900,
+                fontWeight: FontWeight.w600,
+              ),
+              items: _searchFieldLabels.entries
+                  .map(
+                    (entry) => DropdownMenuItem<String>(
+                      value: entry.key,
+                      child: Text(entry.value),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (value) {
+                if (value == null) return;
+                setState(() {
+                  _searchField = value;
+                });
+              },
+            ),
+          ),
+          if (_searchQuery.isNotEmpty)
+            Container(
+              margin: const EdgeInsets.only(left: 6),
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.red.shade100),
+              ),
+              child: IconButton(
+                onPressed: _clearSearch,
+                icon: Icon(Icons.close_rounded, color: Colors.red.shade400),
+                tooltip: 'Clear search',
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSearchNotFoundContent() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.search_off, size: 52, color: Colors.grey.shade500),
+            const SizedBox(height: 12),
+            Text(
+              'Data tidak ditemukan untuk filter '
+              '"${_searchFieldLabels[_searchField] ?? 'Semua'}" '
+              'dengan kata kunci "$_searchQuery"',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                color: Colors.orange.shade900,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     return SafeArea(
       bottom: true,
@@ -242,6 +417,9 @@ class _UserDataState extends State<UserData> with MixinPref {
               StoreConnector<AppState, UserState>(
                 converter: (store) => store.state.userState,
                 builder: (context, state) {
+                  final filteredUsers = state.users
+                      .where(_matchesSearch)
+                      .toList();
                   // 1. Tampilan saat Loading
                   if (state.isLoading) {
                     return SliverFillRemaiings(
@@ -263,11 +441,39 @@ class _UserDataState extends State<UserData> with MixinPref {
                       hasScrollBodys: false,
                     );
                   }
-                  return SliverList(
-                    delegate: SliverChildBuilderDelegate((context, index) {
-                      final users = state.users[index];
-                      return _buildUserCard(users, index);
-                    }, childCount: state.users.length),
+                  if (filteredUsers.isEmpty) {
+                    return SliverMainAxisGroup(
+                      slivers: [
+                        SliverPersistentHeader(
+                          pinned: true,
+                          delegate: _PinnedSearchHeaderDelegate(
+                            backgroundColor: clrWhite,
+                            child: _buildSearchBar(),
+                          ),
+                        ),
+                        SliverFillRemaining(
+                          hasScrollBody: false,
+                          child: _buildSearchNotFoundContent(),
+                        ),
+                      ],
+                    );
+                  }
+                  return SliverMainAxisGroup(
+                    slivers: [
+                      SliverPersistentHeader(
+                        pinned: true,
+                        delegate: _PinnedSearchHeaderDelegate(
+                          backgroundColor: clrWhite,
+                          child: _buildSearchBar(),
+                        ),
+                      ),
+                      SliverList(
+                        delegate: SliverChildBuilderDelegate((context, index) {
+                          final users = filteredUsers[index];
+                          return _buildUserCard(users, index);
+                        }, childCount: filteredUsers.length),
+                      ),
+                    ],
                   );
                 },
               ),
@@ -276,5 +482,40 @@ class _UserDataState extends State<UserData> with MixinPref {
         ),
       ),
     );
+  }
+}
+
+class _PinnedSearchHeaderDelegate extends SliverPersistentHeaderDelegate {
+  _PinnedSearchHeaderDelegate({
+    required this.child,
+    required this.backgroundColor,
+  });
+
+  final Widget child;
+  final Color backgroundColor;
+
+  @override
+  double get minExtent => 68;
+
+  @override
+  double get maxExtent => 68;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return Container(
+      color: backgroundColor,
+      alignment: Alignment.centerLeft,
+      child: child,
+    );
+  }
+
+  @override
+  bool shouldRebuild(covariant _PinnedSearchHeaderDelegate oldDelegate) {
+    return oldDelegate.child != child ||
+        oldDelegate.backgroundColor != backgroundColor;
   }
 }

@@ -22,11 +22,28 @@ class ToolData extends StatefulWidget {
 class _ToolDataState extends State<ToolData> with MixinPref {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final Set<String> _expandedForms = <String>{};
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  String _searchField = 'all';
+
+  static const Map<String, String> _searchFieldLabels = {
+    'all': 'Semua',
+    'formNo': 'Form No',
+    'serviceman': 'Serviceman',
+    'status': 'Status',
+    'idForm': 'Category',
+  };
 
   @override
   void initState() {
     super.initState();
     refreshPref();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _refreshData() async {
@@ -49,6 +66,47 @@ class _ToolDataState extends State<ToolData> with MixinPref {
         formUserUpdate: '',
       ),
     );
+  }
+
+  void _onSearchChanged(String value) {
+    setState(() {
+      _searchQuery = value.trim();
+    });
+  }
+
+  void _clearSearch() {
+    _searchController.clear();
+    setState(() {
+      _searchQuery = '';
+      _searchField = 'all';
+    });
+  }
+
+  bool _matchesSearch(PostList form) {
+    if (_searchQuery.isEmpty) return true;
+    final query = _searchQuery.toLowerCase();
+
+    String normalize(String value) => value.toLowerCase();
+
+    switch (_searchField) {
+      case 'formNo':
+        return normalize(form.formNo).contains(query);
+      case 'serviceman':
+        return normalize(form.formServName).contains(query);
+      case 'status':
+        return normalize(form.formServComment).contains(query);
+      case 'idForm':
+        return normalize(form.idForm).contains(query);
+      case 'all':
+      default:
+        final candidates = <String>[
+          form.formNo,
+          form.formServName,
+          form.formServComment,
+          form.idForm,
+        ];
+        return candidates.any((value) => normalize(value).contains(query));
+    }
   }
 
   Color _statusColor(String value) {
@@ -775,6 +833,129 @@ class _ToolDataState extends State<ToolData> with MixinPref {
     );
   }
 
+  Widget _buildSearchBar() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+      child: Row(
+        children: [
+          Expanded(
+            child: Container(
+              decoration: BoxDecoration(
+                color: clrOrange.withValues(alpha: 0.06),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: clrOrange.withValues(alpha: 0.22)),
+              ),
+              child: TextField(
+                controller: _searchController,
+                onChanged: _onSearchChanged,
+                textInputAction: TextInputAction.search,
+                decoration: InputDecoration(
+                  hintText: 'Cari data tool...',
+                  hintStyle: TextStyle(color: Colors.orange.shade700),
+                  prefixIcon: Icon(Icons.search, color: Colors.orange.shade700),
+                  filled: true,
+                  fillColor: Colors.transparent,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide.none,
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide.none,
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide(
+                      color: Colors.orange.shade700,
+                      width: 1.4,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+            decoration: BoxDecoration(
+              color: clrOrange.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: clrOrange.withValues(alpha: 0.22)),
+            ),
+            child: DropdownButton<String>(
+              value: _searchField,
+              underline: const SizedBox.shrink(),
+              iconEnabledColor: Colors.orange.shade800,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Colors.orange.shade900,
+                fontWeight: FontWeight.w600,
+              ),
+              items: _searchFieldLabels.entries
+                  .map(
+                    (entry) => DropdownMenuItem<String>(
+                      value: entry.key,
+                      child: Text(entry.value),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (value) {
+                if (value == null) return;
+                setState(() {
+                  _searchField = value;
+                });
+              },
+            ),
+          ),
+          if (_searchQuery.isNotEmpty)
+            Container(
+              margin: const EdgeInsets.only(left: 4),
+              decoration: BoxDecoration(
+                color: clrOrange.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
+              child: IconButton(
+                onPressed: _clearSearch,
+                icon: Icon(Icons.clear, color: Colors.orange.shade900),
+                tooltip: 'Clear search',
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSearchNotFoundContent() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.search_off,
+              size: 52,
+              color: clrOrange.withValues(alpha: 0.75),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Data tidak ditemukan untuk filter '
+              '"${_searchFieldLabels[_searchField] ?? 'Semua'}" '
+              'dengan kata kunci "$_searchQuery"',
+              textAlign: TextAlign.center,
+              style: Theme.of(
+                context,
+              ).textTheme.bodyLarge?.copyWith(color: Colors.orange.shade800),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
@@ -821,6 +1002,9 @@ class _ToolDataState extends State<ToolData> with MixinPref {
               StoreConnector<AppState, FormsState>(
                 converter: (store) => store.state.formsState,
                 builder: (context, state) {
+                  final filteredForms = state.forms
+                      .where(_matchesSearch)
+                      .toList();
                   if (state.isLoadingTool) {
                     return SliverFillRemaiings(
                       errors: "Loading",
@@ -839,11 +1023,39 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                       hasScrollBodys: false,
                     );
                   }
-                  return SliverList(
-                    delegate: SliverChildBuilderDelegate((context, index) {
-                      final forms = state.forms[index];
-                      return _buildFormCard(forms, index);
-                    }, childCount: state.forms.length),
+                  if (filteredForms.isEmpty) {
+                    return SliverMainAxisGroup(
+                      slivers: [
+                        SliverPersistentHeader(
+                          pinned: true,
+                          delegate: _PinnedSearchHeaderDelegate(
+                            backgroundColor: clrWhite,
+                            child: _buildSearchBar(),
+                          ),
+                        ),
+                        SliverFillRemaining(
+                          hasScrollBody: false,
+                          child: _buildSearchNotFoundContent(),
+                        ),
+                      ],
+                    );
+                  }
+                  return SliverMainAxisGroup(
+                    slivers: [
+                      SliverPersistentHeader(
+                        pinned: true,
+                        delegate: _PinnedSearchHeaderDelegate(
+                          backgroundColor: clrWhite,
+                          child: _buildSearchBar(),
+                        ),
+                      ),
+                      SliverList(
+                        delegate: SliverChildBuilderDelegate((context, index) {
+                          final forms = filteredForms[index];
+                          return _buildFormCard(forms, index);
+                        }, childCount: filteredForms.length),
+                      ),
+                    ],
                   );
                 },
               ),
@@ -852,5 +1064,40 @@ class _ToolDataState extends State<ToolData> with MixinPref {
         ),
       ),
     );
+  }
+}
+
+class _PinnedSearchHeaderDelegate extends SliverPersistentHeaderDelegate {
+  _PinnedSearchHeaderDelegate({
+    required this.child,
+    required this.backgroundColor,
+  });
+
+  final Widget child;
+  final Color backgroundColor;
+
+  @override
+  double get minExtent => 60;
+
+  @override
+  double get maxExtent => 60;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return Container(
+      color: backgroundColor,
+      alignment: Alignment.centerLeft,
+      child: child,
+    );
+  }
+
+  @override
+  bool shouldRebuild(covariant _PinnedSearchHeaderDelegate oldDelegate) {
+    return oldDelegate.child != child ||
+        oldDelegate.backgroundColor != backgroundColor;
   }
 }
