@@ -48,7 +48,7 @@ class _UserDataState extends State<UserData> with MixinPref {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.10),
+        color: color.withValues(alpha: 0.10),
         borderRadius: BorderRadius.circular(999),
       ),
       child: Row(
@@ -109,14 +109,14 @@ class _UserDataState extends State<UserData> with MixinPref {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
         gradient: LinearGradient(
-          colors: [Colors.white, statusColor.withOpacity(0.04)],
+          colors: [Colors.white, statusColor.withValues(alpha: 0.04)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         border: Border.all(color: Colors.grey.shade200),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 14,
             offset: const Offset(0, 8),
           ),
@@ -131,7 +131,7 @@ class _UserDataState extends State<UserData> with MixinPref {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: clrOrange.withOpacity(0.12),
+                  color: clrOrange.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 alignment: Alignment.center,

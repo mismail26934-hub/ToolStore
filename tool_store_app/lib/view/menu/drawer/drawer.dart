@@ -37,7 +37,7 @@ class DrawerMenu extends StatelessWidget {
         borderRadius: BorderRadius.circular(22),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 18,
             offset: const Offset(0, 8),
           ),
@@ -49,7 +49,7 @@ class DrawerMenu extends StatelessWidget {
             width: 50,
             height: 50,
             decoration: BoxDecoration(
-              color: clrOrange.withOpacity(0.14),
+              color: clrOrange.withValues(alpha: 0.14),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Icon(
@@ -115,7 +115,7 @@ class DrawerMenu extends StatelessWidget {
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: iconColor.withOpacity(0.12),
+                    color: iconColor.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: Icon(icon, color: iconColor),
@@ -176,7 +176,7 @@ class DrawerMenu extends StatelessWidget {
                   width: 64,
                   height: 64,
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.22),
+                    color: Colors.white.withValues(alpha: 0.22),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: const Icon(
@@ -203,7 +203,7 @@ class DrawerMenu extends StatelessWidget {
                       Text(
                         _isLoggedIn ? level : 'Silakan login untuk melanjutkan',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.white.withOpacity(0.92),
+                          color: Colors.white.withValues(alpha: 0.92),
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -216,9 +216,9 @@ class DrawerMenu extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.14),
+                color: Colors.white.withValues(alpha: 0.14),
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: Colors.white.withOpacity(0.18)),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
               ),
               child: Row(
                 children: [
@@ -348,13 +348,13 @@ class DrawerMenu extends StatelessWidget {
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: _isLoggedIn
-                        ? clrRed.withOpacity(0.08)
-                        : Colors.blue.withOpacity(0.08),
+                        ? clrRed.withValues(alpha: 0.08)
+                        : Colors.blue.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
                       color: _isLoggedIn
-                          ? clrRed.withOpacity(0.16)
-                          : Colors.blue.withOpacity(0.16),
+                          ? clrRed.withValues(alpha: 0.16)
+                          : Colors.blue.withValues(alpha: 0.16),
                     ),
                   ),
                   child: Row(
@@ -364,8 +364,8 @@ class DrawerMenu extends StatelessWidget {
                         height: 44,
                         decoration: BoxDecoration(
                           color: _isLoggedIn
-                              ? clrRed.withOpacity(0.14)
-                              : Colors.blue.withOpacity(0.14),
+                              ? clrRed.withValues(alpha: 0.14)
+                              : Colors.blue.withValues(alpha: 0.14),
                           borderRadius: BorderRadius.circular(14),
                         ),
                         child: Icon(

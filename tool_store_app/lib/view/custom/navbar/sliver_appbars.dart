@@ -49,9 +49,9 @@ class _SliverAppbarsState extends State<SliverAppbars> {
         padding: const EdgeInsets.only(left: 16, top: 5, bottom: 5),
         child: DecoratedBox(
           decoration: BoxDecoration(
-            color: clrOrange.withOpacity(0.12),
+            color: clrOrange.withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: clrOrange.withOpacity(0.18)),
+            border: Border.all(color: clrOrange.withValues(alpha: 0.18)),
           ),
           child: IconButton(
             onPressed: widget.onPressLeading,
@@ -70,7 +70,7 @@ class _SliverAppbarsState extends State<SliverAppbars> {
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: clrOrange.withOpacity(0.22),
+                  color: clrOrange.withValues(alpha: 0.22),
                   blurRadius: 18,
                   offset: const Offset(0, 8),
                 ),
@@ -104,8 +104,6 @@ class _SliverAppbarsState extends State<SliverAppbars> {
                 ((constraints.biggest.height - collapsedHeight) /
                         (range == 0 ? 1 : range))
                     .clamp(0.0, 1.0);
-            final chipOpacity = Curves.easeOut.transform(collapseProgress);
-            final chipSlideOffset = (1 - collapseProgress) * 16;
 
             return Container(
               decoration: BoxDecoration(
@@ -113,9 +111,15 @@ class _SliverAppbarsState extends State<SliverAppbars> {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    clrOrange.withOpacity(0.08 + (0.06 * collapseProgress)),
-                    clrOrange.withOpacity(0.03 + (0.02 * collapseProgress)),
-                    clrOrange.withOpacity(0.08 + (0.06 * collapseProgress)),
+                    clrOrange.withValues(
+                      alpha: 0.08 + (0.06 * collapseProgress),
+                    ),
+                    clrOrange.withValues(
+                      alpha: 0.03 + (0.02 * collapseProgress),
+                    ),
+                    clrOrange.withValues(
+                      alpha: 0.08 + (0.06 * collapseProgress),
+                    ),
                   ],
                 ),
               ),

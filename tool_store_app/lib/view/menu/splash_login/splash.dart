@@ -79,14 +79,17 @@ class _SplashScreenState extends State<SplashScreen>
           Positioned(
             top: -90,
             right: -70,
-            child: _AuraCircle(size: 260, color: clrOrange.withOpacity(0.22)),
+            child: _AuraCircle(
+              size: 260,
+              color: clrOrange.withValues(alpha: 0.22),
+            ),
           ),
           Positioned(
             bottom: -110,
             left: -90,
             child: _AuraCircle(
               size: 300,
-              color: const Color(0xFFFFB84C).withOpacity(0.12),
+              color: const Color(0xFFFFB84C).withValues(alpha: 0.12),
             ),
           ),
           SafeArea(
@@ -110,13 +113,13 @@ class _SplashScreenState extends State<SplashScreen>
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                               colors: [
-                                Colors.white.withOpacity(0.96),
+                                Colors.white.withValues(alpha: 0.96),
                                 Colors.white,
                               ],
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: clrWhite.withOpacity(0.45),
+                                color: clrWhite.withValues(alpha: 0.45),
                                 blurRadius: 36,
                                 spreadRadius: 4,
                                 offset: const Offset(0, 12),
@@ -163,10 +166,12 @@ class _SplashScreenState extends State<SplashScreen>
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: clrOrange.withOpacity(0.18)),
+                      border: Border.all(
+                        color: clrOrange.withValues(alpha: 0.18),
+                      ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.04),
+                          color: Colors.black.withValues(alpha: 0.04),
                           blurRadius: 16,
                           offset: const Offset(0, 8),
                         ),
@@ -190,7 +195,9 @@ class _SplashScreenState extends State<SplashScreen>
                             "Menyiapkan data sesi dan dashboard...",
                             style: Theme.of(context).textTheme.bodySmall
                                 ?.copyWith(
-                                  color: Colors.grey.shade700.withOpacity(0.95),
+                                  color: Colors.grey.shade700.withValues(
+                                    alpha: 0.95,
+                                  ),
                                   fontWeight: FontWeight.w500,
                                 ),
                           ),
@@ -223,41 +230,8 @@ class _AuraCircle extends StatelessWidget {
         height: size,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          gradient: RadialGradient(colors: [color, color.withOpacity(0)]),
+          gradient: RadialGradient(colors: [color, color.withValues(alpha: 0)]),
         ),
-      ),
-    );
-  }
-}
-
-class _SplashTag extends StatelessWidget {
-  const _SplashTag({required this.label, required this.icon});
-
-  final String label;
-  final IconData icon;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: clrOrange.withOpacity(0.12),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: clrOrange.withOpacity(0.25)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 15, color: const Color(0xFFFFD28F)),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              color: clrOrange.withOpacity(0.95),
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
       ),
     );
   }

@@ -52,7 +52,7 @@ class ToolFormInputState extends State<ToolFormInput> {
         border: Border.all(color: Colors.grey.shade200),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 14,
             offset: const Offset(0, 8),
           ),
@@ -66,7 +66,7 @@ class ToolFormInputState extends State<ToolFormInput> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: clrOrange.withOpacity(0.12),
+                  color: clrOrange.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(icon, size: 18, color: clrOrange),
@@ -166,9 +166,9 @@ class ToolFormInputState extends State<ToolFormInput> {
           padding: const EdgeInsets.only(left: 16, top: 10, bottom: 10),
           child: DecoratedBox(
             decoration: BoxDecoration(
-              color: clrOrange.withOpacity(0.12),
+              color: clrOrange.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: clrOrange.withOpacity(0.2)),
+              border: Border.all(color: clrOrange.withValues(alpha: 0.2)),
             ),
             child: IconButton(
               onPressed: () => Navigator.maybePop(context),
@@ -195,7 +195,7 @@ class ToolFormInputState extends State<ToolFormInput> {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                color: clrOrange.withOpacity(0.75),
+                color: clrOrange.withValues(alpha: 0.75),
                 letterSpacing: 0.35,
                 fontWeight: FontWeight.w500,
               ),
@@ -208,9 +208,9 @@ class ToolFormInputState extends State<ToolFormInput> {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                clrOrange.withOpacity(0.14),
-                clrOrange.withOpacity(0.05),
-                clrOrange.withOpacity(0.14),
+                clrOrange.withValues(alpha: 0.14),
+                clrOrange.withValues(alpha: 0.05),
+                clrOrange.withValues(alpha: 0.14),
               ],
               stops: const [0.0, 0.55, 1.0],
             ),
@@ -227,10 +227,10 @@ class ToolFormInputState extends State<ToolFormInput> {
                 decoration: BoxDecoration(
                   color: clrOrange,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: clrOrange.withOpacity(0.05)),
+                  border: Border.all(color: clrOrange.withValues(alpha: 0.05)),
                   boxShadow: [
                     BoxShadow(
-                      color: clrOrange.withOpacity(0.22),
+                      color: clrOrange.withValues(alpha: 0.22),
                       blurRadius: 18,
                       offset: const Offset(0, 8),
                     ),

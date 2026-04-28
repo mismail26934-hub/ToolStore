@@ -89,7 +89,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: clrOrange.withOpacity(0.12),
+              color: clrOrange.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(icon, size: 18, color: clrOrange),
@@ -140,7 +140,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
               ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
             ),
           ),
-          if (trailing != null) trailing,
+          trailing ?? const SizedBox.shrink(),
         ],
       ),
     );
@@ -154,7 +154,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.10),
+        color: color.withValues(alpha: 0.10),
         borderRadius: BorderRadius.circular(999),
       ),
       child: Row(
@@ -355,7 +355,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
         border: Border.all(color: Colors.grey.shade200),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 14,
             offset: const Offset(0, 8),
           ),
@@ -370,7 +370,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                 width: 38,
                 height: 38,
                 decoration: BoxDecoration(
-                  color: clrOrange.withOpacity(0.12),
+                  color: clrOrange.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 alignment: Alignment.center,
@@ -503,13 +503,13 @@ class _ToolDataState extends State<ToolData> with MixinPref {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
         gradient: LinearGradient(
-          colors: [Colors.white, statusColor.withOpacity(0.04)],
+          colors: [Colors.white, statusColor.withValues(alpha: 0.04)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 18,
             offset: const Offset(0, 10),
           ),
@@ -540,7 +540,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: clrOrange.withOpacity(0.14),
+                color: clrOrange.withValues(alpha: 0.14),
                 borderRadius: BorderRadius.circular(14),
               ),
               alignment: Alignment.center,

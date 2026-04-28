@@ -50,7 +50,7 @@ class _LoginState extends State<Login> {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [clrOrange.withOpacity(0.08), Colors.white, Colors.white],
+            colors: [clrOrange.withValues(alpha: 0.08), Colors.white, Colors.white],
           ),
         ),
         child: SafeArea(
@@ -69,7 +69,7 @@ class _LoginState extends State<Login> {
                         child: Container(
                           padding: const EdgeInsets.all(20),
                           decoration: BoxDecoration(
-                            color: clrOrange.withOpacity(0.14),
+                            color: clrOrange.withValues(alpha: 0.14),
                             borderRadius: BorderRadius.circular(24),
                           ),
                           child: Icon(
@@ -122,7 +122,7 @@ class _LoginState extends State<Login> {
                               border: Border.all(color: Colors.grey.shade200),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.05),
+                                  color: Colors.black.withValues(alpha: 0.05),
                                   blurRadius: 18,
                                   offset: const Offset(0, 10),
                                 ),
@@ -136,7 +136,7 @@ class _LoginState extends State<Login> {
                                     Container(
                                       padding: const EdgeInsets.all(8),
                                       decoration: BoxDecoration(
-                                        color: clrOrange.withOpacity(0.12),
+                                        color: clrOrange.withValues(alpha: 0.12),
                                         borderRadius: BorderRadius.circular(10),
                                       ),
                                       child: Icon(
