@@ -113,7 +113,7 @@ String paramEditDataSuperrior = 'EDIT DATA SUPERRIOR';
 String paramDeleteDataSuperrior = 'DELETED DATA SUPERRIOR';
 
 // Controller User
-String titleDataUser = 'DATA USER ';
+String titleDataUser = 'Data User';
 String paramViewDataUser = 'VIEW DATA USER';
 String paramAddDataUser = 'ADD DATA USER';
 String paramEditDataUser = 'EDIT DATA USER';

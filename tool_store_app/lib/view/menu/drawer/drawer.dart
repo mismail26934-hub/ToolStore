@@ -166,7 +166,7 @@ class DrawerMenu extends StatelessWidget {
         ),
       ),
       child: SafeArea(
-        bottom: false,
+        bottom: true,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

@@ -777,12 +777,13 @@ class _ToolDataState extends State<ToolData> with MixinPref {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      key: _scaffoldKey,
-      backgroundColor: clrWhite,
-      drawer: DrawerMenu(title: name),
-      body: SafeArea(
-        child: RefreshIndicator(
+    return SafeArea(
+      bottom: true,
+      child: Scaffold(
+        key: _scaffoldKey,
+        backgroundColor: clrWhite,
+        drawer: DrawerMenu(title: name),
+        body: RefreshIndicator(
           onRefresh: _refreshData,
           child: CustomScrollView(
             slivers: [

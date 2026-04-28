@@ -15,13 +15,13 @@ class _DashboardState extends State<Dashboard> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      key: _scaffoldKey,
-      backgroundColor: const Color(0xFFF7F8FA),
-      drawer: DrawerMenu(title: name),
-      body: SafeArea(
-        bottom: false,
-        child: Column(
+    return SafeArea(
+      bottom: true,
+      child: Scaffold(
+        key: _scaffoldKey,
+        backgroundColor: const Color(0xFFF7F8FA),
+        drawer: DrawerMenu(title: name),
+        body: Column(
           children: [
             _DashboardHeader(
               onMenuTap: () => _scaffoldKey.currentState?.openDrawer(),

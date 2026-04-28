@@ -36,7 +36,7 @@ class _SliverAppbarsState extends State<SliverAppbars> {
       toolbarHeight: toolbarHeight,
       expandedHeight: expandedHeight,
       collapsedHeight: collapsedHeight,
-      centerTitle: false,
+      centerTitle: true,
       pinned: true,
       stretch: true,
       elevation: 0,
@@ -84,68 +84,43 @@ class _SliverAppbarsState extends State<SliverAppbars> {
           ),
         ),
       ],
+      title: Text(
+        widget.title.trim().isEmpty ? titleApp : widget.title.trim(),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        textAlign: TextAlign.center,
+        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+          color: clrOrange,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.2,
+        ),
+      ),
       flexibleSpace: FlexibleSpaceBar(
-        centerTitle: false,
-        titlePadding: const EdgeInsetsDirectional.only(
-          start: 24,
-          end: 24,
-          bottom: 8,
-        ),
         stretchModes: const [StretchMode.fadeTitle, StretchMode.blurBackground],
-        background: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                clrOrange.withOpacity(0.14),
-                clrOrange.withOpacity(0.05),
-                clrOrange.withOpacity(0.14),
-              ],
-            ),
-          ),
-          // child: SafeArea(
-          //   bottom: false,
-          //   child: Padding(
-          //     padding: EdgeInsets.fromLTRB(24, isMobile ? 74 : 68, 24, 16),
-          //     child: Align(
-          //       alignment: Alignment.topLeft,
-          //       child: Container(
-          //         padding: const EdgeInsets.symmetric(
-          //           horizontal: 12,
-          //           vertical: 6,
-          //         ),
-          //         decoration: BoxDecoration(
-          //           color: Colors.white.withOpacity(0.82),
-          //           borderRadius: BorderRadius.circular(999),
-          //           border: Border.all(color: clrOrange.withOpacity(0.16)),
-          //         ),
-          //         child: Center(
-          //           child: Text(
-          //             'Data Tool',
-          //             style: Theme.of(context).textTheme.labelMedium?.copyWith(
-          //               color: clrOrange,
-          //               fontWeight: FontWeight.w700,
-          //               letterSpacing: 0.2,
-          //             ),
-          //           ),
-          //         ),
-          //       ),
-          //     ),
-          //   ),
-          // ),
-        ),
-        title: Center(
-          child: Text(
-            widget.title.trim().isEmpty ? titleApp : widget.title.trim(),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              color: clrOrange,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.2,
-            ),
-          ),
+        background: LayoutBuilder(
+          builder: (context, constraints) {
+            final range = (expandedHeight - collapsedHeight).abs();
+            final collapseProgress =
+                ((constraints.biggest.height - collapsedHeight) /
+                        (range == 0 ? 1 : range))
+                    .clamp(0.0, 1.0);
+            final chipOpacity = Curves.easeOut.transform(collapseProgress);
+            final chipSlideOffset = (1 - collapseProgress) * 16;
+
+            return Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    clrOrange.withOpacity(0.08 + (0.06 * collapseProgress)),
+                    clrOrange.withOpacity(0.03 + (0.02 * collapseProgress)),
+                    clrOrange.withOpacity(0.08 + (0.06 * collapseProgress)),
+                  ],
+                ),
+              ),
+            );
+          },
         ),
       ),
       bottom: PreferredSize(
