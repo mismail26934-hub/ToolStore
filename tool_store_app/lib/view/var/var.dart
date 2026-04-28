@@ -15,7 +15,7 @@ String errors = "";
 String messages = "";
 String cekInternet = "Check Internet Connection";
 String serverDown = "Server Down";
-String titleApp = "Data Tool Request";
+String titleApp = "";
 String usernameApp = "";
 String passwordApp = "";
 String messageLogin = "";
@@ -48,7 +48,7 @@ final username = TextEditingController();
 final password = TextEditingController();
 
 // Controller FORM
-String titleDataTool = 'DATA TOOL ';
+String titleDataTool = 'Data Tool';
 String paramViewDataForm = 'VIEW DATA FORM';
 String paramAddDataForm = 'ADD DATA FORM';
 String paramEditDataForm = 'EDIT DATA FORM';

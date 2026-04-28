@@ -111,4 +111,24 @@ class PageRoutes {
       context,
     ).push(MaterialPageRoute(builder: (_) => LazyListExample()));
   }
+
+  static Future<void> routeDashboards(BuildContext context) async {
+    // Cek apakah context masih aktif/valid di layar
+    if (!context.mounted) return;
+
+    Navigator.push(
+      context,
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            const Dashboard(),
+        transitionDuration: const Duration(
+          milliseconds: 2000,
+        ), // Durasi lebih lama agar smooth
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          // Efek memudar (Fade)
+          return FadeTransition(opacity: animation, child: child);
+        },
+      ),
+    );
+  }
 }

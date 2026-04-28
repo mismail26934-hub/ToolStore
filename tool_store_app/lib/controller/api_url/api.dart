@@ -1,6 +1,6 @@
 class ApiUrl {
-  // static String server = 'http://10.50.102.69:8080/';
-  static String server = 'http://10.74.115.69:8080/';
+  static String server = 'http://192.168.1.30:8080/';
+  // static String server = 'http://10.74.115.69:8080/';
   static String folderApiTool = 'api_tool';
   static String folderApiToolStore = 'api_toolstore';
   static String folderController = 'controller';

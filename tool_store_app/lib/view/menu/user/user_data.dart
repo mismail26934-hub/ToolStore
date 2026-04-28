@@ -56,7 +56,7 @@ class _UserDataState extends State<UserData> with MixinPref {
               onPressTailing: () {
                 postContUser("", "", "", "", "", "", "", context);
               },
-              onPressLeading: () {},
+              onPressLeading: () => _scaffoldKey.currentState?.openDrawer(),
               textColor: Colors.black,
               iconTailing: Icon(Icons.add),
               iconLeading: Icon(Icons.menu),
