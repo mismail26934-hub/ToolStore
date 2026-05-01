@@ -12,6 +12,7 @@ import 'package:tool_store_app/view/custom/routes/page_routes.dart';
 import 'package:tool_store_app/view/custom/show_dialog/show_dialog.dart';
 import 'package:tool_store_app/view/menu/drawer/drawer.dart';
 import 'package:tool_store_app/view/var/var.dart';
+import 'package:intl/intl.dart';
 
 class ToolData extends StatefulWidget {
   const ToolData({super.key});
@@ -157,19 +158,23 @@ class _ToolDataState extends State<ToolData> with MixinPref {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  label,
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: Colors.grey.shade700,
-                    fontWeight: FontWeight.w600,
+                Expanded(
+                  child: Text(
+                    label,
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      color: Colors.grey.shade700,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
-                const SizedBox(height: 2),
-                SelectableText(
-                  _displayValue(value),
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                const SizedBox(height: 1),
+                Expanded(
+                  child: SelectableText(
+                    _displayValue(value),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -477,7 +482,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
             runSpacing: 8,
             children: [
               _buildMetaChip(
-                icon: Icons.category_outlined,
+                icon: Icons.build_circle_outlined,
                 label: 'Type ${_displayValue(itemTool.valType)}',
                 color: Colors.deepOrange,
               ),
@@ -488,7 +493,11 @@ class _ToolDataState extends State<ToolData> with MixinPref {
               ),
               _buildMetaChip(
                 icon: Icons.payments_outlined,
-                label: 'Value ${_displayValue(itemTool.partValue)}',
+                label: NumberFormat.currency(
+                  locale: 'id_ID',
+                  decimalDigits: 0,
+                  symbol: '',
+                ).format(double.parse(itemTool.partValue)),
                 color: Colors.orange.shade900,
               ),
             ],
@@ -595,8 +604,8 @@ class _ToolDataState extends State<ToolData> with MixinPref {
               });
             },
             leading: Container(
-              width: 44,
-              height: 44,
+              width: 35,
+              height: 35,
               decoration: BoxDecoration(
                 color: clrOrange.withValues(alpha: 0.14),
                 borderRadius: BorderRadius.circular(14),
@@ -625,12 +634,21 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                   runSpacing: 8,
                   children: [
                     _buildMetaChip(
-                      icon: Icons.flag_outlined,
-                      label: _displayValue(forms.formServComment),
-                      color: statusColor,
+                      icon: Icons.dew_point,
+                      label: _displayValue(
+                        forms.formMilestone != ""
+                            ? forms.formMilestone
+                            : "DRAFT",
+                      ),
+                      color: Colors.orange.shade800,
                     ),
                     _buildMetaChip(
-                      icon: Icons.build_circle_outlined,
+                      icon: Icons.flag_outlined,
+                      label: _displayValue(forms.formServComment),
+                      color: Colors.orange.shade800,
+                    ),
+                    _buildMetaChip(
+                      icon: Icons.person,
                       label: _displayValue(forms.formServName),
                       color: Colors.orange.shade800,
                     ),
@@ -641,7 +659,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
             subtitle: Padding(
               padding: const EdgeInsets.only(top: 12),
               child: Text(
-                'Tap untuk melihat detail request, item tools, PO, dan SO.',
+                '',
                 style: Theme.of(
                   context,
                 ).textTheme.bodySmall?.copyWith(color: Colors.grey.shade700),
@@ -694,24 +712,24 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                 physics: const NeverScrollableScrollPhysics(),
                 children: [
                   _buildInfoTile(
-                    icon: Icons.category_outlined,
-                    label: 'Category',
-                    value: forms.idForm,
-                  ),
-                  _buildInfoTile(
-                    icon: Icons.person_outline,
-                    label: 'Serviceman',
-                    value: forms.formServName,
-                  ),
-                  _buildInfoTile(
-                    icon: Icons.event_outlined,
-                    label: 'Create Date',
+                    icon: Icons.date_range,
+                    label: 'Date Create',
                     value: forms.formDateServName,
                   ),
                   _buildInfoTile(
-                    icon: Icons.verified_user_outlined,
-                    label: 'Checked By',
+                    icon: Icons.person_outline,
+                    label: 'Check By',
                     value: forms.formCheckBy,
+                  ),
+                  _buildInfoTile(
+                    icon: Icons.comment_bank_outlined,
+                    label: 'Service Support Comment',
+                    value: forms.formSadminComment,
+                  ),
+                  _buildInfoTile(
+                    icon: Icons.comment_bank_sharp,
+                    label: 'Service Dept.Head Comment',
+                    value: forms.formSheadComment,
                   ),
                 ],
               ),

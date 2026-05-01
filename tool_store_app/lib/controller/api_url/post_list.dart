@@ -44,6 +44,7 @@ class PostList {
   late String partValue;
 
   late String idActionNote;
+  late String noteinitial;
   late String actionNoteDesc;
   late String actionDateUpdate;
   late String actionNoteUser;
@@ -111,6 +112,7 @@ class PostList {
     required this.partValue,
 
     required this.idActionNote,
+    required this.noteinitial,
     required this.actionNoteDesc,
     required this.actionDateUpdate,
     required this.actionNoteUser,
@@ -180,6 +182,7 @@ class PostList {
       partValue: json['part_value'] ?? "",
 
       idActionNote: json['id_action_note'] ?? "",
+      noteinitial: json['note_initial'] ?? "",
       actionNoteDesc: json['action_note_desc'] ?? "",
       actionDateUpdate: json['action_date_update'] ?? "",
       actionNoteUser: json['action_note_user'] ?? "",

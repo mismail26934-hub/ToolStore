@@ -376,6 +376,22 @@ class ToolFormInputState extends State<ToolFormInput> {
                         return null;
                       },
                     ),
+                    TextFormFields(
+                      labelTexts: 'Check By',
+                      textColor: Colors.black,
+                      controllers: checkedByCont,
+                      validators: (cmtReq) {
+                        if (cmtReq == null || cmtReq.isEmpty) {
+                          return 'Required !';
+                        }
+                        return null;
+                      },
+                    ),
+                    _buildDateField(
+                      context: context,
+                      label: 'Check Date',
+                      controller: dateCheckByCont,
+                    ),
                   ],
                 ),
                 _buildSectionCard(
@@ -409,25 +425,9 @@ class ToolFormInputState extends State<ToolFormInput> {
                 ),
                 _buildSectionCard(
                   context: context,
-                  title: 'Checking & Department',
-                  icon: Icons.approval_outlined,
+                  title: 'Service Admin / Support Review',
+                  icon: Icons.rate_review,
                   children: [
-                    TextFormFields(
-                      labelTexts: 'Check By',
-                      textColor: Colors.black,
-                      controllers: checkedByCont,
-                      validators: (cmtReq) {
-                        if (cmtReq == null || cmtReq.isEmpty) {
-                          return 'Required !';
-                        }
-                        return null;
-                      },
-                    ),
-                    _buildDateField(
-                      context: context,
-                      label: 'Check Date',
-                      controller: dateCheckByCont,
-                    ),
                     TextFormFields(
                       labelTexts: 'Service Admin / Support Comment',
                       textColor: Colors.black,
@@ -439,6 +439,13 @@ class ToolFormInputState extends State<ToolFormInput> {
                         return null;
                       },
                     ),
+                  ],
+                ),
+                _buildSectionCard(
+                  context: context,
+                  title: 'Dept Head Approval',
+                  icon: Icons.check_circle,
+                  children: [
                     TextFormFields(
                       labelTexts: 'Service Dept. Head Approval',
                       textColor: Colors.black,
