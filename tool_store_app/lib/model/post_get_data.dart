@@ -23,6 +23,7 @@ ThunkAction<AppState> getDataUser({
   required String token,
   required String level,
   required String status,
+  required String superiorId,
 }) {
   return (Store<AppState> store) async {
     store.dispatch(FetchUsersAction());
@@ -38,6 +39,7 @@ ThunkAction<AppState> getDataUser({
       'token': token,
       'level': level,
       'status': status,
+      'superior_id': superiorId,
     });
 
     var dio = Dio();
@@ -76,7 +78,7 @@ ThunkAction<AppState> getDataUser({
 // DATA TOOL
 ThunkAction<AppState> getDataTool({
   required String param,
-  required String idFrom,
+  required String idForm,
   required String formNo,
   required String formServName,
   required String formCheckBy,
@@ -86,6 +88,8 @@ ThunkAction<AppState> getDataTool({
   required String formSuperiorAprd,
   required String formSuperiorComment,
   required String formSadminComment,
+  required String formMilestone,
+  required String formStatusOrder,
   required String formSheadAprd,
   required String formSheadComment,
   required String fromDateUpdate,
@@ -95,7 +99,7 @@ ThunkAction<AppState> getDataTool({
     store.dispatch(FetchDatasAction());
     var map = FormData.fromMap({
       'param': param,
-      'id_from': idFrom,
+      'id_form': idForm,
       'form_no': formNo,
       'form_serv_name': formServName,
       'form_check_by': formCheckBy,
@@ -105,6 +109,8 @@ ThunkAction<AppState> getDataTool({
       'form_superior_aprd': formSuperiorAprd,
       'form_superior_comment': formSuperiorComment,
       'form_sadmin_comment': formSadminComment,
+      'form_milestone': formMilestone,
+      'form_status_order': formStatusOrder,
       'form_shead_aprd': formSheadAprd,
       'form_shead_comment': formSheadComment,
       'from_date_update': fromDateUpdate,
@@ -218,7 +224,7 @@ ThunkAction<AppState> getDataToolDetail({
     var map = FormData.fromMap({
       'param': param,
       'id_form_detail': idFormDetail,
-      'id_from': idFrom,
+      'id_form': idFrom,
       'form_comment': formComment,
       'pn_group': pnGroup,
       'pn_desc': pnDesc,
@@ -236,11 +242,12 @@ ThunkAction<AppState> getDataToolDetail({
       dio.options.connectTimeout = const Duration(seconds: 20);
       dio.options.receiveTimeout = const Duration(seconds: 20);
       final response = await dio.post(ApiUrl.contDataToolDetail, data: map);
-      List<PostList> listToolDetail = parseResponse(response.data);
-      // print(response.data);
-      // Dispatch ke store (Redux)
-      store.dispatch(DataToolsLoadedAction(listToolDetail));
-      return listToolDetail;
+      final ToolDetailFetchResult result = _parseToolDetailFetchResponse(
+        response.data,
+        param,
+      );
+      store.dispatch(DataToolsLoadedAction(result.list));
+      return result;
     } on DioException catch (e) {
       if (e.type == DioExceptionType.connectionError ||
           e.error is SocketException ||
@@ -257,7 +264,9 @@ ThunkAction<AppState> getDataToolDetail({
         throw Exception("Server Down ($messages)");
       }
     } catch (e) {
-      return [];
+      final msg = e.toString().replaceFirst(RegExp(r'^Exception:\s*'), '');
+      store.dispatch(DataToolsErrorAction(msg));
+      rethrow;
     }
   };
 }
@@ -282,6 +291,7 @@ class PoFetchResult {
 
 /// Same shape as [PoFetchResult]; used by [getDataSO] for ADD/EDIT/DELETE envelopes.
 typedef SoFetchResult = PoFetchResult;
+typedef ToolDetailFetchResult = PoFetchResult;
 
 List<dynamic> _decodeJsonArray(dynamic data) {
   if (data is String) {
@@ -303,6 +313,11 @@ bool _isPoApiStatusEnvelope(Map<String, dynamic> map) {
 bool _isSoApiStatusEnvelope(Map<String, dynamic> map) {
   if (!map.containsKey('value') || !map.containsKey('message')) return false;
   return !map.containsKey('id_so');
+}
+
+bool _isToolDetailApiStatusEnvelope(Map<String, dynamic> map) {
+  if (!map.containsKey('value') || !map.containsKey('message')) return false;
+  return !map.containsKey('id_form_detail');
 }
 
 PoFetchResult _parsePoFetchResponse(dynamic data, String param) {
@@ -383,6 +398,51 @@ SoFetchResult _parseSoFetchResponse(dynamic data, String param) {
 
   final list = dataRows.map(PostList.fromJson).toList();
   return SoFetchResult(
+    list: list,
+    serverMessage: isMutating ? statusMessage?.trim() : null,
+    statusValue: isMutating ? statusValue : null,
+  );
+}
+
+ToolDetailFetchResult _parseToolDetailFetchResponse(
+  dynamic data,
+  String param,
+) {
+  final raw = _decodeJsonArray(data);
+  String? statusValue;
+  String? statusMessage;
+  final dataRows = <Map<String, dynamic>>[];
+  for (final item in raw) {
+    if (item is! Map) continue;
+    final m = Map<String, dynamic>.from(item);
+    if (_isToolDetailApiStatusEnvelope(m)) {
+      statusValue = m['value']?.toString();
+      statusMessage = m['message']?.toString();
+    } else {
+      dataRows.add(m);
+    }
+  }
+
+  final isMutating =
+      param == paramAddDataTool ||
+      param == paramEditDataTool ||
+      param == paramDeleteDataTool;
+  if (isMutating) {
+    if (statusValue == null) {
+      throw Exception('Invalid server response (missing status)');
+    }
+    if (statusValue != '1') {
+      final list = dataRows.map(PostList.fromJson).toList();
+      return ToolDetailFetchResult(
+        list: list,
+        serverMessage: statusMessage?.trim(),
+        statusValue: statusValue,
+      );
+    }
+  }
+
+  final list = dataRows.map(PostList.fromJson).toList();
+  return ToolDetailFetchResult(
     list: list,
     serverMessage: isMutating ? statusMessage?.trim() : null,
     statusValue: isMutating ? statusValue : null,

@@ -32,13 +32,14 @@ void main() {
       token: '',
       level: '',
       status: '',
+      superiorId: '',
     ),
   );
 
   store.dispatch(
     getDataTool(
       param: paramViewDataForm,
-      idFrom: '',
+      idForm: '',
       formNo: '',
       formServName: '',
       formCheckBy: '',
@@ -48,6 +49,8 @@ void main() {
       formSuperiorAprd: '',
       formSuperiorComment: '',
       formSadminComment: '',
+      formMilestone: '',
+      formStatusOrder: '',
       formSheadAprd: '',
       formSheadComment: '',
       fromDateUpdate: '',

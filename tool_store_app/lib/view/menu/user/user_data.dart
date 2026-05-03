@@ -401,6 +401,7 @@ class _UserDataState extends State<UserData> with MixinPref {
                 token: '',
                 level: '',
                 status: '',
+                superiorId: '',
               ),
             );
           },

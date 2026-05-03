@@ -149,5 +149,6 @@ final TextEditingController namaFormCont = TextEditingController();
 final TextEditingController telpFormCont = TextEditingController();
 final TextEditingController tuidFormCont = TextEditingController();
 final TextEditingController levelFormCont = TextEditingController();
+final TextEditingController statusFormCont = TextEditingController();
 final TextEditingController superiorIdFormCont = TextEditingController();
 final TextEditingController namaSuperiorFormCont = TextEditingController();

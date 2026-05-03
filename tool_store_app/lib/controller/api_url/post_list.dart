@@ -75,6 +75,8 @@ class PostList {
   late String rcvWhDate;
   late String rcvWhIdInput;
   late String rcvWhDateInput;
+  late String valueResponse;
+  late String messageResponse;
 
   PostList({
     required this.idUsers,
@@ -153,6 +155,8 @@ class PostList {
     required this.rcvWhDate,
     required this.rcvWhIdInput,
     required this.rcvWhDateInput,
+    required this.valueResponse,
+    required this.messageResponse,
   });
 
   factory PostList.fromJson(Map<String, dynamic> json) {
@@ -233,6 +237,8 @@ class PostList {
       rcvWhDate: json['rcv_wh_date'] ?? "",
       rcvWhIdInput: json['rcv_wh_id_input'] ?? "",
       rcvWhDateInput: json['rcv_wh_date_input'] ?? "",
+      valueResponse: json['value'] ?? "",
+      messageResponse: json['message'] ?? "",
     );
   }
 }

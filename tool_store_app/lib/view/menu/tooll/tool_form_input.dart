@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:tool_store_app/controller/cont_crud/redux/store.dart';
 import 'package:tool_store_app/controller/function/funct.dart';
+import 'package:tool_store_app/model/post_get_data.dart';
 import 'package:tool_store_app/view/custom/form/text_form_field.dart';
+import 'package:tool_store_app/view/custom/routes/page_routes.dart';
 import 'package:tool_store_app/view/custom/show_dialog/show_dialog.dart';
 import 'package:tool_store_app/view/var/var.dart';
 
@@ -14,6 +17,92 @@ class ToolFormInput extends StatefulWidget {
 
 class ToolFormInputState extends State<ToolFormInput> {
   bool get _isEditMode => idFormCont.text.isNotEmpty;
+  bool _isSubmitting = false;
+
+  Future<bool> _submitFormData(String param) async {
+    if (_isSubmitting) return false;
+    _isSubmitting = true;
+    try {
+      final responseList = await store.dispatch(
+        getDataTool(
+          param: param,
+          idForm: idFormCont.text,
+          formNo: formNoCont.text,
+          formServName: servNameCont.text,
+          formCheckBy: checkedByCont.text,
+          formDateCheckBy: dateCheckByCont.text,
+          formDateServName: dateServNameCont.text,
+          formServComment: servCommentCont.text,
+          formSuperiorAprd: superiorAprdCont.text,
+          formSuperiorComment: superiorCommentCont.text,
+          formSadminComment: sadminCommentCont.text,
+          formMilestone: milestoneCont.text,
+          formStatusOrder: statusOrderCont.text,
+          formSheadAprd: sheadAprdCont.text,
+          formSheadComment: sheadCommentCont.text,
+          fromDateUpdate: dateUpdateCont.text,
+          formUserUpdate: userUpdateCont.text,
+        ),
+      );
+
+      final apiResponse = responseList is List && responseList.isNotEmpty
+          ? responseList.last
+          : null;
+      final String responseValue = apiResponse?.valueResponse.toString() ?? "";
+      final String responseMessage =
+          apiResponse?.messageResponse.toString() ?? "";
+      final bool isSuccess = responseValue == "1";
+
+      if (isSuccess) {
+        await store.dispatch(
+          getDataTool(
+            param: paramViewDataForm,
+            idForm: '',
+            formNo: '',
+            formServName: '',
+            formCheckBy: '',
+            formDateCheckBy: '',
+            formDateServName: '',
+            formServComment: '',
+            formSuperiorAprd: '',
+            formSuperiorComment: '',
+            formSadminComment: '',
+            formMilestone: '',
+            formStatusOrder: '',
+            formSheadAprd: '',
+            formSheadComment: '',
+            fromDateUpdate: '',
+            formUserUpdate: '',
+          ),
+        );
+      }
+
+      if (!mounted) return false;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: isSuccess ? Colors.green : Colors.red,
+          content: Text(
+            responseMessage.isNotEmpty
+                ? responseMessage
+                : (isSuccess ? "Success" : "Failed process data"),
+          ),
+        ),
+      );
+
+      return isSuccess;
+    } catch (_) {
+      if (!mounted) return false;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          backgroundColor: Colors.red,
+          content: Text('Failed process data'),
+        ),
+      );
+      return false;
+    } finally {
+      _isSubmitting = false;
+    }
+  }
 
   InputDecoration _dropdownDecoration(BuildContext context, String label) {
     return InputDecoration(
@@ -141,6 +230,9 @@ class ToolFormInputState extends State<ToolFormInput> {
       onPressedYes: (dialogContext) async {
         if (dialogContext.mounted) Navigator.pop(dialogContext);
         if (!mounted) return;
+        final isSuccess = await _submitFormData(paramDeleteDataForm);
+        if (!mounted || !isSuccess) return;
+        await PageRoutes.routeTool(context);
       },
       textNo: 'Cancel',
       textYes: 'Yes',
@@ -151,6 +243,18 @@ class ToolFormInputState extends State<ToolFormInput> {
 
   @override
   Widget build(BuildContext context) {
+    final statusOrderOptions = ["HOLDER", "NON HOLDER"];
+    final selectedStatusOrder =
+        statusOrderOptions.contains(statusOrderCont.text)
+        ? statusOrderCont.text
+        : null;
+    final categoryOptions = statusOrderCont.text == "HOLDER"
+        ? ["MISSING", "DAMAGE", "ADDITIONAL"]
+        : ["BUDGET", "NON BUDGET"];
+    final selectedCategory = categoryOptions.contains(servCommentCont.text)
+        ? servCommentCont.text
+        : null;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF7F8FA),
       appBar: AppBar(
@@ -286,10 +390,8 @@ class ToolFormInputState extends State<ToolFormInput> {
                       ),
                       child: DropdownButtonFormField<String>(
                         style: Theme.of(context).textTheme.labelMedium,
-                        initialValue: statusOrderCont.text.isEmpty
-                            ? null
-                            : statusOrderCont.text,
-                        items: ["HOLDER", "NON HOLDER"]
+                        initialValue: selectedStatusOrder,
+                        items: statusOrderOptions
                             .map(
                               (e) => DropdownMenuItem(
                                 value: e,
@@ -327,25 +429,20 @@ class ToolFormInputState extends State<ToolFormInput> {
                       ),
                       child: DropdownButtonFormField<String>(
                         style: Theme.of(context).textTheme.labelMedium,
-                        initialValue: servCommentCont.text.isEmpty
-                            ? null
-                            : servCommentCont.text,
-                        items:
-                            (statusOrderCont.text == "HOLDER"
-                                    ? ["MISSING", "DAMAGE", "ADDITIONAL"]
-                                    : ["BUDGET", "NON BUDGET"])
-                                .map(
-                                  (e) => DropdownMenuItem(
-                                    value: e,
-                                    child: Text(
-                                      e,
-                                      style: Theme.of(
-                                        context,
-                                      ).textTheme.labelMedium,
-                                    ),
-                                  ),
-                                )
-                                .toList(),
+                        initialValue: selectedCategory,
+                        items: categoryOptions
+                            .map(
+                              (e) => DropdownMenuItem(
+                                value: e,
+                                child: Text(
+                                  e,
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.labelMedium,
+                                ),
+                              ),
+                            )
+                            .toList(),
                         onChanged: statusOrderCont.text.isEmpty
                             ? null
                             : (val) => setState(
@@ -394,82 +491,6 @@ class ToolFormInputState extends State<ToolFormInput> {
                     ),
                   ],
                 ),
-                _buildSectionCard(
-                  context: context,
-                  title: 'Supervisor Validation',
-                  icon: Icons.fact_check_outlined,
-                  children: [
-                    TextFormFields(
-                      labelTexts: 'Supervisor / Foreman Approval',
-                      textColor: Colors.black,
-                      controllers: superiorAprdCont,
-                      validators: (cmtReq) {
-                        if (cmtReq == null || cmtReq.isEmpty) {
-                          return 'Required !';
-                        }
-                        return null;
-                      },
-                    ),
-                    TextFormFields(
-                      labelTexts: 'Supervisor / Foreman Comment',
-                      textColor: Colors.black,
-                      controllers: superiorCommentCont,
-                      validators: (cmtSup) {
-                        if (cmtSup == null || cmtSup.isEmpty) {
-                          return 'Required !';
-                        }
-                        return null;
-                      },
-                    ),
-                  ],
-                ),
-                _buildSectionCard(
-                  context: context,
-                  title: 'Service Admin / Support Review',
-                  icon: Icons.rate_review,
-                  children: [
-                    TextFormFields(
-                      labelTexts: 'Service Admin / Support Comment',
-                      textColor: Colors.black,
-                      controllers: sadminCommentCont,
-                      validators: (cmtSup) {
-                        if (cmtSup == null || cmtSup.isEmpty) {
-                          return 'Required !';
-                        }
-                        return null;
-                      },
-                    ),
-                  ],
-                ),
-                _buildSectionCard(
-                  context: context,
-                  title: 'Dept Head Approval',
-                  icon: Icons.check_circle,
-                  children: [
-                    TextFormFields(
-                      labelTexts: 'Service Dept. Head Approval',
-                      textColor: Colors.black,
-                      controllers: sheadAprdCont,
-                      validators: (cmtSup) {
-                        if (cmtSup == null || cmtSup.isEmpty) {
-                          return 'Required !';
-                        }
-                        return null;
-                      },
-                    ),
-                    TextFormFields(
-                      labelTexts: 'Service Dept. Head Comment',
-                      textColor: Colors.black,
-                      controllers: sheadCommentCont,
-                      validators: (cmtSup) {
-                        if (cmtSup == null || cmtSup.isEmpty) {
-                          return 'Required !';
-                        }
-                        return null;
-                      },
-                    ),
-                  ],
-                ),
                 Padding(
                   padding: EdgeInsets.all(paddingForm),
                   child: ElevatedButton(
@@ -495,16 +516,18 @@ class ToolFormInputState extends State<ToolFormInput> {
                           Navigator.pop(dialogContext);
                         },
                         onPressedYes: (dialogContext) async {
-                          if (dialogContext.mounted) Navigator.pop(dialogContext);
+                          if (dialogContext.mounted)
+                            Navigator.pop(dialogContext);
                           if (!mounted) return;
                           if (formKey.currentState!.validate()) {
-                            setState(() {});
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                backgroundColor: Colors.green,
-                                content: Text('Data diproses'),
-                              ),
+                            final actionParam = _isEditMode
+                                ? paramEditDataForm
+                                : paramAddDataForm;
+                            final isSuccess = await _submitFormData(
+                              actionParam,
                             );
+                            if (!mounted || !isSuccess) return;
+                            await PageRoutes.routeTool(context);
                           }
                         },
                         textNo: 'Cancel',

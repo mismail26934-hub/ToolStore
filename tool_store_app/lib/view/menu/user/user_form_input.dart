@@ -1,10 +1,11 @@
 import 'dart:math' show min;
 
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_redux/flutter_redux.dart';
 import 'package:tool_store_app/controller/api_url/post_list.dart';
 import 'package:tool_store_app/controller/cont_crud/redux/state.dart';
+import 'package:tool_store_app/controller/cont_crud/redux/store.dart';
+import 'package:tool_store_app/model/post_get_data.dart';
 import 'package:tool_store_app/view/custom/routes/page_routes.dart';
 import 'package:tool_store_app/view/custom/show_dialog/show_dialog.dart';
 import 'package:tool_store_app/view/var/var.dart';
@@ -332,57 +333,103 @@ class UserFormInput extends StatefulWidget {
 
 class _UserFormInputState extends State<UserFormInput> {
   final _formKey = GlobalKey<FormState>();
-  final Dio _dio = Dio(); // Inisialisasi Dio
   bool _isLoading = false;
   bool get _isEditMode => iduserFormCont.text.isNotEmpty;
 
+  Future<void> _refreshUserList() async {
+    await store.dispatch(
+      getDataUser(
+        param: paramViewDataUser,
+        idUsers: '',
+        username: '',
+        password: '',
+        namaUser: '',
+        foto: '',
+        idTU: '',
+        noTelp: '',
+        token: '',
+        level: '',
+        status: '',
+        superiorId: '',
+      ),
+    );
+  }
+
   Future<void> submitData(String params) async {
-    if (!_formKey.currentState!.validate()) return;
+    final isDelete = params == paramDeleteDataUser;
+    if (!isDelete && !_formKey.currentState!.validate()) return;
 
     setState(() {
       _isLoading = true;
     });
 
-    // Persiapkan data FormData (sama seperti $_POST di PHP)
-    FormData formData = FormData.fromMap({
-      "param": params,
-      "id_users": iduserFormCont.text,
-      "username": usernameFormCont.text,
-      "password": passwordFormCont.text,
-      "nama_user": namaFormCont.text,
-      "foto": "", // Kosongkan jika belum ada upload file
-      "id_tu": tuidFormCont.text,
-      "superior_id": superiorIdFormCont.text,
-      "no_telp": telpFormCont.text,
-      "token": "",
-      "level": levelFormCont.text,
-      "status": "Active",
-    });
-
     try {
-      // Ganti URL dengan endpoint PHP kamu
-      final response = await _dio.post(
-        "https://your-api-url.com",
-        data: formData,
+      final responseList = await store.dispatch(
+        getDataUser(
+          param: params,
+          idUsers: iduserFormCont.text.trim(),
+          username: usernameFormCont.text.trim(),
+          password: passwordFormCont.text,
+          namaUser: namaFormCont.text.trim(),
+          foto: '',
+          idTU: tuidFormCont.text.trim(),
+          noTelp: telpFormCont.text.trim(),
+          token: '',
+          level: levelFormCont.text.trim(),
+          status: statusFormCont.text.trim(),
+          superiorId: superiorIdFormCont.text.trim(),
+        ),
       );
 
-      if (response.statusCode == 200) {
-        // Dio otomatis mendeteksi jika response adalah JSON
-        debugPrint("Respon Server: ${response.data}");
+      if (!mounted) return;
 
-        if (!mounted) return;
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text("Save Data Success")));
-        Navigator.pop(context);
+      PostList? apiEnvelope;
+      if (responseList is List && responseList.isNotEmpty) {
+        for (var i = responseList.length - 1; i >= 0; i--) {
+          final row = responseList[i];
+          if (row is PostList && row.valueResponse.trim().isNotEmpty) {
+            apiEnvelope = row;
+            break;
+          }
+        }
+        apiEnvelope ??= responseList.last is PostList
+            ? responseList.last as PostList
+            : null;
       }
-    } on DioException catch (e) {
-      // Handle error spesifik Dio
-      String errorMessage = e.response?.data?.toString() ?? cekInternet;
+
+      final String responseValue = apiEnvelope?.valueResponse.trim() ?? '';
+      final String responseMessage = apiEnvelope?.messageResponse.trim() ?? '';
+      final bool isSuccess = responseValue == '1';
+
+      if (isSuccess) {
+        await _refreshUserList();
+        if (!mounted) return;
+        final msg = responseMessage.isNotEmpty
+            ? responseMessage
+            : (isDelete
+                  ? 'Data user berhasil dihapus'
+                  : (_isEditMode
+                        ? 'Data user berhasil diperbarui'
+                        : 'Data user berhasil ditambahkan'));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(backgroundColor: Colors.green, content: Text(msg)),
+        );
+        await PageRoutes.routeUser(context);
+      } else {
+        await _refreshUserList();
+        if (!mounted) return;
+        final msg = responseMessage.isNotEmpty
+            ? responseMessage
+            : 'Gagal memproses data user';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(backgroundColor: Colors.red, content: Text(msg)),
+        );
+      }
+    } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text("Failed: $errorMessage")));
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -464,7 +511,7 @@ class _UserFormInputState extends State<UserFormInput> {
 
   void _applySuperiorFromPost(PostList s) {
     namaSuperiorFormCont.text = _labelSuperiorPick(s);
-    superiorIdFormCont.text = s.idUsers.trim();
+    superiorIdFormCont.text = s.superiorId.trim();
   }
 
   Future<void> _openSuperiorPicker(
@@ -506,7 +553,7 @@ class _UserFormInputState extends State<UserFormInput> {
       },
       onPressedYes: (dialogContext) async {
         if (dialogContext.mounted) Navigator.pop(dialogContext);
-        submitData(paramDeleteDataUser);
+        await submitData(paramDeleteDataUser);
       },
       textNo: 'Back',
       textYes: 'Yes',
@@ -642,6 +689,7 @@ class _UserFormInputState extends State<UserFormInput> {
                             passwordFormCont,
                             "Password",
                             isPassword: true,
+                            optional: _isEditMode,
                           ),
                           const SizedBox(height: 10),
                           _buildTextField(namaFormCont, "Nama Lengkap"),
@@ -839,8 +887,6 @@ class _UserFormInputState extends State<UserFormInput> {
                                         ? paramEditDataUser
                                         : paramAddDataUser,
                                   );
-                                  if (!context.mounted) return;
-                                  PageRoutes.routeUser(context);
                                 },
                                 textNo: 'Cancel',
                                 textYes: 'Yes',
@@ -894,13 +940,14 @@ class _UserFormInputState extends State<UserFormInput> {
     String label, {
     bool isPassword = false,
     bool isPhone = false,
+    bool optional = false,
   }) {
     return TextFormField(
       controller: controller,
       obscureText: isPassword,
       keyboardType: isPhone ? TextInputType.phone : TextInputType.text,
       decoration: InputDecoration(
-        labelText: label,
+        labelText: optional ? '$label (opsional)' : label,
         filled: true,
         fillColor: Colors.white,
         border: OutlineInputBorder(
@@ -920,7 +967,13 @@ class _UserFormInputState extends State<UserFormInput> {
           vertical: 14,
         ),
       ),
-      validator: (value) => value!.isEmpty ? "Required !" : null,
+      validator: (value) {
+        if (optional && (value == null || value.trim().isEmpty)) {
+          return null;
+        }
+        if (value == null || value.isEmpty) return 'Required !';
+        return null;
+      },
     );
   }
 }

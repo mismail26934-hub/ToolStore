@@ -8,11 +8,17 @@ class TextFormFields extends StatefulWidget {
     required this.textColor,
     required this.controllers,
     required this.validators,
+    this.readOnly = false,
+    this.onTap,
+    this.suffixIcon,
   });
   final String labelTexts;
   final TextEditingController controllers;
   final Color textColor;
   final String? Function(String?)? validators;
+  final bool readOnly;
+  final VoidCallback? onTap;
+  final Widget? suffixIcon;
 
   @override
   State<TextFormFields> createState() => _TextFormFieldsState();
@@ -25,11 +31,14 @@ class _TextFormFieldsState extends State<TextFormFields> {
       padding: EdgeInsets.all(paddingForm),
       child: TextFormField(
         controller: widget.controllers,
+        readOnly: widget.readOnly,
+        onTap: widget.onTap,
         decoration: InputDecoration(
           labelText: widget.labelTexts,
           labelStyle: Theme.of(context).textTheme.labelMedium,
           hintStyle: Theme.of(context).textTheme.labelMedium,
           floatingLabelStyle: Theme.of(context).textTheme.labelMedium,
+          suffixIcon: widget.suffixIcon,
           border: const OutlineInputBorder(),
         ),
         validator: widget.validators,

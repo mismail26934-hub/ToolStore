@@ -10,7 +10,6 @@ import 'package:tool_store_app/view/custom/mixin/mixin_pref.dart';
 import 'package:tool_store_app/view/custom/navbar/sliver_appbars.dart';
 import 'package:tool_store_app/view/custom/navbar/sliver_fill_remaining.dart';
 import 'package:tool_store_app/view/custom/routes/page_routes.dart';
-import 'package:tool_store_app/view/custom/show_dialog/show_dialog.dart';
 import 'package:tool_store_app/view/menu/drawer/drawer.dart';
 import 'package:tool_store_app/view/var/var.dart';
 import 'package:intl/intl.dart';
@@ -50,7 +49,9 @@ class _ToolDataState extends State<ToolData> with MixinPref {
 
   /// Dialog routes may still detach [TextFormField]s one frame after [showDialog]
   /// completes; disposing controllers immediately causes "used after disposed".
-  void _disposeTextControllersAfterFrame(List<TextEditingController> controllers) {
+  void _disposeTextControllersAfterFrame(
+    List<TextEditingController> controllers,
+  ) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       for (final c in controllers) {
         c.dispose();
@@ -62,7 +63,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
     await store.dispatch(
       getDataTool(
         param: paramViewDataForm,
-        idFrom: '',
+        idForm: '',
         formNo: '',
         formServName: '',
         formCheckBy: '',
@@ -72,12 +73,30 @@ class _ToolDataState extends State<ToolData> with MixinPref {
         formSuperiorAprd: '',
         formSuperiorComment: '',
         formSadminComment: '',
+        formMilestone: '',
+        formStatusOrder: '',
         formSheadAprd: '',
         formSheadComment: '',
         fromDateUpdate: '',
         formUserUpdate: '',
       ),
     );
+  }
+
+  Future<void> _pickDateIntoController(
+    BuildContext dialogContext,
+    TextEditingController controller,
+  ) async {
+    final parsed = DateTime.tryParse(controller.text.trim());
+    final initialDate = parsed ?? DateTime.now();
+    final picked = await showDatePicker(
+      context: dialogContext,
+      initialDate: initialDate,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+    );
+    if (picked == null) return;
+    controller.text = DateFormat('yyyy-MM-dd').format(picked);
   }
 
   void _onSearchChanged(String value) {
@@ -142,11 +161,32 @@ class _ToolDataState extends State<ToolData> with MixinPref {
     return value.trim();
   }
 
+  bool _isApprovedValue(String value) {
+    final normalized = value.trim().toUpperCase();
+    return normalized == 'APPROVED' ||
+        normalized == 'APPROVE' ||
+        normalized == 'Y' ||
+        normalized == 'YES';
+  }
+
+  bool _isRejectedValue(String value) {
+    final normalized = value.trim().toUpperCase();
+    return normalized == 'REJECTED' ||
+        normalized == 'REJECT' ||
+        normalized == 'N' ||
+        normalized == 'NO';
+  }
+
   Widget _buildInfoTile({
     required IconData icon,
     required String label,
     required String value,
+    Widget? trailing,
+    String? statusText,
+    Color? statusColor,
+    IconData? statusIcon,
   }) {
+    final isDesktop = MediaQuery.sizeOf(context).width >= mobileWidth;
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -170,12 +210,94 @@ class _ToolDataState extends State<ToolData> with MixinPref {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
-                  child: Text(
-                    label,
-                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: Colors.grey.shade700,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text.rich(
+                          TextSpan(
+                            children: [
+                              TextSpan(
+                                text: label,
+                                style: Theme.of(context).textTheme.labelMedium
+                                    ?.copyWith(
+                                      color: Colors.grey.shade700,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                              ),
+                              if (isDesktop &&
+                                  statusText != null &&
+                                  statusText.isNotEmpty) ...[
+                                TextSpan(
+                                  text: ' - ',
+                                  style: Theme.of(context).textTheme.labelMedium
+                                      ?.copyWith(
+                                        color: Colors.grey.shade600,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                ),
+                                if (statusIcon != null)
+                                  WidgetSpan(
+                                    alignment: PlaceholderAlignment.middle,
+                                    child: Padding(
+                                      padding: const EdgeInsets.only(right: 4),
+                                      child: Icon(
+                                        statusIcon,
+                                        size: 13,
+                                        color:
+                                            statusColor ?? Colors.grey.shade700,
+                                      ),
+                                    ),
+                                  ),
+                                TextSpan(
+                                  text: statusText,
+                                  style: Theme.of(context).textTheme.labelSmall
+                                      ?.copyWith(
+                                        color:
+                                            statusColor ?? Colors.grey.shade700,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                ),
+                              ],
+                              if (!isDesktop &&
+                                  statusText != null &&
+                                  statusText.isNotEmpty) ...[
+                                TextSpan(
+                                  text: ' - ',
+                                  style: Theme.of(context).textTheme.labelMedium
+                                      ?.copyWith(
+                                        color: Colors.grey.shade600,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                ),
+                                if (statusIcon != null)
+                                  WidgetSpan(
+                                    alignment: PlaceholderAlignment.middle,
+                                    child: Padding(
+                                      padding: const EdgeInsets.only(right: 4),
+                                      child: Icon(
+                                        statusIcon,
+                                        size: 13,
+                                        color:
+                                            statusColor ?? Colors.grey.shade700,
+                                      ),
+                                    ),
+                                  ),
+                                TextSpan(
+                                  text: statusText,
+                                  style: Theme.of(context).textTheme.labelSmall
+                                      ?.copyWith(
+                                        color:
+                                            statusColor ?? Colors.grey.shade700,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                ),
+                              ],
+                            ],
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(height: 1),
@@ -190,6 +312,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
               ],
             ),
           ),
+          if (trailing != null) ...[const SizedBox(width: 6), trailing],
         ],
       ),
     );
@@ -218,6 +341,93 @@ class _ToolDataState extends State<ToolData> with MixinPref {
         ],
       ),
     );
+  }
+
+  Future<bool> _showSubmitConfirmationDialog({
+    required BuildContext dialogContext,
+    required String title,
+    required String message,
+    IconData icon = Icons.task_alt_outlined,
+  }) async {
+    final confirmed = await showGeneralDialog<bool>(
+      context: dialogContext,
+      barrierDismissible: true,
+      barrierLabel: 'confirm-submit',
+      barrierColor: Colors.black54,
+      transitionDuration: const Duration(milliseconds: 220),
+      pageBuilder: (confirmContext, animation, secondaryAnimation) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          titlePadding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
+          contentPadding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
+          actionsPadding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: clrOrange.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, color: clrOrange, size: 18),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  title,
+                  style: Theme.of(confirmContext).textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w700),
+                ),
+              ),
+            ],
+          ),
+          content: Text(
+            message,
+            style: Theme.of(
+              confirmContext,
+            ).textTheme.bodyMedium?.copyWith(color: Colors.grey.shade800),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(confirmContext, false),
+              child: Text(
+                'Cancel',
+                style: TextStyle(color: Colors.grey.shade800),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(confirmContext, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: clrOrange,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              child: const Text('Yes'),
+            ),
+          ],
+        );
+      },
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        final curved = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeOutCubic,
+          reverseCurve: Curves.easeInCubic,
+        );
+        return FadeTransition(
+          opacity: curved,
+          child: ScaleTransition(
+            scale: Tween<double>(begin: 0.95, end: 1.0).animate(curved),
+            child: child,
+          ),
+        );
+      },
+    );
+    return confirmed == true;
   }
 
   Widget _buildMetaChip({
@@ -276,6 +486,82 @@ class _ToolDataState extends State<ToolData> with MixinPref {
     );
   }
 
+  Widget _buildAddToolHeaderAction() {
+    final isMobile = MediaQuery.sizeOf(context).width < mobileWidth;
+    if (isMobile) {
+      return IconButton(
+        tooltip: 'Add Tool',
+        style: IconButton.styleFrom(
+          backgroundColor: Colors.orange.shade700,
+          foregroundColor: Colors.white,
+          minimumSize: const Size(40, 40),
+        ),
+        icon: const Icon(Icons.add_circle_outline, size: 20),
+        onPressed: () {
+          PageRoutes.routeUserFormDetail(context, 'ADD DATA');
+        },
+      );
+    }
+    return _buildActionButton(
+      icon: Icons.add_circle_outline,
+      label: 'Add Tool',
+      backgroundColor: Colors.orange.shade700,
+      onPressed: () {
+        PageRoutes.routeUserFormDetail(context, 'ADD DATA');
+      },
+    );
+  }
+
+  /// Tombol aksi di card komentar: teks + ikon di layar lebar (desktop), ikon saja di mobile.
+  Widget _buildCommentCardTrailingAction({
+    required IconData icon,
+    required String label,
+    required Color backgroundColor,
+    required String tooltip,
+    required VoidCallback onPressed,
+  }) {
+    final isDesktop = MediaQuery.sizeOf(context).width >= mobileWidth;
+    if (isDesktop) {
+      return Tooltip(
+        message: tooltip,
+        child: SizedBox(
+          height: 38,
+          child: ElevatedButton.icon(
+            onPressed: onPressed,
+            icon: Icon(icon, size: 16),
+            label: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: backgroundColor,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+    return IconButton(
+      tooltip: tooltip,
+      style: IconButton.styleFrom(
+        backgroundColor: backgroundColor,
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.all(8),
+        minimumSize: const Size(40, 40),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
+      icon: Icon(icon, size: 20),
+      onPressed: onPressed,
+    );
+  }
+
   Widget _buildLineItem(String label, String value) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
@@ -303,6 +589,614 @@ class _ToolDataState extends State<ToolData> with MixinPref {
           ),
         ],
       ),
+    );
+  }
+
+  Future<void> _showSupervisorValidationDialog(PostList forms) async {
+    final formKey = GlobalKey<FormState>();
+    final initialApproval = forms.formSuperiorAprd.trim().toUpperCase();
+    String? selectedApproval;
+    if (initialApproval == 'APPROVED' ||
+        initialApproval == 'APPROVE' ||
+        initialApproval == 'Y' ||
+        initialApproval == 'YES') {
+      selectedApproval = 'APPROVED';
+    } else if (initialApproval == 'REJECTED' ||
+        initialApproval == 'REJECT' ||
+        initialApproval == 'N' ||
+        initialApproval == 'NO') {
+      selectedApproval = 'REJECTED';
+    }
+    final commentController = TextEditingController(
+      text: forms.formSuperiorComment.trim(),
+    );
+
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        bool isSubmitting = false;
+        return StatefulBuilder(
+          builder: (statefulContext, setStateDialog) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              titlePadding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
+              contentPadding: const EdgeInsets.fromLTRB(20, 8, 20, 10),
+              actionsPadding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+              title: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: clrOrange.withValues(alpha: 0.14),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      Icons.fact_check_outlined,
+                      color: clrOrange,
+                      size: 18,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  const Expanded(child: Text('Superior Validation')),
+                ],
+              ),
+              content: Form(
+                key: formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    DropdownButtonFormField<String>(
+                      value: selectedApproval,
+                      decoration: const InputDecoration(
+                        labelText: 'Supervisor / Foreman Approval',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: const [
+                        DropdownMenuItem(
+                          value: 'APPROVED',
+                          child: Text('APPROVED'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'REJECTED',
+                          child: Text('REJECTED'),
+                        ),
+                      ],
+                      onChanged: (value) {
+                        setStateDialog(() {
+                          selectedApproval = value;
+                        });
+                      },
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Approval is required';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: commentController,
+                      decoration: const InputDecoration(
+                        labelText: 'Supervisor / Foreman Comment',
+                        border: OutlineInputBorder(),
+                      ),
+                      maxLines: 2,
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Comment is required';
+                        }
+                        return null;
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isSubmitting
+                      ? null
+                      : () => Navigator.pop(dialogContext),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: isSubmitting
+                      ? null
+                      : () async {
+                          if (formKey.currentState?.validate() != true) return;
+                          final confirmed = await _showSubmitConfirmationDialog(
+                            dialogContext: dialogContext,
+                            title: 'Confirm Supervisor Validation',
+                            message:
+                                'This will submit supervisor/foreman approval for this request.',
+                            icon: Icons.fact_check_outlined,
+                          );
+                          if (confirmed != true) return;
+                          setStateDialog(() => isSubmitting = true);
+                          try {
+                            final responseList = await store.dispatch(
+                              getDataTool(
+                                param: paramEditDataForm,
+                                idForm: forms.idForm.trim(),
+                                formNo: forms.formNo.trim(),
+                                formServName: forms.formServName.trim(),
+                                formCheckBy: forms.formCheckBy.trim(),
+                                formDateCheckBy: forms.formDateCheckBy.trim(),
+                                formDateServName: forms.formDateServName.trim(),
+                                formServComment: forms.formServComment.trim(),
+                                formSuperiorAprd: (selectedApproval ?? '')
+                                    .trim(),
+                                formSuperiorComment: commentController.text
+                                    .trim(),
+                                formSadminComment: forms.formSadminComment
+                                    .trim(),
+                                formMilestone: forms.formMilestone.trim(),
+                                formStatusOrder: forms.formStatusOrder.trim(),
+                                formSheadAprd: forms.formSheadAprd.trim(),
+                                formSheadComment: forms.formSheadComment.trim(),
+                                fromDateUpdate: DateFormat(
+                                  'yyyy-MM-dd',
+                                ).format(DateTime.now()),
+                                formUserUpdate: idUsersApp.isNotEmpty
+                                    ? idUsersApp
+                                    : forms.formUserUpdate.trim(),
+                              ),
+                            );
+
+                            final apiResponse =
+                                responseList is List && responseList.isNotEmpty
+                                ? responseList.last
+                                : null;
+                            final responseValue =
+                                apiResponse?.valueResponse.toString() ?? "";
+                            final responseMessage =
+                                apiResponse?.messageResponse.toString() ?? "";
+                            final isSuccess = responseValue == "1";
+
+                            if (!mounted) return;
+                            Navigator.pop(dialogContext);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                backgroundColor: isSuccess
+                                    ? Colors.green
+                                    : Colors.red,
+                                content: Text(
+                                  responseMessage.isNotEmpty
+                                      ? responseMessage
+                                      : (isSuccess
+                                            ? "Supervisor validation saved"
+                                            : "Failed saving validation"),
+                                ),
+                              ),
+                            );
+                            if (isSuccess) {
+                              await _refreshData();
+                            }
+                          } catch (_) {
+                            if (!mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                backgroundColor: Colors.red,
+                                content: Text('Failed saving validation'),
+                              ),
+                            );
+                          } finally {
+                            if (dialogContext.mounted) {
+                              setStateDialog(() => isSubmitting = false);
+                            }
+                          }
+                        },
+                  style: ElevatedButton.styleFrom(backgroundColor: clrGreen),
+                  child: isSubmitting
+                      ? const SizedBox(
+                          height: 16,
+                          width: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text(
+                          'Submit',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _showDeptHeadValidationDialog(PostList forms) async {
+    final formKey = GlobalKey<FormState>();
+    final initialApproval = forms.formSheadAprd.trim().toUpperCase();
+    String? selectedApproval;
+    if (initialApproval == 'APPROVED' ||
+        initialApproval == 'APPROVE' ||
+        initialApproval == 'Y' ||
+        initialApproval == 'YES') {
+      selectedApproval = 'APPROVED';
+    } else if (initialApproval == 'REJECTED' ||
+        initialApproval == 'REJECT' ||
+        initialApproval == 'N' ||
+        initialApproval == 'NO') {
+      selectedApproval = 'REJECTED';
+    }
+    final commentController = TextEditingController(
+      text: forms.formSheadComment.trim(),
+    );
+
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        bool isSubmitting = false;
+        return StatefulBuilder(
+          builder: (statefulContext, setStateDialog) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              titlePadding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
+              contentPadding: const EdgeInsets.fromLTRB(20, 8, 20, 10),
+              actionsPadding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+              title: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: clrOrange.withValues(alpha: 0.14),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      Icons.verified_outlined,
+                      color: clrOrange,
+                      size: 18,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  const Expanded(child: Text('Dept Head Approval')),
+                ],
+              ),
+              content: Form(
+                key: formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    DropdownButtonFormField<String>(
+                      value: selectedApproval,
+                      decoration: const InputDecoration(
+                        labelText: 'Service Dept. Head Approval',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: const [
+                        DropdownMenuItem(
+                          value: 'APPROVED',
+                          child: Text('APPROVED'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'REJECTED',
+                          child: Text('REJECTED'),
+                        ),
+                      ],
+                      onChanged: (value) {
+                        setStateDialog(() {
+                          selectedApproval = value;
+                        });
+                      },
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Approval is required';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: commentController,
+                      decoration: const InputDecoration(
+                        labelText: 'Service Dept. Head Comment',
+                        border: OutlineInputBorder(),
+                      ),
+                      maxLines: 2,
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Comment is required';
+                        }
+                        return null;
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isSubmitting
+                      ? null
+                      : () => Navigator.pop(dialogContext),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: isSubmitting
+                      ? null
+                      : () async {
+                          if (formKey.currentState?.validate() != true) return;
+                          final confirmed = await _showSubmitConfirmationDialog(
+                            dialogContext: dialogContext,
+                            title: 'Confirm Dept Head Approval',
+                            message:
+                                'This will submit dept head approval for this request.',
+                            icon: Icons.verified_outlined,
+                          );
+                          if (confirmed != true) return;
+                          setStateDialog(() => isSubmitting = true);
+                          try {
+                            final responseList = await store.dispatch(
+                              getDataTool(
+                                param: paramEditDataForm,
+                                idForm: forms.idForm.trim(),
+                                formNo: forms.formNo.trim(),
+                                formServName: forms.formServName.trim(),
+                                formCheckBy: forms.formCheckBy.trim(),
+                                formDateCheckBy: forms.formDateCheckBy.trim(),
+                                formDateServName: forms.formDateServName.trim(),
+                                formServComment: forms.formServComment.trim(),
+                                formSuperiorAprd: forms.formSuperiorAprd.trim(),
+                                formSuperiorComment: forms.formSuperiorComment
+                                    .trim(),
+                                formSadminComment: forms.formSadminComment
+                                    .trim(),
+                                formMilestone: forms.formMilestone.trim(),
+                                formStatusOrder: forms.formStatusOrder.trim(),
+                                formSheadAprd: (selectedApproval ?? '').trim(),
+                                formSheadComment: commentController.text.trim(),
+                                fromDateUpdate: DateFormat(
+                                  'yyyy-MM-dd',
+                                ).format(DateTime.now()),
+                                formUserUpdate: idUsersApp.isNotEmpty
+                                    ? idUsersApp
+                                    : forms.formUserUpdate.trim(),
+                              ),
+                            );
+
+                            final apiResponse =
+                                responseList is List && responseList.isNotEmpty
+                                ? responseList.last
+                                : null;
+                            final responseValue =
+                                apiResponse?.valueResponse.toString() ?? "";
+                            final responseMessage =
+                                apiResponse?.messageResponse.toString() ?? "";
+                            final isSuccess = responseValue == "1";
+
+                            if (!mounted) return;
+                            Navigator.pop(dialogContext);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                backgroundColor: isSuccess
+                                    ? Colors.green
+                                    : Colors.red,
+                                content: Text(
+                                  responseMessage.isNotEmpty
+                                      ? responseMessage
+                                      : (isSuccess
+                                            ? "Dept head approval saved"
+                                            : "Failed saving dept head approval"),
+                                ),
+                              ),
+                            );
+                            if (isSuccess) {
+                              await _refreshData();
+                            }
+                          } catch (_) {
+                            if (!mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                backgroundColor: Colors.red,
+                                content: Text(
+                                  'Failed saving dept head approval',
+                                ),
+                              ),
+                            );
+                          } finally {
+                            if (dialogContext.mounted) {
+                              setStateDialog(() => isSubmitting = false);
+                            }
+                          }
+                        },
+                  style: ElevatedButton.styleFrom(backgroundColor: clrGreen),
+                  child: isSubmitting
+                      ? const SizedBox(
+                          height: 16,
+                          width: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text(
+                          'Submit',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _showServiceAdminReviewDialog(PostList forms) async {
+    final formKey = GlobalKey<FormState>();
+    final commentController = TextEditingController(
+      text: forms.formSadminComment.trim(),
+    );
+
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        bool isSubmitting = false;
+        return StatefulBuilder(
+          builder: (statefulContext, setStateDialog) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              titlePadding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
+              contentPadding: const EdgeInsets.fromLTRB(20, 8, 20, 10),
+              actionsPadding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+              title: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: clrOrange.withValues(alpha: 0.14),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      Icons.rate_review_outlined,
+                      color: clrOrange,
+                      size: 18,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  const Expanded(child: Text('Service Admin / Support Review')),
+                ],
+              ),
+              content: Form(
+                key: formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextFormField(
+                      controller: commentController,
+                      decoration: const InputDecoration(
+                        labelText: 'Service Admin / Support Comment',
+                        border: OutlineInputBorder(),
+                      ),
+                      maxLines: 2,
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Comment is required';
+                        }
+                        return null;
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isSubmitting
+                      ? null
+                      : () => Navigator.pop(dialogContext),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: isSubmitting
+                      ? null
+                      : () async {
+                          if (formKey.currentState?.validate() != true) return;
+                          final confirmed = await _showSubmitConfirmationDialog(
+                            dialogContext: dialogContext,
+                            title: 'Confirm Service Admin Review',
+                            message:
+                                'This will submit service admin/support review for this request.',
+                            icon: Icons.rate_review_outlined,
+                          );
+                          if (confirmed != true) return;
+                          setStateDialog(() => isSubmitting = true);
+                          try {
+                            final responseList = await store.dispatch(
+                              getDataTool(
+                                param: paramEditDataForm,
+                                idForm: forms.idForm.trim(),
+                                formNo: forms.formNo.trim(),
+                                formServName: forms.formServName.trim(),
+                                formCheckBy: forms.formCheckBy.trim(),
+                                formDateCheckBy: forms.formDateCheckBy.trim(),
+                                formDateServName: forms.formDateServName.trim(),
+                                formServComment: forms.formServComment.trim(),
+                                formSuperiorAprd: forms.formSuperiorAprd.trim(),
+                                formSuperiorComment: forms.formSuperiorComment
+                                    .trim(),
+                                formSadminComment: commentController.text
+                                    .trim(),
+                                formMilestone: forms.formMilestone.trim(),
+                                formStatusOrder: forms.formStatusOrder.trim(),
+                                formSheadAprd: forms.formSheadAprd.trim(),
+                                formSheadComment: forms.formSheadComment.trim(),
+                                fromDateUpdate: DateFormat(
+                                  'yyyy-MM-dd',
+                                ).format(DateTime.now()),
+                                formUserUpdate: idUsersApp.isNotEmpty
+                                    ? idUsersApp
+                                    : forms.formUserUpdate.trim(),
+                              ),
+                            );
+
+                            final apiResponse =
+                                responseList is List && responseList.isNotEmpty
+                                ? responseList.last
+                                : null;
+                            final responseValue =
+                                apiResponse?.valueResponse.toString() ?? "";
+                            final responseMessage =
+                                apiResponse?.messageResponse.toString() ?? "";
+                            final isSuccess = responseValue == "1";
+
+                            if (!mounted) return;
+                            Navigator.pop(dialogContext);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                backgroundColor: isSuccess
+                                    ? Colors.green
+                                    : Colors.red,
+                                content: Text(
+                                  responseMessage.isNotEmpty
+                                      ? responseMessage
+                                      : (isSuccess
+                                            ? "Service admin review saved"
+                                            : "Failed saving service admin review"),
+                                ),
+                              ),
+                            );
+                            if (isSuccess) {
+                              await _refreshData();
+                            }
+                          } catch (_) {
+                            if (!mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                backgroundColor: Colors.red,
+                                content: Text(
+                                  'Failed saving service admin review',
+                                ),
+                              ),
+                            );
+                          } finally {
+                            if (dialogContext.mounted) {
+                              setStateDialog(() => isSubmitting = false);
+                            }
+                          }
+                        },
+                  style: ElevatedButton.styleFrom(backgroundColor: clrGreen),
+                  child: isSubmitting
+                      ? const SizedBox(
+                          height: 16,
+                          width: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text(
+                          'Submit',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 
@@ -384,7 +1278,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                       userUpdatePO: '',
                     ),
                   );
-                  if (editResult.statusValue != '1') {
+                  if (editResult.statusValue == '1') {
                     await _refreshData();
                   }
                   if (!mounted) return;
@@ -523,7 +1417,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                         userUpdatePO: '',
                       ),
                     );
-                    if (addResult.statusValue != '1') {
+                    if (addResult.statusValue == '1') {
                       await _refreshData();
                     }
                     if (!mounted) return;
@@ -645,7 +1539,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
           userUpdatePO: '',
         ),
       );
-      if (deleteResult.statusValue != '1') {
+      if (deleteResult.statusValue == '1') {
         await _refreshData();
       }
       if (!mounted) return;
@@ -732,6 +1626,10 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                     labelTexts: 'ETA',
                     textColor: clrBlack,
                     controllers: etaCont,
+                    readOnly: true,
+                    suffixIcon: const Icon(Icons.calendar_month_outlined),
+                    onTap: () =>
+                        _pickDateIntoController(dialogContext, etaCont),
                     validators: (_) => null,
                   ),
                   TextFormFields(
@@ -784,7 +1682,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                       idUpdateSo: '',
                     ),
                   );
-                  if (editResult.statusValue != '1') {
+                  if (editResult.statusValue == '1') {
                     await _refreshData();
                   }
                   if (!mounted) return;
@@ -889,6 +1787,10 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                       labelTexts: 'ETA',
                       textColor: clrBlack,
                       controllers: addEtaCont,
+                      readOnly: true,
+                      suffixIcon: const Icon(Icons.calendar_month_outlined),
+                      onTap: () =>
+                          _pickDateIntoController(dialogContext, addEtaCont),
                       validators: (_) => null,
                     ),
                     TextFormFields(
@@ -941,7 +1843,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                         idUpdateSo: '',
                       ),
                     );
-                    if (addResult.statusValue != '1') {
+                    if (addResult.statusValue == '1') {
                       await _refreshData();
                     }
                     if (!mounted) return;
@@ -1004,11 +1906,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
         },
       );
     } finally {
-      _disposeTextControllersAfterFrame([
-        addSoCont,
-        addEtaCont,
-        addNoteSoCont,
-      ]);
+      _disposeTextControllersAfterFrame([addSoCont, addEtaCont, addNoteSoCont]);
     }
   }
 
@@ -1071,7 +1969,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
           idUpdateSo: '',
         ),
       );
-      if (deleteResult.statusValue != '1') {
+      if (deleteResult.statusValue == '1') {
         await _refreshData();
       }
       if (!mounted) return;
@@ -1143,6 +2041,10 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                       labelTexts: 'Date (yyyy-MM-dd)',
                       textColor: clrBlack,
                       controllers: dateCont,
+                      readOnly: true,
+                      suffixIcon: const Icon(Icons.calendar_month_outlined),
+                      onTap: () =>
+                          _pickDateIntoController(dialogContext, dateCont),
                       validators: (v) {
                         if (v == null || v.trim().isEmpty) {
                           return 'Date is required';
@@ -1188,7 +2090,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                         rcvWhDateInput: '',
                       ),
                     );
-                    if (editResult.statusValue != '1') {
+                    if (editResult.statusValue == '1') {
                       await _refreshData();
                     }
                     if (!mounted) return;
@@ -1283,6 +2185,10 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                       labelTexts: 'Date (yyyy-MM-dd)',
                       textColor: clrBlack,
                       controllers: dateCont,
+                      readOnly: true,
+                      suffixIcon: const Icon(Icons.calendar_month_outlined),
+                      onTap: () =>
+                          _pickDateIntoController(dialogContext, dateCont),
                       validators: (v) {
                         if (v == null || v.trim().isEmpty) {
                           return 'Date is required';
@@ -1328,7 +2234,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                         rcvWhDateInput: '',
                       ),
                     );
-                    if (addResult.statusValue != '1') {
+                    if (addResult.statusValue == '1') {
                       await _refreshData();
                     }
                     if (!mounted) return;
@@ -1451,7 +2357,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
           rcvWhDateInput: '',
         ),
       );
-      if (deleteResult.statusValue != '1') {
+      if (deleteResult.statusValue == '1') {
         await _refreshData();
       }
       if (!mounted) return;
@@ -1523,6 +2429,10 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                       labelTexts: 'Date (yyyy-MM-dd)',
                       textColor: clrBlack,
                       controllers: dateCont,
+                      readOnly: true,
+                      suffixIcon: const Icon(Icons.calendar_month_outlined),
+                      onTap: () =>
+                          _pickDateIntoController(dialogContext, dateCont),
                       validators: (v) {
                         if (v == null || v.trim().isEmpty) {
                           return 'Date is required';
@@ -1568,7 +2478,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                         rcvToolDateInput: '',
                       ),
                     );
-                    if (editResult.statusValue != '1') {
+                    if (editResult.statusValue == '1') {
                       await _refreshData();
                     }
                     if (!mounted) return;
@@ -1663,6 +2573,10 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                       labelTexts: 'Date (yyyy-MM-dd)',
                       textColor: clrBlack,
                       controllers: dateCont,
+                      readOnly: true,
+                      suffixIcon: const Icon(Icons.calendar_month_outlined),
+                      onTap: () =>
+                          _pickDateIntoController(dialogContext, dateCont),
                       validators: (v) {
                         if (v == null || v.trim().isEmpty) {
                           return 'Date is required';
@@ -1708,7 +2622,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                         rcvToolDateInput: '',
                       ),
                     );
-                    if (addResult.statusValue != '1') {
+                    if (addResult.statusValue == '1') {
                       await _refreshData();
                     }
                     if (!mounted) return;
@@ -1831,7 +2745,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
           rcvToolDateInput: '',
         ),
       );
-      if (deleteResult.statusValue != '1') {
+      if (deleteResult.statusValue == '1') {
         await _refreshData();
       }
       if (!mounted) return;
@@ -1875,6 +2789,58 @@ class _ToolDataState extends State<ToolData> with MixinPref {
     }
   }
 
+  /// Edit/Delete: icon-only when width is below [mobileWidth], icon + label on desktop.
+  Widget _buildEditDeleteActions({
+    required VoidCallback onEdit,
+    required VoidCallback onDelete,
+  }) {
+    final compact = MediaQuery.sizeOf(context).width < mobileWidth;
+    if (compact) {
+      return Wrap(
+        spacing: 4,
+        runSpacing: 4,
+        alignment: WrapAlignment.end,
+        children: [
+          IconButton(
+            tooltip: 'Edit',
+            visualDensity: VisualDensity.compact,
+            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+            padding: EdgeInsets.zero,
+            icon: const Icon(Icons.edit_outlined, size: 20),
+            onPressed: onEdit,
+          ),
+          IconButton(
+            tooltip: 'Delete',
+            visualDensity: VisualDensity.compact,
+            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+            padding: EdgeInsets.zero,
+            style: IconButton.styleFrom(foregroundColor: Colors.red.shade700),
+            icon: const Icon(Icons.delete_outline, size: 20),
+            onPressed: onDelete,
+          ),
+        ],
+      );
+    }
+    return Wrap(
+      spacing: 4,
+      runSpacing: 4,
+      alignment: WrapAlignment.end,
+      children: [
+        TextButton.icon(
+          onPressed: onEdit,
+          icon: const Icon(Icons.edit_outlined, size: 18),
+          label: const Text('Edit'),
+        ),
+        TextButton.icon(
+          onPressed: onDelete,
+          icon: const Icon(Icons.delete_outline, size: 18),
+          label: const Text('Delete'),
+          style: TextButton.styleFrom(foregroundColor: Colors.red.shade700),
+        ),
+      ],
+    );
+  }
+
   Widget _buildPoCard(PostList itemPO) {
     return Container(
       width: double.infinity,
@@ -1910,25 +2876,9 @@ class _ToolDataState extends State<ToolData> with MixinPref {
               ],
             ),
           ),
-          Wrap(
-            spacing: 4,
-            runSpacing: 4,
-            alignment: WrapAlignment.end,
-            children: [
-              TextButton.icon(
-                onPressed: () => _showUpdatePurchaseOrderDialog(itemPO),
-                icon: const Icon(Icons.edit_outlined, size: 18),
-                label: const Text('Edit'),
-              ),
-              TextButton.icon(
-                onPressed: () => _showDeletePurchaseOrderConfirmDialog(itemPO),
-                icon: const Icon(Icons.delete_outline, size: 18),
-                label: const Text('Delete'),
-                style: TextButton.styleFrom(
-                  foregroundColor: Colors.red.shade700,
-                ),
-              ),
-            ],
+          _buildEditDeleteActions(
+            onEdit: () => _showUpdatePurchaseOrderDialog(itemPO),
+            onDelete: () => _showDeletePurchaseOrderConfirmDialog(itemPO),
           ),
         ],
       ),
@@ -1976,25 +2926,9 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                   ],
                 ),
               ),
-              Wrap(
-                spacing: 4,
-                runSpacing: 4,
-                alignment: WrapAlignment.end,
-                children: [
-                  TextButton.icon(
-                    onPressed: () => _showUpdateSalesOrderDialog(itemSO),
-                    icon: const Icon(Icons.edit_outlined, size: 18),
-                    label: const Text('Edit'),
-                  ),
-                  TextButton.icon(
-                    onPressed: () => _showDeleteSalesOrderConfirmDialog(itemSO),
-                    icon: const Icon(Icons.delete_outline, size: 18),
-                    label: const Text('Delete'),
-                    style: TextButton.styleFrom(
-                      foregroundColor: Colors.red.shade700,
-                    ),
-                  ),
-                ],
+              _buildEditDeleteActions(
+                onEdit: () => _showUpdateSalesOrderDialog(itemSO),
+                onDelete: () => _showDeleteSalesOrderConfirmDialog(itemSO),
               ),
             ],
           ),
@@ -2044,25 +2978,9 @@ class _ToolDataState extends State<ToolData> with MixinPref {
               ],
             ),
           ),
-          Wrap(
-            spacing: 4,
-            runSpacing: 4,
-            alignment: WrapAlignment.end,
-            children: [
-              TextButton.icon(
-                onPressed: () => _showUpdateRcvWhDialog(itemRcvWh),
-                icon: const Icon(Icons.edit_outlined, size: 18),
-                label: const Text('Edit'),
-              ),
-              TextButton.icon(
-                onPressed: () => _showDeleteRcvWhConfirmDialog(itemRcvWh),
-                icon: const Icon(Icons.delete_outline, size: 18),
-                label: const Text('Delete'),
-                style: TextButton.styleFrom(
-                  foregroundColor: Colors.red.shade700,
-                ),
-              ),
-            ],
+          _buildEditDeleteActions(
+            onEdit: () => _showUpdateRcvWhDialog(itemRcvWh),
+            onDelete: () => _showDeleteRcvWhConfirmDialog(itemRcvWh),
           ),
         ],
       ),
@@ -2107,25 +3025,9 @@ class _ToolDataState extends State<ToolData> with MixinPref {
               ],
             ),
           ),
-          Wrap(
-            spacing: 4,
-            runSpacing: 4,
-            alignment: WrapAlignment.end,
-            children: [
-              TextButton.icon(
-                onPressed: () => _showUpdateRcvToolDialog(itemRcvTool),
-                icon: const Icon(Icons.edit_outlined, size: 18),
-                label: const Text('Edit'),
-              ),
-              TextButton.icon(
-                onPressed: () => _showDeleteRcvToolConfirmDialog(itemRcvTool),
-                icon: const Icon(Icons.delete_outline, size: 18),
-                label: const Text('Delete'),
-                style: TextButton.styleFrom(
-                  foregroundColor: Colors.red.shade700,
-                ),
-              ),
-            ],
+          _buildEditDeleteActions(
+            onEdit: () => _showUpdateRcvToolDialog(itemRcvTool),
+            onDelete: () => _showDeleteRcvToolConfirmDialog(itemRcvTool),
           ),
         ],
       ),
@@ -2429,7 +3331,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(24),
-          child: Material(
+        child: Material(
           color: Colors.transparent,
           child: ExpansionTile(
             key: ValueKey<String>('form_${forms.idForm}'),
@@ -2551,7 +3453,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                     : 2,
                 childAspectRatio: MediaQuery.sizeOf(context).width < mobileWidth
                     ? 3.8
-                    : 3.3,
+                    : 4.4,
                 mainAxisSpacing: 10,
                 crossAxisSpacing: 10,
                 shrinkWrap: true,
@@ -2569,86 +3471,78 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                   ),
                   _buildInfoTile(
                     icon: Icons.comment_bank_outlined,
-                    label: 'Service Support Comment',
+                    label: 'SUPERIOR',
+                    value: forms.formSuperiorComment,
+                    statusText: _isApprovedValue(forms.formSuperiorAprd)
+                        ? 'APPROVED'
+                        : _isRejectedValue(forms.formSuperiorAprd)
+                        ? 'REJECTED'
+                        : 'WAITING APPROVAL',
+                    statusColor: _isApprovedValue(forms.formSuperiorAprd)
+                        ? clrGreen
+                        : _isRejectedValue(forms.formSuperiorAprd)
+                        ? Colors.red
+                        : Colors.orange.shade700,
+                    statusIcon: _isApprovedValue(forms.formSuperiorAprd)
+                        ? Icons.check_circle
+                        : _isRejectedValue(forms.formSuperiorAprd)
+                        ? Icons.cancel
+                        : Icons.pending,
+                    trailing: _buildCommentCardTrailingAction(
+                      icon: Icons.task_alt_outlined,
+                      label: 'Superior Approval',
+                      backgroundColor: clrGreen,
+                      tooltip: 'Superior Approval',
+                      onPressed: () => _showSupervisorValidationDialog(forms),
+                    ),
+                  ),
+                  _buildInfoTile(
+                    icon: Icons.comment_bank_outlined,
+                    label: 'SERVICE SUPPORT COMMENT',
                     value: forms.formSadminComment,
+                    trailing: _buildCommentCardTrailingAction(
+                      icon: Icons.rate_review_outlined,
+                      label: 'Service Support Review',
+                      backgroundColor: Colors.indigo,
+                      tooltip: 'Service Support Review',
+                      onPressed: () => _showServiceAdminReviewDialog(forms),
+                    ),
                   ),
                   _buildInfoTile(
                     icon: Icons.comment_bank_sharp,
-                    label: 'Service Dept.Head Comment',
+                    label: 'SERVICE DEPT. HEAD',
                     value: forms.formSheadComment,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 18),
-              _buildSectionHeader('Quick Actions', icon: Icons.bolt_outlined),
-              Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                children: [
-                  _buildActionButton(
-                    icon: Icons.cancel_outlined,
-                    label: 'Reject',
-                    backgroundColor: clrRed,
-                    onPressed: () {
-                      ShowDialogBox.show(
-                        context: context,
-                        title: 'Reject Request Approval',
-                        contentTitle: ' Are you sure reject ?',
-                        onPressedNo: (dialogContext) {
-                          if (!dialogContext.mounted) return;
-                          Navigator.pop(dialogContext);
-                        },
-                        onPressedYes: (dialogContext) async {
-                          if (dialogContext.mounted) {
-                            Navigator.pop(dialogContext);
-                          }
-                          if (!mounted) return;
-                        },
-                        textNo: 'Cancel',
-                        textYes: 'Yes',
-                        textColorNo: clrBlack,
-                        textColorYes: clrOrange,
-                      );
-                    },
-                  ),
-                  _buildActionButton(
-                    icon: Icons.task_alt_outlined,
-                    label: 'Approve',
-                    backgroundColor: clrGreen,
-                    onPressed: () {
-                      ShowDialogBox.show(
-                        context: context,
-                        title: 'Please make sure all data is correct',
-                        contentTitle: ' Are you sure approve ?',
-                        onPressedNo: (dialogContext) {
-                          if (!dialogContext.mounted) return;
-                          Navigator.pop(dialogContext);
-                        },
-                        onPressedYes: (dialogContext) async {
-                          if (dialogContext.mounted) {
-                            Navigator.pop(dialogContext);
-                          }
-                          if (!mounted) return;
-                        },
-                        textNo: 'Cancel',
-                        textYes: 'Yes',
-                        textColorNo: clrBlack,
-                        textColorYes: clrOrange,
-                      );
-                    },
-                  ),
-                  _buildActionButton(
-                    icon: Icons.add_circle_outline,
-                    label: 'Add Tool',
-                    backgroundColor: Colors.orange.shade700,
-                    onPressed: () {
-                      PageRoutes.routeUserFormDetail(context, 'ADD DATA');
-                    },
+                    statusText: _isApprovedValue(forms.formSheadAprd)
+                        ? 'APPROVED'
+                        : _isRejectedValue(forms.formSheadAprd)
+                        ? 'REJECTED'
+                        : 'WAITING APPROVAL',
+                    statusColor: _isApprovedValue(forms.formSheadAprd)
+                        ? clrGreen
+                        : _isRejectedValue(forms.formSheadAprd)
+                        ? Colors.red
+                        : Colors.orange.shade700,
+                    statusIcon: _isApprovedValue(forms.formSheadAprd)
+                        ? Icons.check_circle
+                        : _isRejectedValue(forms.formSheadAprd)
+                        ? Icons.cancel
+                        : Icons.pending,
+                    trailing: _buildCommentCardTrailingAction(
+                      icon: Icons.verified_user_outlined,
+                      label: 'Dept Head Approval',
+                      backgroundColor: Colors.teal,
+                      tooltip: 'Dept Head Approval',
+                      onPressed: () => _showDeptHeadValidationDialog(forms),
+                    ),
                   ),
                 ],
               ),
               const SizedBox(height: 20),
-              _buildSectionHeader('Tool List', icon: Icons.handyman_outlined),
+              _buildSectionHeader(
+                'Tool List',
+                icon: Icons.handyman_outlined,
+                trailing: _buildAddToolHeaderAction(),
+              ),
               StoreConnector<AppState, List<PostList>>(
                 converter: (store) {
                   final allTool = store.state.formsDetailState.formsDetail;

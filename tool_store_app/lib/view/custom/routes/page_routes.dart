@@ -4,6 +4,7 @@ import 'package:tool_store_app/view/menu/dashboard/dashboard.dart';
 import 'package:tool_store_app/view/menu/home/home.dart';
 import 'package:tool_store_app/view/menu/splash_login/login.dart';
 import 'package:tool_store_app/view/menu/tooll/test.dart';
+import 'package:tool_store_app/view/menu/tooll/tool_data.dart';
 import 'package:tool_store_app/view/menu/tooll/tool_form_multiple_input.dart';
 import 'package:tool_store_app/view/menu/user/user_data.dart';
 import 'package:tool_store_app/view/menu/user/user_form.dart';
@@ -49,6 +50,14 @@ class PageRoutes {
     Navigator.of(
       context,
     ).pushReplacement(MaterialPageRoute(builder: (_) => const UserData()));
+  }
+
+  static Future<void> routeTool(BuildContext context) async {
+    await Future.delayed(const Duration(milliseconds: 1));
+    if (!context.mounted) return;
+    Navigator.of(
+      context,
+    ).pushReplacement(MaterialPageRoute(builder: (_) => const ToolData()));
   }
 
   static Future<void> routeLoginFast(BuildContext context) async {

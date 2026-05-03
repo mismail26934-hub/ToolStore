@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_redux/flutter_redux.dart';
+import 'package:tool_store_app/controller/cont_crud/redux/state.dart';
+import 'package:tool_store_app/model/post_get_data.dart';
 import 'package:tool_store_app/view/custom/form/text_form_field.dart';
 import 'package:tool_store_app/view/custom/show_dialog/show_dialog.dart';
 import 'package:tool_store_app/view/var/var.dart';
@@ -13,6 +16,7 @@ class ToolFormMultipleInput extends StatefulWidget {
 
 class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
   bool get _isAddMode => widget.subtitle == "ADD DATA";
+  bool _isSubmitting = false;
 
   static const List<String> _actionNoteOptions = [
     // A  = Order Small Tool Account
@@ -102,7 +106,15 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
   @override
   void initState() {
     super.initState();
-    _addRow();
+    if (_isAddMode || idFormDetailCont.isEmpty) {
+      _addRow();
+    }
+  }
+
+  int _resolveSubmitIndex(int fallbackIndex) {
+    if (_isAddMode) return fallbackIndex;
+    final idx = idFormDetailCont.indexWhere((c) => c.text.trim().isNotEmpty);
+    return idx >= 0 ? idx : fallbackIndex;
   }
 
   void _addRow() {
@@ -179,19 +191,87 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
     }
   }
 
-  void _submitData() {
-    if (formKey.currentState!.validate()) {
-      List<Map<String, dynamic>> allItems = [];
+  Future<String> _submitRowToApi({
+    required int index,
+    required String param,
+  }) async {
+    final submitIndex = _resolveSubmitIndex(index);
+    final ToolDetailFetchResult result =
+        await StoreProvider.of<AppState>(context).dispatch(
+          getDataToolDetail(
+            param: param,
+            idFormDetail: idFormDetailCont[submitIndex].text.trim(),
+            idFrom: idFormToolCont[submitIndex].text.trim(),
+            formComment: formCommentCont[submitIndex].text.trim(),
+            pnGroup: pnGroupCont[submitIndex].text.trim(),
+            pnDesc: pnDescCont[submitIndex].text.trim(),
+            qty: qtyCont[submitIndex].text.trim(),
+            explan: explanCont[submitIndex].text.trim(),
+            actionNote: actionNoteCont[submitIndex].text.trim().isEmpty
+                ? ''
+                : actionNoteCont[submitIndex].text.trim().substring(0, 1),
+            valType: valTypeCont[submitIndex].text.trim(),
+            partValue: partValueCont[submitIndex].text.trim(),
+            formDetailDate: formDetailDateCont.text.trim(),
+            formDetailUser: formDetailUserCont.text.trim(),
+          ),
+        );
+
+    if (result.statusValue != null && result.statusValue != '1') {
+      throw Exception(result.serverMessage ?? 'Proses gagal');
+    }
+    return result.serverMessage ??
+        (_isAddMode ? 'ADD DATA TOOL SUCCESS' : 'EDIT DATA TOOL SUCCESS');
+  }
+
+  Future<void> _submitData() async {
+    if (_isSubmitting || !formKey.currentState!.validate()) return;
+    setState(() => _isSubmitting = true);
+
+    try {
+      String successMessage = _isAddMode
+          ? 'Data berhasil ditambahkan'
+          : 'Data berhasil diupdate';
       for (var i = 0; i < idFormToolCont.length; i++) {
-        allItems.add({
-          "pn_group": pnGroupCont[i].text,
-          "qty": qtyCont[i].text,
-          "description": pnDescCont[i].text,
-          "explanation": explanCont[i].text,
-          "action_note": actionNoteCont[i].text.substring(0, 1),
-        });
+        successMessage = await _submitRowToApi(
+          index: i,
+          param: _isAddMode ? paramAddDataTool : paramEditDataTool,
+        );
       }
-      debugPrint("Data siap kirim ke API: $allItems");
+
+      if (!mounted) return;
+      await StoreProvider.of<AppState>(context).dispatch(
+        getDataToolDetail(
+          param: paramViewDataTool,
+          idFormDetail: '',
+          idFrom: '',
+          formComment: '',
+          pnGroup: '',
+          pnDesc: '',
+          qty: '',
+          explan: '',
+          actionNote: '',
+          valType: '',
+          partValue: '',
+          formDetailDate: '',
+          formDetailUser: '',
+        ),
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(backgroundColor: clrGreen, content: Text(successMessage)),
+      );
+      Navigator.maybePop(context, true);
+    } catch (e) {
+      if (!mounted) return;
+      final msg = e.toString().replaceFirst(RegExp(r'^Exception:\s*'), '');
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(backgroundColor: clrRed, content: Text(msg)));
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
     }
   }
 
@@ -439,8 +519,8 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
                                         )
                                         .toList(),
                                     onChanged: (val) => setState(
-                                      () => actionNoteCont[i].text = val
-                                          .toString(),
+                                      () =>
+                                          valTypeCont[i].text = val.toString(),
                                     ),
                                     decoration: _dropdownDecoration(
                                       context,
@@ -559,8 +639,9 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
                           Navigator.pop(dialogContext);
                         },
                         onPressedYes: (dialogContext) async {
-                          if (dialogContext.mounted) Navigator.pop(dialogContext);
-                          _submitData();
+                          if (dialogContext.mounted)
+                            Navigator.pop(dialogContext);
+                          await _submitData();
                           if (!mounted) return;
                         },
                         textNo: 'Cancel',
@@ -578,7 +659,9 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          _isAddMode ? 'Save Data' : 'Update Data',
+                          _isSubmitting
+                              ? 'Processing...'
+                              : (_isAddMode ? 'Save Data' : 'Update Data'),
                           style: TextStyle(
                             fontWeight: FontWeight.w700,
                             fontSize: btnFontSize,
