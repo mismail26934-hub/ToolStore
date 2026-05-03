@@ -246,6 +246,7 @@ class _UserDataState extends State<UserData> with MixinPref {
           const SizedBox(height: 14),
           _buildLineItem('Name', users.namaUser),
           _buildLineItem('No.Telp', users.noTelp),
+          _buildLineItem('Superior', users.namaSuperior),
         ],
       ),
     );
@@ -361,9 +362,8 @@ class _UserDataState extends State<UserData> with MixinPref {
             Icon(Icons.search_off, size: 52, color: Colors.grey.shade500),
             const SizedBox(height: 12),
             Text(
-              'Data tidak ditemukan untuk filter '
-              '"${_searchFieldLabels[_searchField] ?? 'Semua'}" '
-              'dengan kata kunci "$_searchQuery"',
+              '$_searchQuery '
+              'Not Found',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                 color: Colors.orange.shade900,

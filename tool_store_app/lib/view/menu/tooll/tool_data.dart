@@ -28,7 +28,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
   String _searchField = 'all';
 
   static const Map<String, String> _searchFieldLabels = {
-    'all': 'Semua',
+    'all': 'All',
     'formNo': 'Form No',
     'serviceman': 'Serviceman',
     'status': 'Status',
@@ -1102,9 +1102,8 @@ class _ToolDataState extends State<ToolData> with MixinPref {
             ),
             const SizedBox(height: 12),
             Text(
-              'Data tidak ditemukan untuk filter '
-              '"${_searchFieldLabels[_searchField] ?? 'Semua'}" '
-              'dengan kata kunci "$_searchQuery"',
+              '$_searchQuery '
+              'Not Found ',
               textAlign: TextAlign.center,
               style: Theme.of(
                 context,
