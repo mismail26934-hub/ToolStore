@@ -88,6 +88,36 @@ final superriorReducer = combineReducers<SuperriorState>([
   ).call,
 ]);
 
+final rcvWhReducer = combineReducers<RcvWhState>([
+  TypedReducer<RcvWhState, FetchDataRcvWh>(
+    (state, action) =>
+        state.copyWith(rcvWhs: [], isLoadingrcvWh: true, error: null),
+  ).call,
+  TypedReducer<RcvWhState, DataRcvWhLoadedAction>(
+    (state, action) =>
+        state.copyWith(isLoadingrcvWh: false, rcvWhs: action.rcvWh),
+  ).call,
+  TypedReducer<RcvWhState, DataRcvWhErrorAction>(
+    (state, action) =>
+        state.copyWith(isLoadingrcvWh: false, error: action.errors),
+  ).call,
+]);
+
+final rcvToolReducer = combineReducers<RcvToolState>([
+  TypedReducer<RcvToolState, FetchDataRcvTool>(
+    (state, action) =>
+        state.copyWith(rcvTools: [], isLoadingrcvTool: true, error: null),
+  ).call,
+  TypedReducer<RcvToolState, DataRcvToolLoadedAction>(
+    (state, action) =>
+        state.copyWith(isLoadingrcvTool: false, rcvTools: action.rcvTool),
+  ).call,
+  TypedReducer<RcvToolState, DataRcvToolErrorAction>(
+    (state, action) =>
+        state.copyWith(isLoadingrcvTool: false, error: action.errors),
+  ).call,
+]);
+
 // Reducer UTAMA
 AppState appReducer(AppState state, dynamic action) {
   return AppState(
@@ -97,5 +127,7 @@ AppState appReducer(AppState state, dynamic action) {
     posDetailState: poReducer(state.posDetailState, action),
     sosDetailState: soReducer(state.sosDetailState, action),
     superriorState: superriorReducer(state.superriorState, action),
+    rcvWhState: rcvWhReducer(state.rcvWhState, action),
+    rcvToolState: rcvToolReducer(state.rcvToolState, action),
   );
 }

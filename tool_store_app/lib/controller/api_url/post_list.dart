@@ -66,6 +66,16 @@ class PostList {
   late String userIdInputSuperior;
   late String dateInputSuperior;
 
+  late String idRcvTool;
+  late String rcvToolDate;
+  late String rcvToolIdInput;
+  late String rcvToolDateInput;
+
+  late String idRcvWh;
+  late String rcvWhDate;
+  late String rcvWhIdInput;
+  late String rcvWhDateInput;
+
   PostList({
     required this.idUsers,
     required this.username,
@@ -133,6 +143,16 @@ class PostList {
     required this.statusSuperior,
     required this.userIdInputSuperior,
     required this.dateInputSuperior,
+
+    required this.idRcvTool,
+    required this.rcvToolDate,
+    required this.rcvToolIdInput,
+    required this.rcvToolDateInput,
+
+    required this.idRcvWh,
+    required this.rcvWhDate,
+    required this.rcvWhIdInput,
+    required this.rcvWhDateInput,
   });
 
   factory PostList.fromJson(Map<String, dynamic> json) {
@@ -203,6 +223,16 @@ class PostList {
       statusSuperior: json['status_superior'] ?? "",
       userIdInputSuperior: json['user_id_input_superior'] ?? "",
       dateInputSuperior: json['date_input_superior'] ?? "",
+
+      idRcvTool: json['id_rcv_tool'] ?? "",
+      rcvToolDate: json['rcv_tool_date'] ?? "",
+      rcvToolIdInput: json['rcv_tool_id_input'] ?? "",
+      rcvToolDateInput: json['rcv_tool_date_input'] ?? "",
+
+      idRcvWh: json['id_rcv_wh'] ?? "",
+      rcvWhDate: json['rcv_wh_date'] ?? "",
+      rcvWhIdInput: json['rcv_wh_id_input'] ?? "",
+      rcvWhDateInput: json['rcv_wh_date_input'] ?? "",
     );
   }
 }

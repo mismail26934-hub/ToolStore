@@ -111,6 +111,16 @@ String paramViewDataSuperrior = 'VIEW DATA SUPERRIOR';
 String paramAddDataSuperrior = 'ADD DATA SUPERRIOR';
 String paramEditDataSuperrior = 'EDIT DATA SUPERRIOR';
 String paramDeleteDataSuperrior = 'DELETED DATA SUPERRIOR';
+// Controller Rcv Wh
+String paramViewDataRcvWh = 'VIEW DATA RCV WH';
+String paramAddDataRcvWh = 'ADD DATA RCV WH';
+String paramEditDataRcvWh = 'EDIT DATA RCV WH';
+String paramDeleteDataRcvWh = 'DELETED DATA RCV WH';
+// Controller Rcv Wh
+String paramViewDataRcvTool = 'VIEW DATA RCV TOOL';
+String paramAddDataRcvTool = 'ADD DATA RCV TOOL';
+String paramEditDataRcvTool = 'EDIT DATA RCV TOOL';
+String paramDeleteDataRcvTool = 'DELETED DATA RCV TOOL';
 
 // Controller User
 String titleDataUser = 'Data User';

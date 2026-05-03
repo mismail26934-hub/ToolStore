@@ -418,3 +418,105 @@ ThunkAction<AppState> getDataSuperrior({
     }
   };
 }
+
+// DATA RCV WH
+ThunkAction<AppState> getDataRcvWh({
+  required String param,
+  required String idRcvWh,
+  required String idFormDetail,
+  required String rcvWhDate,
+  required String rcvWhIdInput,
+  required String rcvWhDateInput,
+}) {
+  return (Store<AppState> store) async {
+    store.dispatch(FetchDataRcvWh());
+    var map = FormData.fromMap({
+      'param': param,
+      'id_rcv_wh ': idRcvWh,
+      'id_form_detail': idFormDetail,
+      'rcv_wh_date': rcvWhDate,
+      'rcv_wh_id_input': rcvWhIdInput,
+      'rcv_wh_date_input': rcvWhDateInput,
+    });
+
+    var dio = Dio();
+    try {
+      dio.options.connectTimeout = const Duration(seconds: 20);
+      dio.options.receiveTimeout = const Duration(seconds: 20);
+      final response = await dio.post(ApiUrl.contRcvWh, data: map);
+      List<PostList> listRcvWh = parseResponse(response.data);
+      print(response.data);
+      // Dispatch ke store (Redux)
+      store.dispatch(DataRcvWhLoadedAction(listRcvWh));
+      return listRcvWh;
+    } on DioException catch (e) {
+      if (e.type == DioExceptionType.connectionError ||
+          e.error is SocketException ||
+          e.type == DioExceptionType.connectionTimeout) {
+        // Anda bisa melempar error agar ditangkap oleh UI (FutureBuilder/Provider)
+        errors = cekInternet;
+        messages = "(${e.message})";
+        store.dispatch(DataRcvWhErrorAction(errors));
+        throw Exception(cekInternet);
+      } else {
+        errors = serverDown;
+        messages = "(${e.message})";
+        store.dispatch(DataRcvWhErrorAction(errors));
+        throw Exception("Server Down ($messages)");
+      }
+    } catch (e) {
+      return [];
+    }
+  };
+}
+
+// DATA RCV TOOL
+ThunkAction<AppState> getDataRcvTool({
+  required String param,
+  required String idRcvTool,
+  required String idFormDetail,
+  required String rcvToolDate,
+  required String rcvToolIdInput,
+  required String rcvToolDateInput,
+}) {
+  return (Store<AppState> store) async {
+    store.dispatch(FetchDataRcvTool());
+    var map = FormData.fromMap({
+      'param': param,
+      'id_rcv_tool': idRcvTool,
+      'id_form_detail': idFormDetail,
+      'rcv_tool_date': rcvToolDate,
+      'rcv_tool_id_input': rcvToolIdInput,
+      'rcv_tool_date_input': rcvToolDateInput,
+    });
+
+    var dio = Dio();
+    try {
+      dio.options.connectTimeout = const Duration(seconds: 20);
+      dio.options.receiveTimeout = const Duration(seconds: 20);
+      final response = await dio.post(ApiUrl.contRcvTool, data: map);
+      List<PostList> listRcvWh = parseResponse(response.data);
+      print(response.data);
+      // Dispatch ke store (Redux)
+      store.dispatch(DataRcvToolLoadedAction(listRcvWh));
+      return listRcvWh;
+    } on DioException catch (e) {
+      if (e.type == DioExceptionType.connectionError ||
+          e.error is SocketException ||
+          e.type == DioExceptionType.connectionTimeout) {
+        // Anda bisa melempar error agar ditangkap oleh UI (FutureBuilder/Provider)
+        errors = cekInternet;
+        messages = "(${e.message})";
+        store.dispatch(DataRcvToolErrorAction(errors));
+        throw Exception(cekInternet);
+      } else {
+        errors = serverDown;
+        messages = "(${e.message})";
+        store.dispatch(DataRcvToolErrorAction(errors));
+        throw Exception("Server Down ($messages)");
+      }
+    } catch (e) {
+      return [];
+    }
+  };
+}

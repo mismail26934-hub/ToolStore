@@ -14,6 +14,15 @@ class ToolFormMultipleInput extends StatefulWidget {
 class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
   bool get _isAddMode => widget.subtitle == "ADD DATA";
 
+  static const List<String> _actionNoteOptions = [
+    'A = Order Small Tool Account',
+    'B = Order Rep & Maint Account',
+    'C = Charge Personal Account',
+    'D = Charge to ______________',
+  ];
+
+  static const List<String> _actionTypeOptions = ['CAT', 'VENDOR'];
+
   Widget _buildSectionCard({
     required BuildContext context,
     required String title,
@@ -180,6 +189,28 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
       }
       debugPrint("Data siap kirim ke API: $allItems");
     }
+  }
+
+  InputDecoration _dropdownDecoration(BuildContext context, String label) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: Theme.of(context).textTheme.labelMedium,
+      filled: true,
+      fillColor: Colors.white,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: Colors.grey.shade300),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: Colors.grey.shade300),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: clrOrange, width: 1.4),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+    );
   }
 
   @override
@@ -360,7 +391,71 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
                           Row(
                             children: [
                               Expanded(
-                                flex: 3,
+                                child: TextFormFields(
+                                  labelTexts: 'PRICE',
+                                  textColor: Colors.black,
+                                  controllers: partValueCont[i],
+                                  validators: (value) =>
+                                      (value == null || value.isEmpty)
+                                      ? 'Required !'
+                                      : null,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Padding(
+                                  padding: const EdgeInsets.only(
+                                    left: 1.0,
+                                    right: 1.0,
+                                    top: 5.0,
+                                    bottom: 5.0,
+                                  ),
+                                  child: DropdownButtonFormField<String>(
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.labelMedium,
+                                    initialValue: () {
+                                      final t = valTypeCont[i].text;
+                                      if (t.isEmpty) return null;
+                                      return _actionTypeOptions.contains(t)
+                                          ? t
+                                          : null;
+                                    }(),
+                                    items: _actionTypeOptions
+                                        .map(
+                                          (e) => DropdownMenuItem(
+                                            value: e,
+                                            child: Text(
+                                              e,
+                                              style: Theme.of(
+                                                context,
+                                              ).textTheme.labelMedium,
+                                            ),
+                                          ),
+                                        )
+                                        .toList(),
+                                    onChanged: (val) => setState(
+                                      () => actionNoteCont[i].text = val
+                                          .toString(),
+                                    ),
+                                    decoration: _dropdownDecoration(
+                                      context,
+                                      "ACTION NOTE (A/B/C/D)",
+                                    ),
+                                    validator: (value) {
+                                      if (value == null || value.isEmpty) {
+                                        return 'Please select !';
+                                      }
+                                      return null;
+                                    },
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          Row(
+                            children: [
+                              Expanded(
                                 child: TextFormFields(
                                   labelTexts: 'EXPLANATION',
                                   textColor: Colors.black,
@@ -371,17 +466,57 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
                                       : null,
                                 ),
                               ),
-                              const SizedBox(width: 8),
+                            ],
+                          ),
+                          Row(
+                            children: [
                               Expanded(
-                                flex: 2,
-                                child: TextFormFields(
-                                  labelTexts: 'ACTION NOTE (A/B/C/D)',
-                                  textColor: Colors.black,
-                                  controllers: actionNoteCont[i],
-                                  validators: (value) =>
-                                      (value == null || value.isEmpty)
-                                      ? 'Required !'
-                                      : null,
+                                child: Padding(
+                                  padding: const EdgeInsets.only(
+                                    left: 1.0,
+                                    right: 1.0,
+                                    top: 5.0,
+                                    bottom: 5.0,
+                                  ),
+                                  child: DropdownButtonFormField<String>(
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.labelMedium,
+                                    initialValue: () {
+                                      final t = actionNoteCont[i].text;
+                                      if (t.isEmpty) return null;
+                                      return _actionNoteOptions.contains(t)
+                                          ? t
+                                          : null;
+                                    }(),
+                                    items: _actionNoteOptions
+                                        .map(
+                                          (e) => DropdownMenuItem(
+                                            value: e,
+                                            child: Text(
+                                              e,
+                                              style: Theme.of(
+                                                context,
+                                              ).textTheme.labelMedium,
+                                            ),
+                                          ),
+                                        )
+                                        .toList(),
+                                    onChanged: (val) => setState(
+                                      () => actionNoteCont[i].text = val
+                                          .toString(),
+                                    ),
+                                    decoration: _dropdownDecoration(
+                                      context,
+                                      "ACTION NOTE (A/B/C/D)",
+                                    ),
+                                    validator: (value) {
+                                      if (value == null || value.isEmpty) {
+                                        return 'Please select !';
+                                      }
+                                      return null;
+                                    },
+                                  ),
                                 ),
                               ),
                             ],

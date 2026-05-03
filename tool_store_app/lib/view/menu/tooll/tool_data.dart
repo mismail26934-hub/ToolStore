@@ -322,17 +322,10 @@ class _ToolDataState extends State<ToolData> with MixinPref {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  _displayValue(itemPO.poNo),
+                  'PO : ${_displayValue(itemPO.poNo)}',
                   style: Theme.of(
                     context,
                   ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Purchase Order',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodySmall?.copyWith(color: Colors.grey.shade700),
                 ),
               ],
             ),
@@ -379,15 +372,9 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'SO ${_displayValue(itemSO.so)}',
+                      'SO : ${_displayValue(itemSO.so)}',
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    Text(
-                      'Sales Order',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.grey.shade700,
                       ),
                     ),
                   ],
@@ -403,6 +390,102 @@ class _ToolDataState extends State<ToolData> with MixinPref {
           const SizedBox(height: 12),
           _buildLineItem('ETA', itemSO.eta),
           _buildLineItem('Note SO', itemSO.noteSo),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRcvWhCard(PostList itemRcvWh) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.orange.shade50,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.orange.shade100),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.orange.shade100,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(
+              Icons.date_range_outlined,
+              color: Colors.deepOrange,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _displayValue(itemRcvWh.rcvWhDate),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                ),
+              ],
+            ),
+          ),
+          TextButton.icon(
+            onPressed: () {},
+            icon: const Icon(Icons.edit_outlined, size: 18),
+            label: const Text('Update'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRcvToolCard(PostList itemRcvTool) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.orange.shade50,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.orange.shade100),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.orange.shade100,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(
+              Icons.date_range_outlined,
+              color: Colors.deepOrange,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _displayValue(itemRcvTool.rcvToolDate),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                ),
+              ],
+            ),
+          ),
+          TextButton.icon(
+            onPressed: () {},
+            icon: const Icon(Icons.edit_outlined, size: 18),
+            label: const Text('Update'),
+          ),
         ],
       ),
     );
@@ -551,6 +634,65 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                   children: [
                     _buildSectionHeader('Sales Order', icon: Icons.route),
                     ...filteredListSO.map(_buildSoCard),
+                  ],
+                ),
+              );
+            },
+          ),
+
+          StoreConnector<AppState, List<PostList>>(
+            converter: (store) {
+              final allDataRcvWh = store.state.rcvWhState.rcvWhs;
+              return allDataRcvWh
+                  .where(
+                    (itemRcvWh) =>
+                        itemRcvWh.idFormDetail == itemTool.idFormDetail,
+                  )
+                  .toList();
+            },
+            builder: (context, filteredListRcvWh) {
+              if (filteredListRcvWh.isEmpty) {
+                return const SizedBox.shrink();
+              }
+              return Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildSectionHeader(
+                      'Date WH Received ',
+                      icon: Icons.warehouse,
+                    ),
+                    ...filteredListRcvWh.map(_buildRcvWhCard),
+                  ],
+                ),
+              );
+            },
+          ),
+          StoreConnector<AppState, List<PostList>>(
+            converter: (store) {
+              final allDataRcvTool = store.state.rcvToolState.rcvTools;
+              return allDataRcvTool
+                  .where(
+                    (itemRcvTool) =>
+                        itemRcvTool.idFormDetail == itemTool.idFormDetail,
+                  )
+                  .toList();
+            },
+            builder: (context, filteredListRcvTool) {
+              if (filteredListRcvTool.isEmpty) {
+                return const SizedBox.shrink();
+              }
+              return Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildSectionHeader(
+                      'Date Tool Room Received ',
+                      icon: Icons.storage,
+                    ),
+                    ...filteredListRcvTool.map(_buildRcvToolCard),
                   ],
                 ),
               );
@@ -868,7 +1010,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                 onChanged: _onSearchChanged,
                 textInputAction: TextInputAction.search,
                 decoration: InputDecoration(
-                  hintText: 'Cari data tool...',
+                  hintText: 'Search',
                   hintStyle: TextStyle(color: Colors.orange.shade700),
                   prefixIcon: Icon(Icons.search, color: Colors.orange.shade700),
                   filled: true,

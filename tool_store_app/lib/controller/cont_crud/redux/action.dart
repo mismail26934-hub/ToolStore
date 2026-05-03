@@ -84,6 +84,32 @@ class DataSuperriorErrorAction {
   DataSuperriorErrorAction(this.errors);
 }
 
+// RCV WH
+class FetchDataRcvWh {}
+
+class DataRcvWhLoadedAction {
+  final List<PostList> rcvWh;
+  DataRcvWhLoadedAction(this.rcvWh);
+}
+
+class DataRcvWhErrorAction {
+  final String errors;
+  DataRcvWhErrorAction(this.errors);
+}
+
+// RCV TOOL ROOM
+class FetchDataRcvTool {}
+
+class DataRcvToolLoadedAction {
+  final List<PostList> rcvTool;
+  DataRcvToolLoadedAction(this.rcvTool);
+}
+
+class DataRcvToolErrorAction {
+  final String errors;
+  DataRcvToolErrorAction(this.errors);
+}
+
 //MULTIPLE ADD
 class UpdateToolFormAction {
   // Gunakan Map atau buat field satu per satu sesuai kebutuhan

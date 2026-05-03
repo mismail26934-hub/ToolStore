@@ -1,5 +1,6 @@
 import 'package:tool_store_app/controller/api_url/post_list.dart';
 
+// USER
 class UserState {
   final List<PostList> users;
   final bool isLoading;
@@ -44,6 +45,7 @@ class FormsState {
   }
 }
 
+// FORM
 class FormsDetailState {
   final List<PostList> formsDetail;
   final bool isLoadingToolDetail;
@@ -73,6 +75,7 @@ class FormsDetailState {
   }
 }
 
+// PO
 class PosDetailState {
   final List<PostList> posDetail;
   final bool isLoadingPO;
@@ -102,6 +105,7 @@ class PosDetailState {
   }
 }
 
+// SO
 class SosDetailState {
   final List<PostList> sosDetail;
   final bool isLoadingSO;
@@ -131,6 +135,7 @@ class SosDetailState {
   }
 }
 
+// SUPERRIOR
 class SuperriorState {
   final List<PostList> superriorS;
   final bool isLoadingSuperrior;
@@ -160,6 +165,62 @@ class SuperriorState {
   }
 }
 
+// RCV WH
+class RcvWhState {
+  final List<PostList> rcvWhs;
+  final bool isLoadingrcvWh;
+  final String? error;
+
+  RcvWhState({this.rcvWhs = const [], this.isLoadingrcvWh = false, this.error});
+
+  // Factory untuk state awal
+  factory RcvWhState.initial() => RcvWhState(rcvWhs: [], isLoadingrcvWh: false);
+
+  RcvWhState copyWith({
+    List<PostList>? rcvWhs,
+    bool? isLoadingrcvWh,
+    String? error,
+  }) {
+    return RcvWhState(
+      // Jika parameter baru (list) null, gunakan nilai yang sudah ada (this.formsDetail)
+      rcvWhs: rcvWhs ?? this.rcvWhs,
+      isLoadingrcvWh: isLoadingrcvWh ?? this.isLoadingrcvWh,
+      error: error ?? this.error,
+    );
+  }
+}
+
+// RCV TOOL
+class RcvToolState {
+  final List<PostList> rcvTools;
+  final bool isLoadingrcvTool;
+  final String? error;
+
+  RcvToolState({
+    this.rcvTools = const [],
+    this.isLoadingrcvTool = false,
+    this.error,
+  });
+
+  // Factory untuk state awal
+  factory RcvToolState.initial() =>
+      RcvToolState(rcvTools: [], isLoadingrcvTool: false);
+
+  RcvToolState copyWith({
+    List<PostList>? rcvTools,
+    bool? isLoadingrcvTool,
+    String? error,
+  }) {
+    return RcvToolState(
+      // Jika parameter baru (list) null, gunakan nilai yang sudah ada (this.formsDetail)
+      rcvTools: rcvTools ?? this.rcvTools,
+      isLoadingrcvTool: isLoadingrcvTool ?? this.isLoadingrcvTool,
+      error: error ?? this.error,
+    );
+  }
+}
+
+// APP STATE
 class AppState {
   final UserState userState;
   final FormsState formsState;
@@ -167,6 +228,8 @@ class AppState {
   final PosDetailState posDetailState;
   final SosDetailState sosDetailState;
   final SuperriorState superriorState;
+  final RcvWhState rcvWhState;
+  final RcvToolState rcvToolState;
 
   AppState({
     required this.userState,
@@ -175,6 +238,8 @@ class AppState {
     required this.posDetailState,
     required this.sosDetailState,
     required this.superriorState,
+    required this.rcvWhState,
+    required this.rcvToolState,
   });
 
   factory AppState.initial() => AppState(
@@ -184,5 +249,7 @@ class AppState {
     posDetailState: PosDetailState.initial(),
     sosDetailState: SosDetailState.initial(),
     superriorState: SuperriorState.initial(),
+    rcvWhState: RcvWhState.initial(),
+    rcvToolState: RcvToolState.initial(),
   );
 }

@@ -107,6 +107,28 @@ void main() {
       dateInputSuperior: '',
     ),
   );
+
+  store.dispatch(
+    getDataRcvWh(
+      param: paramViewDataRcvWh,
+      idRcvWh: '',
+      idFormDetail: '',
+      rcvWhDate: '',
+      rcvWhIdInput: '',
+      rcvWhDateInput: '',
+    ),
+  );
+
+  store.dispatch(
+    getDataRcvTool(
+      param: paramViewDataRcvTool,
+      idRcvTool: '',
+      idFormDetail: '',
+      rcvToolDate: '',
+      rcvToolIdInput: '',
+      rcvToolDateInput: '',
+    ),
+  );
 }
 
 class MyApp extends StatefulWidget {

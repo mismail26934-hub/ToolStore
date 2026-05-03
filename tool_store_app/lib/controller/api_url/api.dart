@@ -1,5 +1,5 @@
 class ApiUrl {
-  static String server = 'http://10.74.115.69:8080/';
+  static String server = 'http://192.168.1.29:8080/';
   // static String server = 'http://10.74.115.69:8080/';
   static String folderApiTool = 'api_tool';
   static String folderApiToolStore = 'api_toolstore';
@@ -10,6 +10,8 @@ class ApiUrl {
   static String fileContToolDetail = 'cont_form_detail.php';
   static String fileContPO = 'cont_po.php';
   static String fileContSO = 'cont_so.php';
+  static String fileRcvWh = 'cont_rcv_wh.php';
+  static String fileRcvTool = 'cont_rcv_tool.php';
   static String fileContSuperrior = 'cont_superrior.php';
   static String fileLogin = 'login.php';
 
@@ -28,4 +30,8 @@ class ApiUrl {
       "$server/$folderApiTool/$folderApiToolStore/$folderController/$fileContSO";
   static String contSuperrior =
       "$server/$folderApiTool/$folderApiToolStore/$folderController/$fileContSuperrior";
+  static String contRcvWh =
+      "$server/$folderApiTool/$folderApiToolStore/$folderController/$fileRcvWh";
+  static String contRcvTool =
+      "$server/$folderApiTool/$folderApiToolStore/$folderController/$fileRcvTool";
 }
