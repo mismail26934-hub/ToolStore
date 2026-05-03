@@ -134,13 +134,13 @@ class ToolFormInputState extends State<ToolFormInput> {
       context: context,
       title: 'Delete ${formNoCont.text}',
       contentTitle: ' Are you sure delete this data ?',
-      onPressedNo: () {
-        if (!context.mounted) return;
-        Navigator.pop(context);
+      onPressedNo: (dialogContext) {
+        if (!dialogContext.mounted) return;
+        Navigator.pop(dialogContext);
       },
-      onPressedYes: () async {
-        Navigator.pop(context);
-        if (!context.mounted) return;
+      onPressedYes: (dialogContext) async {
+        if (dialogContext.mounted) Navigator.pop(dialogContext);
+        if (!mounted) return;
       },
       textNo: 'Cancel',
       textYes: 'Yes',
@@ -490,13 +490,13 @@ class ToolFormInputState extends State<ToolFormInput> {
                         contentTitle: _isEditMode
                             ? ' Are you sure edit data ?'
                             : 'Are you sure save data ?',
-                        onPressedNo: () {
-                          if (!context.mounted) return;
-                          Navigator.pop(context);
+                        onPressedNo: (dialogContext) {
+                          if (!dialogContext.mounted) return;
+                          Navigator.pop(dialogContext);
                         },
-                        onPressedYes: () async {
-                          Navigator.pop(context);
-                          if (!context.mounted) return;
+                        onPressedYes: (dialogContext) async {
+                          if (dialogContext.mounted) Navigator.pop(dialogContext);
+                          if (!mounted) return;
                           if (formKey.currentState!.validate()) {
                             setState(() {});
                             ScaffoldMessenger.of(context).showSnackBar(

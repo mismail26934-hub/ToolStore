@@ -219,6 +219,8 @@ class _UserDataState extends State<UserData> with MixinPref {
                     users.noTelp,
                     users.idTU,
                     users.level,
+                    users.superiorId,
+                    users.namaSuperior,
                     context,
                   );
                 },
@@ -407,7 +409,7 @@ class _UserDataState extends State<UserData> with MixinPref {
               SliverAppbars(
                 title: titleDataUser,
                 onPressTailing: () {
-                  postContUser("", "", "", "", "", "", "", context);
+                  postContUser("", "", "", "", "", "", "", "", "", context);
                 },
                 onPressLeading: () => _scaffoldKey.currentState?.openDrawer(),
                 textColor: Colors.black,

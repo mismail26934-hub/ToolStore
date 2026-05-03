@@ -99,18 +99,32 @@ String paramViewDataPO = 'VIEW DATA PO';
 String paramAddDataPO = 'ADD DATA PO';
 String paramEditDataPO = 'EDIT DATA PO';
 String paramDeleteDataPO = 'DELETED DATA PO';
+final TextEditingController idPoCont = TextEditingController();
+final TextEditingController poNoCont = TextEditingController();
+final TextEditingController dateUpdatePoCont = TextEditingController();
+final TextEditingController userUpdatePoCont = TextEditingController();
 
 // Controller SO
 String paramViewDataSO = 'VIEW DATA SO';
 String paramAddDataSO = 'ADD DATA SO';
 String paramEditDataSO = 'EDIT DATA SO';
 String paramDeleteDataSO = 'DELETED DATA SO';
+final TextEditingController idSoCont = TextEditingController();
+final TextEditingController soCont = TextEditingController();
+final TextEditingController etaCont = TextEditingController();
+final TextEditingController noteSoCont = TextEditingController();
+final TextEditingController dateUpdateSoCont = TextEditingController();
 
 // Controller Superrior
 String paramViewDataSuperrior = 'VIEW DATA SUPERRIOR';
 String paramAddDataSuperrior = 'ADD DATA SUPERRIOR';
 String paramEditDataSuperrior = 'EDIT DATA SUPERRIOR';
 String paramDeleteDataSuperrior = 'DELETED DATA SUPERRIOR';
+final TextEditingController namaSuperiorCont = TextEditingController();
+final TextEditingController statusSuperiorCont = TextEditingController();
+final TextEditingController userIdInputSuperiorCont = TextEditingController();
+final TextEditingController dateInputSuperiorCont = TextEditingController();
+
 // Controller Rcv Wh
 String paramViewDataRcvWh = 'VIEW DATA RCV WH';
 String paramAddDataRcvWh = 'ADD DATA RCV WH';
@@ -135,3 +149,5 @@ final TextEditingController namaFormCont = TextEditingController();
 final TextEditingController telpFormCont = TextEditingController();
 final TextEditingController tuidFormCont = TextEditingController();
 final TextEditingController levelFormCont = TextEditingController();
+final TextEditingController superiorIdFormCont = TextEditingController();
+final TextEditingController namaSuperiorFormCont = TextEditingController();

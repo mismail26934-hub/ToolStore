@@ -12,6 +12,8 @@ void postContUser(
   noTelp,
   idTU,
   level,
+  String superiorId,
+  String namaSuperior,
   BuildContext context,
 ) {
   iduserFormCont.text = idUsers;
@@ -21,6 +23,8 @@ void postContUser(
   telpFormCont.text = noTelp;
   tuidFormCont.text = idTU;
   levelFormCont.text = level;
+  superiorIdFormCont.text = superiorId;
+  namaSuperiorFormCont.text = namaSuperior;
   PageRoutes.routeUserForm(
     context,
     iduserFormCont.text.isEmpty ? 'ADD DATA' : 'EDIT DATA',

@@ -15,10 +15,14 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
   bool get _isAddMode => widget.subtitle == "ADD DATA";
 
   static const List<String> _actionNoteOptions = [
-    'A = Order Small Tool Account',
+    // A  = Order Small Tool Account
+    'A  = Order Small Tool Account',
+    // B = Order Rep & Maint Account
     'B = Order Rep & Maint Account',
+    // C = Charge Personal Account
     'C = Charge Personal Account',
-    'D = Charge to ______________',
+    // D = Charge to ______________
+    'D = Charge to ...',
   ];
 
   static const List<String> _actionTypeOptions = ['CAT', 'VENDOR'];
@@ -80,13 +84,13 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
       context: context,
       title: 'Delete ${pnGroupCont[i].text}',
       contentTitle: ' Are you sure delete this data ?',
-      onPressedNo: () {
-        if (!context.mounted) return;
-        Navigator.pop(context);
+      onPressedNo: (dialogContext) {
+        if (!dialogContext.mounted) return;
+        Navigator.pop(dialogContext);
       },
-      onPressedYes: () async {
-        Navigator.pop(context);
-        if (!context.mounted) return;
+      onPressedYes: (dialogContext) async {
+        if (dialogContext.mounted) Navigator.pop(dialogContext);
+        if (!mounted) return;
       },
       textNo: 'Cancel',
       textYes: 'Yes',
@@ -184,7 +188,7 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
           "qty": qtyCont[i].text,
           "description": pnDescCont[i].text,
           "explanation": explanCont[i].text,
-          "action_note": actionNoteCont[i].text,
+          "action_note": actionNoteCont[i].text.substring(0, 1),
         });
       }
       debugPrint("Data siap kirim ke API: $allItems");
@@ -440,7 +444,7 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
                                     ),
                                     decoration: _dropdownDecoration(
                                       context,
-                                      "ACTION NOTE (A/B/C/D)",
+                                      "CAT / LOCAL VENDOR",
                                     ),
                                     validator: (value) {
                                       if (value == null || value.isEmpty) {
@@ -485,9 +489,13 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
                                     initialValue: () {
                                       final t = actionNoteCont[i].text;
                                       if (t.isEmpty) return null;
-                                      return _actionNoteOptions.contains(t)
-                                          ? t
-                                          : null;
+                                      try {
+                                        return _actionNoteOptions.firstWhere(
+                                          (element) => element.startsWith(t),
+                                        );
+                                      } catch (e) {
+                                        return null; // Jika tidak ada yang cocok, kembalikan null
+                                      }
                                     }(),
                                     items: _actionNoteOptions
                                         .map(
@@ -546,14 +554,14 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
                         contentTitle: _isAddMode
                             ? 'Are you sure save data ?'
                             : ' Are you sure edit data ?',
-                        onPressedNo: () {
-                          if (!context.mounted) return;
-                          Navigator.pop(context);
+                        onPressedNo: (dialogContext) {
+                          if (!dialogContext.mounted) return;
+                          Navigator.pop(dialogContext);
                         },
-                        onPressedYes: () async {
-                          Navigator.pop(context);
+                        onPressedYes: (dialogContext) async {
+                          if (dialogContext.mounted) Navigator.pop(dialogContext);
                           _submitData();
-                          if (!context.mounted) return;
+                          if (!mounted) return;
                         },
                         textNo: 'Cancel',
                         textYes: 'Yes',

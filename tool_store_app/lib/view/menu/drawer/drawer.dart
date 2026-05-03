@@ -250,12 +250,12 @@ class DrawerMenu extends StatelessWidget {
       context: context,
       title: 'Logout',
       contentTitle: 'Are you sure logout ?',
-      onPressedNo: () {
-        if (!context.mounted) return;
-        Navigator.pop(context);
+      onPressedNo: (dialogContext) {
+        if (!dialogContext.mounted) return;
+        Navigator.pop(dialogContext);
       },
-      onPressedYes: () async {
-        Navigator.pop(context);
+      onPressedYes: (dialogContext) async {
+        if (dialogContext.mounted) Navigator.pop(dialogContext);
         SharedPreferences prefs = await SharedPreferences.getInstance();
         await prefs.clear();
         if (!context.mounted) return;

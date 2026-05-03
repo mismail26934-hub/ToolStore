@@ -217,7 +217,7 @@ ThunkAction<AppState> getDataToolDetail({
     store.dispatch(FetchDataToolsAction());
     var map = FormData.fromMap({
       'param': param,
-      'id_form_detail ': idFormDetail,
+      'id_form_detail': idFormDetail,
       'id_from': idFrom,
       'form_comment': formComment,
       'pn_group': pnGroup,
@@ -237,7 +237,7 @@ ThunkAction<AppState> getDataToolDetail({
       dio.options.receiveTimeout = const Duration(seconds: 20);
       final response = await dio.post(ApiUrl.contDataToolDetail, data: map);
       List<PostList> listToolDetail = parseResponse(response.data);
-      print(response.data);
+      // print(response.data);
       // Dispatch ke store (Redux)
       store.dispatch(DataToolsLoadedAction(listToolDetail));
       return listToolDetail;
@@ -262,6 +262,230 @@ ThunkAction<AppState> getDataToolDetail({
   };
 }
 
+/// Result of [getDataPO]. PHP may append `{"value":"1","message":"..."}` for
+/// ADD / EDIT / DELETE; that envelope must not be parsed as a [PostList] row.
+class PoFetchResult {
+  final List<PostList> list;
+
+  /// Server `message` for ADD/EDIT/DELETE (`value` from envelope).
+  final String? serverMessage;
+
+  /// Envelope `value` when `param` is ADD/EDIT/DELETE; `'1'` means success.
+  final String? statusValue;
+
+  const PoFetchResult({
+    required this.list,
+    this.serverMessage,
+    this.statusValue,
+  });
+}
+
+/// Same shape as [PoFetchResult]; used by [getDataSO] for ADD/EDIT/DELETE envelopes.
+typedef SoFetchResult = PoFetchResult;
+
+List<dynamic> _decodeJsonArray(dynamic data) {
+  if (data is String) {
+    final decoded = jsonDecode(data);
+    if (decoded is! List) {
+      throw FormatException('Expected a JSON array from server');
+    }
+    return decoded;
+  }
+  if (data is List) return data;
+  throw FormatException('Unexpected response format from server');
+}
+
+bool _isPoApiStatusEnvelope(Map<String, dynamic> map) {
+  if (!map.containsKey('value') || !map.containsKey('message')) return false;
+  return !map.containsKey('id_po');
+}
+
+bool _isSoApiStatusEnvelope(Map<String, dynamic> map) {
+  if (!map.containsKey('value') || !map.containsKey('message')) return false;
+  return !map.containsKey('id_so');
+}
+
+PoFetchResult _parsePoFetchResponse(dynamic data, String param) {
+  final raw = _decodeJsonArray(data);
+  String? statusValue;
+  String? statusMessage;
+  final dataRows = <Map<String, dynamic>>[];
+  for (final item in raw) {
+    if (item is! Map) continue;
+    final m = Map<String, dynamic>.from(item);
+    if (_isPoApiStatusEnvelope(m)) {
+      statusValue = m['value']?.toString();
+      statusMessage = m['message']?.toString();
+    } else {
+      dataRows.add(m);
+    }
+  }
+
+  final isMutating =
+      param == paramAddDataPO ||
+      param == paramEditDataPO ||
+      param == paramDeleteDataPO;
+  if (isMutating) {
+    if (statusValue == null) {
+      throw Exception('Invalid server response (missing status)');
+    }
+    if (statusValue != '1') {
+      final list = dataRows.map(PostList.fromJson).toList();
+      return PoFetchResult(
+        list: list,
+        serverMessage: statusMessage?.trim(),
+        statusValue: statusValue,
+      );
+    }
+  }
+
+  final list = dataRows.map(PostList.fromJson).toList();
+  return PoFetchResult(
+    list: list,
+    serverMessage: isMutating ? statusMessage?.trim() : null,
+    statusValue: isMutating ? statusValue : null,
+  );
+}
+
+SoFetchResult _parseSoFetchResponse(dynamic data, String param) {
+  final raw = _decodeJsonArray(data);
+  String? statusValue;
+  String? statusMessage;
+  final dataRows = <Map<String, dynamic>>[];
+  for (final item in raw) {
+    if (item is! Map) continue;
+    final m = Map<String, dynamic>.from(item);
+    if (_isSoApiStatusEnvelope(m)) {
+      statusValue = m['value']?.toString();
+      statusMessage = m['message']?.toString();
+    } else {
+      dataRows.add(m);
+    }
+  }
+
+  final isMutating =
+      param == paramAddDataSO ||
+      param == paramEditDataSO ||
+      param == paramDeleteDataSO;
+  if (isMutating) {
+    if (statusValue == null) {
+      throw Exception('Invalid server response (missing status)');
+    }
+    if (statusValue != '1') {
+      final list = dataRows.map(PostList.fromJson).toList();
+      return SoFetchResult(
+        list: list,
+        serverMessage: statusMessage?.trim(),
+        statusValue: statusValue,
+      );
+    }
+  }
+
+  final list = dataRows.map(PostList.fromJson).toList();
+  return SoFetchResult(
+    list: list,
+    serverMessage: isMutating ? statusMessage?.trim() : null,
+    statusValue: isMutating ? statusValue : null,
+  );
+}
+
+typedef RcvWhFetchResult = PoFetchResult;
+typedef RcvToolFetchResult = PoFetchResult;
+
+bool _isRcvWhApiStatusEnvelope(Map<String, dynamic> map) {
+  if (!map.containsKey('value') || !map.containsKey('message')) return false;
+  return !map.containsKey('id_rcv_wh');
+}
+
+bool _isRcvToolApiStatusEnvelope(Map<String, dynamic> map) {
+  if (!map.containsKey('value') || !map.containsKey('message')) return false;
+  return !map.containsKey('id_rcv_tool');
+}
+
+RcvWhFetchResult _parseRcvWhFetchResponse(dynamic data, String param) {
+  final raw = _decodeJsonArray(data);
+  String? statusValue;
+  String? statusMessage;
+  final dataRows = <Map<String, dynamic>>[];
+  for (final item in raw) {
+    if (item is! Map) continue;
+    final m = Map<String, dynamic>.from(item);
+    if (_isRcvWhApiStatusEnvelope(m)) {
+      statusValue = m['value']?.toString();
+      statusMessage = m['message']?.toString();
+    } else {
+      dataRows.add(m);
+    }
+  }
+
+  final isMutating =
+      param == paramAddDataRcvWh ||
+      param == paramEditDataRcvWh ||
+      param == paramDeleteDataRcvWh;
+  if (isMutating) {
+    if (statusValue == null) {
+      throw Exception('Invalid server response (missing status)');
+    }
+    if (statusValue != '1') {
+      final list = dataRows.map(PostList.fromJson).toList();
+      return RcvWhFetchResult(
+        list: list,
+        serverMessage: statusMessage?.trim(),
+        statusValue: statusValue,
+      );
+    }
+  }
+
+  final list = dataRows.map(PostList.fromJson).toList();
+  return RcvWhFetchResult(
+    list: list,
+    serverMessage: isMutating ? statusMessage?.trim() : null,
+    statusValue: isMutating ? statusValue : null,
+  );
+}
+
+RcvToolFetchResult _parseRcvToolFetchResponse(dynamic data, String param) {
+  final raw = _decodeJsonArray(data);
+  String? statusValue;
+  String? statusMessage;
+  final dataRows = <Map<String, dynamic>>[];
+  for (final item in raw) {
+    if (item is! Map) continue;
+    final m = Map<String, dynamic>.from(item);
+    if (_isRcvToolApiStatusEnvelope(m)) {
+      statusValue = m['value']?.toString();
+      statusMessage = m['message']?.toString();
+    } else {
+      dataRows.add(m);
+    }
+  }
+
+  final isMutating =
+      param == paramAddDataRcvTool ||
+      param == paramEditDataRcvTool ||
+      param == paramDeleteDataRcvTool;
+  if (isMutating) {
+    if (statusValue == null) {
+      throw Exception('Invalid server response (missing status)');
+    }
+    if (statusValue != '1') {
+      final list = dataRows.map(PostList.fromJson).toList();
+      return RcvToolFetchResult(
+        list: list,
+        serverMessage: statusMessage?.trim(),
+        statusValue: statusValue,
+      );
+    }
+  }
+
+  final list = dataRows.map(PostList.fromJson).toList();
+  return RcvToolFetchResult(
+    list: list,
+    serverMessage: isMutating ? statusMessage?.trim() : null,
+    statusValue: isMutating ? statusValue : null,
+  );
+}
+
 // DATA PO
 ThunkAction<AppState> getDataPO({
   required String param,
@@ -275,7 +499,7 @@ ThunkAction<AppState> getDataPO({
     store.dispatch(FetchDataPO());
     var map = FormData.fromMap({
       'param': param,
-      'id_po ': idPO,
+      'id_po': idPO,
       'id_form_detail': idFormDetail,
       'po_no': poNO,
       'date_update_po': dateUpdatePO,
@@ -287,11 +511,9 @@ ThunkAction<AppState> getDataPO({
       dio.options.connectTimeout = const Duration(seconds: 20);
       dio.options.receiveTimeout = const Duration(seconds: 20);
       final response = await dio.post(ApiUrl.contPO, data: map);
-      List<PostList> listPO = parseResponse(response.data);
-      print(response.data);
-      // Dispatch ke store (Redux)
-      store.dispatch(DataPOLoadedAction(listPO));
-      return listPO;
+      final PoFetchResult result = _parsePoFetchResponse(response.data, param);
+      store.dispatch(DataPOLoadedAction(result.list));
+      return result;
     } on DioException catch (e) {
       if (e.type == DioExceptionType.connectionError ||
           e.error is SocketException ||
@@ -308,7 +530,9 @@ ThunkAction<AppState> getDataPO({
         throw Exception("Server Down ($messages)");
       }
     } catch (e) {
-      return [];
+      final msg = e.toString().replaceFirst(RegExp(r'^Exception:\s*'), '');
+      store.dispatch(DataPOErrorAction(msg));
+      rethrow;
     }
   };
 }
@@ -328,7 +552,7 @@ ThunkAction<AppState> getDataSO({
     store.dispatch(FetchDataSO());
     var map = FormData.fromMap({
       'param': param,
-      'id_so ': idSo,
+      'id_so': idSo,
       'id_form_detail': idFormDetail,
       'so': so,
       'eta': eta,
@@ -342,11 +566,9 @@ ThunkAction<AppState> getDataSO({
       dio.options.connectTimeout = const Duration(seconds: 20);
       dio.options.receiveTimeout = const Duration(seconds: 20);
       final response = await dio.post(ApiUrl.contSO, data: map);
-      List<PostList> listSO = parseResponse(response.data);
-      print(response.data);
-      // Dispatch ke store (Redux)
-      store.dispatch(DataSOLoadedAction(listSO));
-      return listSO;
+      final SoFetchResult result = _parseSoFetchResponse(response.data, param);
+      store.dispatch(DataSOLoadedAction(result.list));
+      return result;
     } on DioException catch (e) {
       if (e.type == DioExceptionType.connectionError ||
           e.error is SocketException ||
@@ -363,7 +585,9 @@ ThunkAction<AppState> getDataSO({
         throw Exception("Server Down ($messages)");
       }
     } catch (e) {
-      return [];
+      final msg = e.toString().replaceFirst(RegExp(r'^Exception:\s*'), '');
+      store.dispatch(DataSOErrorAction(msg));
+      rethrow;
     }
   };
 }
@@ -378,10 +602,10 @@ ThunkAction<AppState> getDataSuperrior({
   required String dateInputSuperior,
 }) {
   return (Store<AppState> store) async {
-    store.dispatch(FetchDataSO());
+    store.dispatch(FetchDataSuperrior());
     var map = FormData.fromMap({
       'param': param,
-      'superior_id ': superiorId,
+      'superior_id': superiorId,
       'nama_superior': namaSuperior,
       'status_superior': statusSuperior,
       'user_id_input_superior': userIdInputSuperior,
@@ -394,7 +618,7 @@ ThunkAction<AppState> getDataSuperrior({
       dio.options.receiveTimeout = const Duration(seconds: 20);
       final response = await dio.post(ApiUrl.contSuperrior, data: map);
       List<PostList> listSuperrior = parseResponse(response.data);
-      print(response.data);
+      // print(response.data);
       // Dispatch ke store (Redux)
       store.dispatch(DataSuperriorLoadedAction(listSuperrior));
       return listSuperrior;
@@ -432,7 +656,7 @@ ThunkAction<AppState> getDataRcvWh({
     store.dispatch(FetchDataRcvWh());
     var map = FormData.fromMap({
       'param': param,
-      'id_rcv_wh ': idRcvWh,
+      'id_rcv_wh': idRcvWh,
       'id_form_detail': idFormDetail,
       'rcv_wh_date': rcvWhDate,
       'rcv_wh_id_input': rcvWhIdInput,
@@ -444,11 +668,12 @@ ThunkAction<AppState> getDataRcvWh({
       dio.options.connectTimeout = const Duration(seconds: 20);
       dio.options.receiveTimeout = const Duration(seconds: 20);
       final response = await dio.post(ApiUrl.contRcvWh, data: map);
-      List<PostList> listRcvWh = parseResponse(response.data);
-      print(response.data);
-      // Dispatch ke store (Redux)
-      store.dispatch(DataRcvWhLoadedAction(listRcvWh));
-      return listRcvWh;
+      final RcvWhFetchResult result = _parseRcvWhFetchResponse(
+        response.data,
+        param,
+      );
+      store.dispatch(DataRcvWhLoadedAction(result.list));
+      return result;
     } on DioException catch (e) {
       if (e.type == DioExceptionType.connectionError ||
           e.error is SocketException ||
@@ -465,7 +690,9 @@ ThunkAction<AppState> getDataRcvWh({
         throw Exception("Server Down ($messages)");
       }
     } catch (e) {
-      return [];
+      final msg = e.toString().replaceFirst(RegExp(r'^Exception:\s*'), '');
+      store.dispatch(DataRcvWhErrorAction(msg));
+      rethrow;
     }
   };
 }
@@ -495,11 +722,12 @@ ThunkAction<AppState> getDataRcvTool({
       dio.options.connectTimeout = const Duration(seconds: 20);
       dio.options.receiveTimeout = const Duration(seconds: 20);
       final response = await dio.post(ApiUrl.contRcvTool, data: map);
-      List<PostList> listRcvWh = parseResponse(response.data);
-      print(response.data);
-      // Dispatch ke store (Redux)
-      store.dispatch(DataRcvToolLoadedAction(listRcvWh));
-      return listRcvWh;
+      final RcvToolFetchResult result = _parseRcvToolFetchResponse(
+        response.data,
+        param,
+      );
+      store.dispatch(DataRcvToolLoadedAction(result.list));
+      return result;
     } on DioException catch (e) {
       if (e.type == DioExceptionType.connectionError ||
           e.error is SocketException ||
@@ -516,7 +744,9 @@ ThunkAction<AppState> getDataRcvTool({
         throw Exception("Server Down ($messages)");
       }
     } catch (e) {
-      return [];
+      final msg = e.toString().replaceFirst(RegExp(r'^Exception:\s*'), '');
+      store.dispatch(DataRcvToolErrorAction(msg));
+      rethrow;
     }
   };
 }

@@ -5,6 +5,7 @@ import 'package:tool_store_app/controller/cont_crud/redux/state.dart';
 import 'package:tool_store_app/controller/cont_crud/redux/store.dart';
 import 'package:tool_store_app/controller/function/funct.dart';
 import 'package:tool_store_app/model/post_get_data.dart';
+import 'package:tool_store_app/view/custom/form/text_form_field.dart';
 import 'package:tool_store_app/view/custom/mixin/mixin_pref.dart';
 import 'package:tool_store_app/view/custom/navbar/sliver_appbars.dart';
 import 'package:tool_store_app/view/custom/navbar/sliver_fill_remaining.dart';
@@ -45,6 +46,16 @@ class _ToolDataState extends State<ToolData> with MixinPref {
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  /// Dialog routes may still detach [TextFormField]s one frame after [showDialog]
+  /// completes; disposing controllers immediately causes "used after disposed".
+  void _disposeTextControllersAfterFrame(List<TextEditingController> controllers) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      for (final c in controllers) {
+        c.dispose();
+      }
+    });
   }
 
   Future<void> _refreshData() async {
@@ -295,6 +306,1575 @@ class _ToolDataState extends State<ToolData> with MixinPref {
     );
   }
 
+  Future<void> _showUpdatePurchaseOrderDialog(PostList itemPO) async {
+    idPoCont.text = itemPO.idPo.trim();
+    poNoCont.text = itemPO.poNo.trim();
+    dateUpdatePoCont.text = itemPO.dateUpdatePo.trim();
+    userUpdatePoCont.text = itemPO.userUpdatePo.trim();
+
+    final formKey = GlobalKey<FormState>();
+
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Update Purchase Order'),
+          content: SingleChildScrollView(
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Form detail: ${itemPO.idFormDetail}',
+                    style: Theme.of(dialogContext).textTheme.labelMedium
+                        ?.copyWith(color: Colors.grey.shade700),
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormFields(
+                    labelTexts: 'PO number',
+                    textColor: clrBlack,
+                    controllers: poNoCont,
+                    validators: (v) {
+                      if (v == null || v.trim().isEmpty) {
+                        return 'PO number is required';
+                      }
+                      return null;
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: Text(
+                'Cancel',
+                style: TextStyle(color: Colors.grey.shade800),
+              ),
+            ),
+            TextButton(
+              onPressed: () async {
+                if (formKey.currentState?.validate() != true) return;
+                try {
+                  final PoFetchResult editResult =
+                      await store.dispatch(
+                            getDataPO(
+                              param: paramEditDataPO,
+                              idPO: idPoCont.text.trim(),
+                              idFormDetail: itemPO.idFormDetail.trim(),
+                              poNO: poNoCont.text.trim(),
+                              dateUpdatePO: DateFormat(
+                                'yyyy-MM-dd',
+                              ).format(DateTime.now()),
+                              userUpdatePO: idUsersApp,
+                            ),
+                          )
+                          as PoFetchResult;
+                  await store.dispatch(
+                    getDataPO(
+                      param: paramViewDataPO,
+                      idPO: '',
+                      idFormDetail: '',
+                      poNO: '',
+                      dateUpdatePO: '',
+                      userUpdatePO: '',
+                    ),
+                  );
+                  if (editResult.statusValue != '1') {
+                    await _refreshData();
+                  }
+                  if (!mounted) return;
+                  if (editResult.statusValue == '1') {
+                    final successText =
+                        (editResult.serverMessage != null &&
+                            editResult.serverMessage!.isNotEmpty)
+                        ? editResult.serverMessage!
+                        : 'Purchase order updated';
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          successText,
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  } else {
+                    final errText =
+                        (editResult.serverMessage != null &&
+                            editResult.serverMessage!.isNotEmpty)
+                        ? editResult.serverMessage!
+                        : 'Request failed';
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          errText,
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (!mounted) return;
+                  final errText = e.toString().replaceFirst(
+                    RegExp(r'^Exception:\s*'),
+                    '',
+                  );
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        errText,
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                } finally {
+                  if (dialogContext.mounted) {
+                    Navigator.pop(dialogContext);
+                  }
+                }
+              },
+              child: Text('Save', style: TextStyle(color: clrOrange)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _showAddPurchaseOrderDialog(String idFormDetail) async {
+    final addPoNoCont = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    try {
+      if (!mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) {
+          return AlertDialog(
+            title: const Text('Add Purchase Order'),
+            content: SingleChildScrollView(
+              child: Form(
+                key: formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Form detail: $idFormDetail',
+                      style: Theme.of(dialogContext).textTheme.labelMedium
+                          ?.copyWith(color: Colors.grey.shade700),
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormFields(
+                      labelTexts: 'PO number',
+                      textColor: clrBlack,
+                      controllers: addPoNoCont,
+                      validators: (v) {
+                        if (v == null || v.trim().isEmpty) {
+                          return 'PO number is required';
+                        }
+                        return null;
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: Text(
+                  'Cancel',
+                  style: TextStyle(color: Colors.grey.shade800),
+                ),
+              ),
+              TextButton(
+                onPressed: () async {
+                  if (formKey.currentState?.validate() != true) return;
+                  try {
+                    final PoFetchResult addResult =
+                        await store.dispatch(
+                              getDataPO(
+                                param: paramAddDataPO,
+                                idPO: '',
+                                idFormDetail: idFormDetail.trim(),
+                                poNO: addPoNoCont.text.trim(),
+                                dateUpdatePO: DateFormat(
+                                  'yyyy-MM-dd',
+                                ).format(DateTime.now()),
+                                userUpdatePO: idUsersApp,
+                              ),
+                            )
+                            as PoFetchResult;
+                    await store.dispatch(
+                      getDataPO(
+                        param: paramViewDataPO,
+                        idPO: '',
+                        idFormDetail: '',
+                        poNO: '',
+                        dateUpdatePO: '',
+                        userUpdatePO: '',
+                      ),
+                    );
+                    if (addResult.statusValue != '1') {
+                      await _refreshData();
+                    }
+                    if (!mounted) return;
+                    if (addResult.statusValue == '1') {
+                      final successText =
+                          (addResult.serverMessage != null &&
+                              addResult.serverMessage!.isNotEmpty)
+                          ? addResult.serverMessage!
+                          : 'Purchase order added';
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            successText,
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    } else {
+                      final errText =
+                          (addResult.serverMessage != null &&
+                              addResult.serverMessage!.isNotEmpty)
+                          ? addResult.serverMessage!
+                          : 'Request failed';
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            errText,
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (!mounted) return;
+                    final errText = e.toString().replaceFirst(
+                      RegExp(r'^Exception:\s*'),
+                      '',
+                    );
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          errText,
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  } finally {
+                    if (dialogContext.mounted) {
+                      Navigator.pop(dialogContext);
+                    }
+                  }
+                },
+                child: Text('Save', style: TextStyle(color: clrOrange)),
+              ),
+            ],
+          );
+        },
+      );
+    } finally {
+      _disposeTextControllersAfterFrame([addPoNoCont]);
+    }
+  }
+
+  Future<void> _showDeletePurchaseOrderConfirmDialog(PostList itemPO) async {
+    if (!mounted) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Delete Purchase Order'),
+          content: Text(
+            'Are you sure you want to delete PO ${_displayValue(itemPO.poNo)}? '
+            'This will be removed from the server.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: Text(
+                'Cancel',
+                style: TextStyle(color: Colors.grey.shade800),
+              ),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: Text(
+                'Delete',
+                style: TextStyle(color: Colors.red.shade700),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+    if (confirmed != true || !mounted) return;
+
+    try {
+      final PoFetchResult deleteResult =
+          await store.dispatch(
+                getDataPO(
+                  param: paramDeleteDataPO,
+                  idPO: itemPO.idPo.trim(),
+                  idFormDetail: itemPO.idFormDetail.trim(),
+                  poNO: itemPO.poNo.trim(),
+                  dateUpdatePO: DateFormat('yyyy-MM-dd').format(DateTime.now()),
+                  userUpdatePO: idUsersApp,
+                ),
+              )
+              as PoFetchResult;
+      await store.dispatch(
+        getDataPO(
+          param: paramViewDataPO,
+          idPO: '',
+          idFormDetail: '',
+          poNO: '',
+          dateUpdatePO: '',
+          userUpdatePO: '',
+        ),
+      );
+      if (deleteResult.statusValue != '1') {
+        await _refreshData();
+      }
+      if (!mounted) return;
+      if (deleteResult.statusValue == '1') {
+        final successText =
+            (deleteResult.serverMessage != null &&
+                deleteResult.serverMessage!.isNotEmpty)
+            ? deleteResult.serverMessage!
+            : 'Purchase order deleted';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              successText,
+              style: const TextStyle(color: Colors.white),
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        final errText =
+            (deleteResult.serverMessage != null &&
+                deleteResult.serverMessage!.isNotEmpty)
+            ? deleteResult.serverMessage!
+            : 'Delete failed';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errText, style: const TextStyle(color: Colors.white)),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      final errText = e.toString().replaceFirst(RegExp(r'^Exception:\s*'), '');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errText, style: const TextStyle(color: Colors.white)),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _showUpdateSalesOrderDialog(PostList itemSO) async {
+    idSoCont.text = itemSO.idSo.trim();
+    soCont.text = itemSO.so.trim();
+    etaCont.text = itemSO.eta.trim();
+    noteSoCont.text = itemSO.noteSo.trim();
+    dateUpdateSoCont.text = itemSO.dateUpdateSo.trim();
+
+    final formKey = GlobalKey<FormState>();
+
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Update Sales Order'),
+          content: SingleChildScrollView(
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Form detail: ${itemSO.idFormDetail}',
+                    style: Theme.of(dialogContext).textTheme.labelMedium
+                        ?.copyWith(color: Colors.grey.shade700),
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormFields(
+                    labelTexts: 'SO number',
+                    textColor: clrBlack,
+                    controllers: soCont,
+                    validators: (v) {
+                      if (v == null || v.trim().isEmpty) {
+                        return 'SO number is required';
+                      }
+                      return null;
+                    },
+                  ),
+                  TextFormFields(
+                    labelTexts: 'ETA',
+                    textColor: clrBlack,
+                    controllers: etaCont,
+                    validators: (_) => null,
+                  ),
+                  TextFormFields(
+                    labelTexts: 'Note SO',
+                    textColor: clrBlack,
+                    controllers: noteSoCont,
+                    validators: (_) => null,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: Text(
+                'Cancel',
+                style: TextStyle(color: Colors.grey.shade800),
+              ),
+            ),
+            TextButton(
+              onPressed: () async {
+                if (formKey.currentState?.validate() != true) return;
+                try {
+                  final SoFetchResult editResult =
+                      await store.dispatch(
+                            getDataSO(
+                              param: paramEditDataSO,
+                              idSo: idSoCont.text.trim(),
+                              idFormDetail: itemSO.idFormDetail.trim(),
+                              so: soCont.text.trim(),
+                              eta: etaCont.text.trim(),
+                              noteSo: noteSoCont.text.trim(),
+                              dateUpdateSo: DateFormat(
+                                'yyyy-MM-dd',
+                              ).format(DateTime.now()),
+                              idUpdateSo: idUsersApp,
+                            ),
+                          )
+                          as SoFetchResult;
+                  await store.dispatch(
+                    getDataSO(
+                      param: paramViewDataSO,
+                      idSo: '',
+                      idFormDetail: '',
+                      so: '',
+                      eta: '',
+                      noteSo: '',
+                      dateUpdateSo: '',
+                      idUpdateSo: '',
+                    ),
+                  );
+                  if (editResult.statusValue != '1') {
+                    await _refreshData();
+                  }
+                  if (!mounted) return;
+                  if (editResult.statusValue == '1') {
+                    final successText =
+                        (editResult.serverMessage != null &&
+                            editResult.serverMessage!.isNotEmpty)
+                        ? editResult.serverMessage!
+                        : 'Sales order updated';
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          successText,
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  } else {
+                    final errText =
+                        (editResult.serverMessage != null &&
+                            editResult.serverMessage!.isNotEmpty)
+                        ? editResult.serverMessage!
+                        : 'Request failed';
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          errText,
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (!mounted) return;
+                  final errText = e.toString().replaceFirst(
+                    RegExp(r'^Exception:\s*'),
+                    '',
+                  );
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        errText,
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                } finally {
+                  if (dialogContext.mounted) {
+                    Navigator.pop(dialogContext);
+                  }
+                }
+              },
+              child: Text('Save', style: TextStyle(color: clrOrange)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _showAddSalesOrderDialog(String idFormDetail) async {
+    final addSoCont = TextEditingController();
+    final addEtaCont = TextEditingController();
+    final addNoteSoCont = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    try {
+      if (!mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) {
+          return AlertDialog(
+            title: const Text('Add Sales Order'),
+            content: SingleChildScrollView(
+              child: Form(
+                key: formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Form detail: $idFormDetail',
+                      style: Theme.of(dialogContext).textTheme.labelMedium
+                          ?.copyWith(color: Colors.grey.shade700),
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormFields(
+                      labelTexts: 'SO number',
+                      textColor: clrBlack,
+                      controllers: addSoCont,
+                      validators: (v) {
+                        if (v == null || v.trim().isEmpty) {
+                          return 'SO number is required';
+                        }
+                        return null;
+                      },
+                    ),
+                    TextFormFields(
+                      labelTexts: 'ETA',
+                      textColor: clrBlack,
+                      controllers: addEtaCont,
+                      validators: (_) => null,
+                    ),
+                    TextFormFields(
+                      labelTexts: 'Note SO',
+                      textColor: clrBlack,
+                      controllers: addNoteSoCont,
+                      validators: (_) => null,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: Text(
+                  'Cancel',
+                  style: TextStyle(color: Colors.grey.shade800),
+                ),
+              ),
+              TextButton(
+                onPressed: () async {
+                  if (formKey.currentState?.validate() != true) return;
+                  try {
+                    final SoFetchResult addResult =
+                        await store.dispatch(
+                              getDataSO(
+                                param: paramAddDataSO,
+                                idSo: '',
+                                idFormDetail: idFormDetail.trim(),
+                                so: addSoCont.text.trim(),
+                                eta: addEtaCont.text.trim(),
+                                noteSo: addNoteSoCont.text.trim(),
+                                dateUpdateSo: DateFormat(
+                                  'yyyy-MM-dd',
+                                ).format(DateTime.now()),
+                                idUpdateSo: idUsersApp,
+                              ),
+                            )
+                            as SoFetchResult;
+                    await store.dispatch(
+                      getDataSO(
+                        param: paramViewDataSO,
+                        idSo: '',
+                        idFormDetail: '',
+                        so: '',
+                        eta: '',
+                        noteSo: '',
+                        dateUpdateSo: '',
+                        idUpdateSo: '',
+                      ),
+                    );
+                    if (addResult.statusValue != '1') {
+                      await _refreshData();
+                    }
+                    if (!mounted) return;
+                    if (addResult.statusValue == '1') {
+                      final successText =
+                          (addResult.serverMessage != null &&
+                              addResult.serverMessage!.isNotEmpty)
+                          ? addResult.serverMessage!
+                          : 'Sales order added';
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            successText,
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    } else {
+                      final errText =
+                          (addResult.serverMessage != null &&
+                              addResult.serverMessage!.isNotEmpty)
+                          ? addResult.serverMessage!
+                          : 'Request failed';
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            errText,
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (!mounted) return;
+                    final errText = e.toString().replaceFirst(
+                      RegExp(r'^Exception:\s*'),
+                      '',
+                    );
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          errText,
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  } finally {
+                    if (dialogContext.mounted) {
+                      Navigator.pop(dialogContext);
+                    }
+                  }
+                },
+                child: Text('Save', style: TextStyle(color: clrOrange)),
+              ),
+            ],
+          );
+        },
+      );
+    } finally {
+      _disposeTextControllersAfterFrame([
+        addSoCont,
+        addEtaCont,
+        addNoteSoCont,
+      ]);
+    }
+  }
+
+  Future<void> _showDeleteSalesOrderConfirmDialog(PostList itemSO) async {
+    if (!mounted) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Delete Sales Order'),
+          content: Text(
+            'Are you sure you want to delete SO ${_displayValue(itemSO.so)}? '
+            'This will be removed from the server.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: Text(
+                'Cancel',
+                style: TextStyle(color: Colors.grey.shade800),
+              ),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: Text(
+                'Delete',
+                style: TextStyle(color: Colors.red.shade700),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+    if (confirmed != true || !mounted) return;
+
+    try {
+      final SoFetchResult deleteResult =
+          await store.dispatch(
+                getDataSO(
+                  param: paramDeleteDataSO,
+                  idSo: itemSO.idSo.trim(),
+                  idFormDetail: itemSO.idFormDetail.trim(),
+                  so: itemSO.so.trim(),
+                  eta: itemSO.eta.trim(),
+                  noteSo: itemSO.noteSo.trim(),
+                  dateUpdateSo: DateFormat('yyyy-MM-dd').format(DateTime.now()),
+                  idUpdateSo: idUsersApp,
+                ),
+              )
+              as SoFetchResult;
+      await store.dispatch(
+        getDataSO(
+          param: paramViewDataSO,
+          idSo: '',
+          idFormDetail: '',
+          so: '',
+          eta: '',
+          noteSo: '',
+          dateUpdateSo: '',
+          idUpdateSo: '',
+        ),
+      );
+      if (deleteResult.statusValue != '1') {
+        await _refreshData();
+      }
+      if (!mounted) return;
+      if (deleteResult.statusValue == '1') {
+        final successText =
+            (deleteResult.serverMessage != null &&
+                deleteResult.serverMessage!.isNotEmpty)
+            ? deleteResult.serverMessage!
+            : 'Sales order deleted';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              successText,
+              style: const TextStyle(color: Colors.white),
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        final errText =
+            (deleteResult.serverMessage != null &&
+                deleteResult.serverMessage!.isNotEmpty)
+            ? deleteResult.serverMessage!
+            : 'Delete failed';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errText, style: const TextStyle(color: Colors.white)),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      final errText = e.toString().replaceFirst(RegExp(r'^Exception:\s*'), '');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errText, style: const TextStyle(color: Colors.white)),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _showUpdateRcvWhDialog(PostList item) async {
+    final dateCont = TextEditingController(text: item.rcvWhDate.trim());
+    final formKey = GlobalKey<FormState>();
+    final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    try {
+      if (!mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) {
+          return AlertDialog(
+            title: const Text('Update Date WH Received'),
+            content: SingleChildScrollView(
+              child: Form(
+                key: formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Form detail: ${item.idFormDetail}',
+                      style: Theme.of(dialogContext).textTheme.labelMedium
+                          ?.copyWith(color: Colors.grey.shade700),
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormFields(
+                      labelTexts: 'Date (yyyy-MM-dd)',
+                      textColor: clrBlack,
+                      controllers: dateCont,
+                      validators: (v) {
+                        if (v == null || v.trim().isEmpty) {
+                          return 'Date is required';
+                        }
+                        return null;
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: Text(
+                  'Cancel',
+                  style: TextStyle(color: Colors.grey.shade800),
+                ),
+              ),
+              TextButton(
+                onPressed: () async {
+                  if (formKey.currentState?.validate() != true) return;
+                  try {
+                    final RcvWhFetchResult editResult =
+                        await store.dispatch(
+                              getDataRcvWh(
+                                param: paramEditDataRcvWh,
+                                idRcvWh: item.idRcvWh.trim(),
+                                idFormDetail: item.idFormDetail.trim(),
+                                rcvWhDate: dateCont.text.trim(),
+                                rcvWhIdInput: idUsersApp,
+                                rcvWhDateInput: today,
+                              ),
+                            )
+                            as RcvWhFetchResult;
+                    await store.dispatch(
+                      getDataRcvWh(
+                        param: paramViewDataRcvWh,
+                        idRcvWh: '',
+                        idFormDetail: '',
+                        rcvWhDate: '',
+                        rcvWhIdInput: '',
+                        rcvWhDateInput: '',
+                      ),
+                    );
+                    if (editResult.statusValue != '1') {
+                      await _refreshData();
+                    }
+                    if (!mounted) return;
+                    if (editResult.statusValue == '1') {
+                      final successText =
+                          (editResult.serverMessage != null &&
+                              editResult.serverMessage!.isNotEmpty)
+                          ? editResult.serverMessage!
+                          : 'WH received date updated';
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            successText,
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    } else {
+                      final errText =
+                          (editResult.serverMessage != null &&
+                              editResult.serverMessage!.isNotEmpty)
+                          ? editResult.serverMessage!
+                          : 'Request failed';
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            errText,
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (!mounted) return;
+                    final errText = e.toString().replaceFirst(
+                      RegExp(r'^Exception:\s*'),
+                      '',
+                    );
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          errText,
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  } finally {
+                    if (dialogContext.mounted) {
+                      Navigator.pop(dialogContext);
+                    }
+                  }
+                },
+                child: Text('Save', style: TextStyle(color: clrOrange)),
+              ),
+            ],
+          );
+        },
+      );
+    } finally {
+      _disposeTextControllersAfterFrame([dateCont]);
+    }
+  }
+
+  Future<void> _showAddRcvWhDialog(String idFormDetail) async {
+    final dateCont = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    try {
+      if (!mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) {
+          return AlertDialog(
+            title: const Text('Add Date WH Received'),
+            content: SingleChildScrollView(
+              child: Form(
+                key: formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Form detail: $idFormDetail',
+                      style: Theme.of(dialogContext).textTheme.labelMedium
+                          ?.copyWith(color: Colors.grey.shade700),
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormFields(
+                      labelTexts: 'Date (yyyy-MM-dd)',
+                      textColor: clrBlack,
+                      controllers: dateCont,
+                      validators: (v) {
+                        if (v == null || v.trim().isEmpty) {
+                          return 'Date is required';
+                        }
+                        return null;
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: Text(
+                  'Cancel',
+                  style: TextStyle(color: Colors.grey.shade800),
+                ),
+              ),
+              TextButton(
+                onPressed: () async {
+                  if (formKey.currentState?.validate() != true) return;
+                  try {
+                    final RcvWhFetchResult addResult =
+                        await store.dispatch(
+                              getDataRcvWh(
+                                param: paramAddDataRcvWh,
+                                idRcvWh: '',
+                                idFormDetail: idFormDetail.trim(),
+                                rcvWhDate: dateCont.text.trim(),
+                                rcvWhIdInput: idUsersApp,
+                                rcvWhDateInput: today,
+                              ),
+                            )
+                            as RcvWhFetchResult;
+                    await store.dispatch(
+                      getDataRcvWh(
+                        param: paramViewDataRcvWh,
+                        idRcvWh: '',
+                        idFormDetail: '',
+                        rcvWhDate: '',
+                        rcvWhIdInput: '',
+                        rcvWhDateInput: '',
+                      ),
+                    );
+                    if (addResult.statusValue != '1') {
+                      await _refreshData();
+                    }
+                    if (!mounted) return;
+                    if (addResult.statusValue == '1') {
+                      final successText =
+                          (addResult.serverMessage != null &&
+                              addResult.serverMessage!.isNotEmpty)
+                          ? addResult.serverMessage!
+                          : 'WH received date added';
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            successText,
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    } else {
+                      final errText =
+                          (addResult.serverMessage != null &&
+                              addResult.serverMessage!.isNotEmpty)
+                          ? addResult.serverMessage!
+                          : 'Request failed';
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            errText,
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (!mounted) return;
+                    final errText = e.toString().replaceFirst(
+                      RegExp(r'^Exception:\s*'),
+                      '',
+                    );
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          errText,
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  } finally {
+                    if (dialogContext.mounted) {
+                      Navigator.pop(dialogContext);
+                    }
+                  }
+                },
+                child: Text('Save', style: TextStyle(color: clrOrange)),
+              ),
+            ],
+          );
+        },
+      );
+    } finally {
+      _disposeTextControllersAfterFrame([dateCont]);
+    }
+  }
+
+  Future<void> _showDeleteRcvWhConfirmDialog(PostList item) async {
+    if (!mounted) return;
+    final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Delete Date WH Received'),
+          content: Text(
+            'Are you sure you want to delete the WH received date '
+            '${_displayValue(item.rcvWhDate)}? This will be removed from the server.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: Text(
+                'Cancel',
+                style: TextStyle(color: Colors.grey.shade800),
+              ),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: Text(
+                'Delete',
+                style: TextStyle(color: Colors.red.shade700),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+    if (confirmed != true || !mounted) return;
+
+    try {
+      final RcvWhFetchResult deleteResult =
+          await store.dispatch(
+                getDataRcvWh(
+                  param: paramDeleteDataRcvWh,
+                  idRcvWh: item.idRcvWh.trim(),
+                  idFormDetail: item.idFormDetail.trim(),
+                  rcvWhDate: item.rcvWhDate.trim(),
+                  rcvWhIdInput: idUsersApp,
+                  rcvWhDateInput: today,
+                ),
+              )
+              as RcvWhFetchResult;
+      await store.dispatch(
+        getDataRcvWh(
+          param: paramViewDataRcvWh,
+          idRcvWh: '',
+          idFormDetail: '',
+          rcvWhDate: '',
+          rcvWhIdInput: '',
+          rcvWhDateInput: '',
+        ),
+      );
+      if (deleteResult.statusValue != '1') {
+        await _refreshData();
+      }
+      if (!mounted) return;
+      if (deleteResult.statusValue == '1') {
+        final successText =
+            (deleteResult.serverMessage != null &&
+                deleteResult.serverMessage!.isNotEmpty)
+            ? deleteResult.serverMessage!
+            : 'WH received date deleted';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              successText,
+              style: const TextStyle(color: Colors.white),
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        final errText =
+            (deleteResult.serverMessage != null &&
+                deleteResult.serverMessage!.isNotEmpty)
+            ? deleteResult.serverMessage!
+            : 'Delete failed';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errText, style: const TextStyle(color: Colors.white)),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      final errText = e.toString().replaceFirst(RegExp(r'^Exception:\s*'), '');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errText, style: const TextStyle(color: Colors.white)),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _showUpdateRcvToolDialog(PostList item) async {
+    final dateCont = TextEditingController(text: item.rcvToolDate.trim());
+    final formKey = GlobalKey<FormState>();
+    final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    try {
+      if (!mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) {
+          return AlertDialog(
+            title: const Text('Update Date Tool Room Received'),
+            content: SingleChildScrollView(
+              child: Form(
+                key: formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Form detail: ${item.idFormDetail}',
+                      style: Theme.of(dialogContext).textTheme.labelMedium
+                          ?.copyWith(color: Colors.grey.shade700),
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormFields(
+                      labelTexts: 'Date (yyyy-MM-dd)',
+                      textColor: clrBlack,
+                      controllers: dateCont,
+                      validators: (v) {
+                        if (v == null || v.trim().isEmpty) {
+                          return 'Date is required';
+                        }
+                        return null;
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: Text(
+                  'Cancel',
+                  style: TextStyle(color: Colors.grey.shade800),
+                ),
+              ),
+              TextButton(
+                onPressed: () async {
+                  if (formKey.currentState?.validate() != true) return;
+                  try {
+                    final RcvToolFetchResult editResult =
+                        await store.dispatch(
+                              getDataRcvTool(
+                                param: paramEditDataRcvTool,
+                                idRcvTool: item.idRcvTool.trim(),
+                                idFormDetail: item.idFormDetail.trim(),
+                                rcvToolDate: dateCont.text.trim(),
+                                rcvToolIdInput: idUsersApp,
+                                rcvToolDateInput: today,
+                              ),
+                            )
+                            as RcvToolFetchResult;
+                    await store.dispatch(
+                      getDataRcvTool(
+                        param: paramViewDataRcvTool,
+                        idRcvTool: '',
+                        idFormDetail: '',
+                        rcvToolDate: '',
+                        rcvToolIdInput: '',
+                        rcvToolDateInput: '',
+                      ),
+                    );
+                    if (editResult.statusValue != '1') {
+                      await _refreshData();
+                    }
+                    if (!mounted) return;
+                    if (editResult.statusValue == '1') {
+                      final successText =
+                          (editResult.serverMessage != null &&
+                              editResult.serverMessage!.isNotEmpty)
+                          ? editResult.serverMessage!
+                          : 'Tool room received date updated';
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            successText,
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    } else {
+                      final errText =
+                          (editResult.serverMessage != null &&
+                              editResult.serverMessage!.isNotEmpty)
+                          ? editResult.serverMessage!
+                          : 'Request failed';
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            errText,
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (!mounted) return;
+                    final errText = e.toString().replaceFirst(
+                      RegExp(r'^Exception:\s*'),
+                      '',
+                    );
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          errText,
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  } finally {
+                    if (dialogContext.mounted) {
+                      Navigator.pop(dialogContext);
+                    }
+                  }
+                },
+                child: Text('Save', style: TextStyle(color: clrOrange)),
+              ),
+            ],
+          );
+        },
+      );
+    } finally {
+      _disposeTextControllersAfterFrame([dateCont]);
+    }
+  }
+
+  Future<void> _showAddRcvToolDialog(String idFormDetail) async {
+    final dateCont = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    try {
+      if (!mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) {
+          return AlertDialog(
+            title: const Text('Add Date Tool Room Received'),
+            content: SingleChildScrollView(
+              child: Form(
+                key: formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Form detail: $idFormDetail',
+                      style: Theme.of(dialogContext).textTheme.labelMedium
+                          ?.copyWith(color: Colors.grey.shade700),
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormFields(
+                      labelTexts: 'Date (yyyy-MM-dd)',
+                      textColor: clrBlack,
+                      controllers: dateCont,
+                      validators: (v) {
+                        if (v == null || v.trim().isEmpty) {
+                          return 'Date is required';
+                        }
+                        return null;
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: Text(
+                  'Cancel',
+                  style: TextStyle(color: Colors.grey.shade800),
+                ),
+              ),
+              TextButton(
+                onPressed: () async {
+                  if (formKey.currentState?.validate() != true) return;
+                  try {
+                    final RcvToolFetchResult addResult =
+                        await store.dispatch(
+                              getDataRcvTool(
+                                param: paramAddDataRcvTool,
+                                idRcvTool: '',
+                                idFormDetail: idFormDetail.trim(),
+                                rcvToolDate: dateCont.text.trim(),
+                                rcvToolIdInput: idUsersApp,
+                                rcvToolDateInput: today,
+                              ),
+                            )
+                            as RcvToolFetchResult;
+                    await store.dispatch(
+                      getDataRcvTool(
+                        param: paramViewDataRcvTool,
+                        idRcvTool: '',
+                        idFormDetail: '',
+                        rcvToolDate: '',
+                        rcvToolIdInput: '',
+                        rcvToolDateInput: '',
+                      ),
+                    );
+                    if (addResult.statusValue != '1') {
+                      await _refreshData();
+                    }
+                    if (!mounted) return;
+                    if (addResult.statusValue == '1') {
+                      final successText =
+                          (addResult.serverMessage != null &&
+                              addResult.serverMessage!.isNotEmpty)
+                          ? addResult.serverMessage!
+                          : 'Tool room received date added';
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            successText,
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    } else {
+                      final errText =
+                          (addResult.serverMessage != null &&
+                              addResult.serverMessage!.isNotEmpty)
+                          ? addResult.serverMessage!
+                          : 'Request failed';
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            errText,
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (!mounted) return;
+                    final errText = e.toString().replaceFirst(
+                      RegExp(r'^Exception:\s*'),
+                      '',
+                    );
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          errText,
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  } finally {
+                    if (dialogContext.mounted) {
+                      Navigator.pop(dialogContext);
+                    }
+                  }
+                },
+                child: Text('Save', style: TextStyle(color: clrOrange)),
+              ),
+            ],
+          );
+        },
+      );
+    } finally {
+      _disposeTextControllersAfterFrame([dateCont]);
+    }
+  }
+
+  Future<void> _showDeleteRcvToolConfirmDialog(PostList item) async {
+    if (!mounted) return;
+    final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Delete Date Tool Room Received'),
+          content: Text(
+            'Are you sure you want to delete the tool room received date '
+            '${_displayValue(item.rcvToolDate)}? This will be removed from the server.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: Text(
+                'Cancel',
+                style: TextStyle(color: Colors.grey.shade800),
+              ),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: Text(
+                'Delete',
+                style: TextStyle(color: Colors.red.shade700),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+    if (confirmed != true || !mounted) return;
+
+    try {
+      final RcvToolFetchResult deleteResult =
+          await store.dispatch(
+                getDataRcvTool(
+                  param: paramDeleteDataRcvTool,
+                  idRcvTool: item.idRcvTool.trim(),
+                  idFormDetail: item.idFormDetail.trim(),
+                  rcvToolDate: item.rcvToolDate.trim(),
+                  rcvToolIdInput: idUsersApp,
+                  rcvToolDateInput: today,
+                ),
+              )
+              as RcvToolFetchResult;
+      await store.dispatch(
+        getDataRcvTool(
+          param: paramViewDataRcvTool,
+          idRcvTool: '',
+          idFormDetail: '',
+          rcvToolDate: '',
+          rcvToolIdInput: '',
+          rcvToolDateInput: '',
+        ),
+      );
+      if (deleteResult.statusValue != '1') {
+        await _refreshData();
+      }
+      if (!mounted) return;
+      if (deleteResult.statusValue == '1') {
+        final successText =
+            (deleteResult.serverMessage != null &&
+                deleteResult.serverMessage!.isNotEmpty)
+            ? deleteResult.serverMessage!
+            : 'Tool room received date deleted';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              successText,
+              style: const TextStyle(color: Colors.white),
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        final errText =
+            (deleteResult.serverMessage != null &&
+                deleteResult.serverMessage!.isNotEmpty)
+            ? deleteResult.serverMessage!
+            : 'Delete failed';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errText, style: const TextStyle(color: Colors.white)),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      final errText = e.toString().replaceFirst(RegExp(r'^Exception:\s*'), '');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errText, style: const TextStyle(color: Colors.white)),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   Widget _buildPoCard(PostList itemPO) {
     return Container(
       width: double.infinity,
@@ -330,10 +1910,25 @@ class _ToolDataState extends State<ToolData> with MixinPref {
               ],
             ),
           ),
-          TextButton.icon(
-            onPressed: () {},
-            icon: const Icon(Icons.edit_outlined, size: 18),
-            label: const Text('Update'),
+          Wrap(
+            spacing: 4,
+            runSpacing: 4,
+            alignment: WrapAlignment.end,
+            children: [
+              TextButton.icon(
+                onPressed: () => _showUpdatePurchaseOrderDialog(itemPO),
+                icon: const Icon(Icons.edit_outlined, size: 18),
+                label: const Text('Edit'),
+              ),
+              TextButton.icon(
+                onPressed: () => _showDeletePurchaseOrderConfirmDialog(itemPO),
+                icon: const Icon(Icons.delete_outline, size: 18),
+                label: const Text('Delete'),
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.red.shade700,
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -354,6 +1949,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
                 padding: const EdgeInsets.all(10),
@@ -380,10 +1976,25 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                   ],
                 ),
               ),
-              TextButton.icon(
-                onPressed: () {},
-                icon: const Icon(Icons.edit_outlined, size: 18),
-                label: const Text('Update'),
+              Wrap(
+                spacing: 4,
+                runSpacing: 4,
+                alignment: WrapAlignment.end,
+                children: [
+                  TextButton.icon(
+                    onPressed: () => _showUpdateSalesOrderDialog(itemSO),
+                    icon: const Icon(Icons.edit_outlined, size: 18),
+                    label: const Text('Edit'),
+                  ),
+                  TextButton.icon(
+                    onPressed: () => _showDeleteSalesOrderConfirmDialog(itemSO),
+                    icon: const Icon(Icons.delete_outline, size: 18),
+                    label: const Text('Delete'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.red.shade700,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -433,10 +2044,25 @@ class _ToolDataState extends State<ToolData> with MixinPref {
               ],
             ),
           ),
-          TextButton.icon(
-            onPressed: () {},
-            icon: const Icon(Icons.edit_outlined, size: 18),
-            label: const Text('Update'),
+          Wrap(
+            spacing: 4,
+            runSpacing: 4,
+            alignment: WrapAlignment.end,
+            children: [
+              TextButton.icon(
+                onPressed: () => _showUpdateRcvWhDialog(itemRcvWh),
+                icon: const Icon(Icons.edit_outlined, size: 18),
+                label: const Text('Edit'),
+              ),
+              TextButton.icon(
+                onPressed: () => _showDeleteRcvWhConfirmDialog(itemRcvWh),
+                icon: const Icon(Icons.delete_outline, size: 18),
+                label: const Text('Delete'),
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.red.shade700,
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -481,10 +2107,25 @@ class _ToolDataState extends State<ToolData> with MixinPref {
               ],
             ),
           ),
-          TextButton.icon(
-            onPressed: () {},
-            icon: const Icon(Icons.edit_outlined, size: 18),
-            label: const Text('Update'),
+          Wrap(
+            spacing: 4,
+            runSpacing: 4,
+            alignment: WrapAlignment.end,
+            children: [
+              TextButton.icon(
+                onPressed: () => _showUpdateRcvToolDialog(itemRcvTool),
+                icon: const Icon(Icons.edit_outlined, size: 18),
+                label: const Text('Edit'),
+              ),
+              TextButton.icon(
+                onPressed: () => _showDeleteRcvToolConfirmDialog(itemRcvTool),
+                icon: const Icon(Icons.delete_outline, size: 18),
+                label: const Text('Delete'),
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.red.shade700,
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -599,16 +2240,33 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                   .toList();
             },
             builder: (context, filteredListPO) {
-              if (filteredListPO.isEmpty) {
-                return const SizedBox.shrink();
-              }
               return Padding(
                 padding: const EdgeInsets.only(top: 12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildSectionHeader('Purchase Order', icon: Icons.receipt),
-                    ...filteredListPO.map(_buildPoCard),
+                    _buildSectionHeader(
+                      'Purchase Order',
+                      icon: Icons.receipt,
+                      trailing: TextButton.icon(
+                        onPressed: () =>
+                            _showAddPurchaseOrderDialog(itemTool.idFormDetail),
+                        icon: const Icon(Icons.add, size: 18),
+                        label: const Text('Add'),
+                        style: TextButton.styleFrom(foregroundColor: clrOrange),
+                      ),
+                    ),
+                    if (filteredListPO.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 4),
+                        child: Text(
+                          '',
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: Colors.grey.shade600),
+                        ),
+                      )
+                    else
+                      ...filteredListPO.map(_buildPoCard),
                   ],
                 ),
               );
@@ -624,16 +2282,33 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                   .toList();
             },
             builder: (context, filteredListSO) {
-              if (filteredListSO.isEmpty) {
-                return const SizedBox.shrink();
-              }
               return Padding(
                 padding: const EdgeInsets.only(top: 12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildSectionHeader('Sales Order', icon: Icons.route),
-                    ...filteredListSO.map(_buildSoCard),
+                    _buildSectionHeader(
+                      'Sales Order',
+                      icon: Icons.route,
+                      trailing: TextButton.icon(
+                        onPressed: () =>
+                            _showAddSalesOrderDialog(itemTool.idFormDetail),
+                        icon: const Icon(Icons.add, size: 18),
+                        label: const Text('Add'),
+                        style: TextButton.styleFrom(foregroundColor: clrOrange),
+                      ),
+                    ),
+                    if (filteredListSO.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 4),
+                        child: Text(
+                          '',
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: Colors.grey.shade600),
+                        ),
+                      )
+                    else
+                      ...filteredListSO.map(_buildSoCard),
                   ],
                 ),
               );
@@ -651,9 +2326,6 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                   .toList();
             },
             builder: (context, filteredListRcvWh) {
-              if (filteredListRcvWh.isEmpty) {
-                return const SizedBox.shrink();
-              }
               return Padding(
                 padding: const EdgeInsets.only(top: 12),
                 child: Column(
@@ -662,8 +2334,25 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                     _buildSectionHeader(
                       'Date WH Received ',
                       icon: Icons.warehouse,
+                      trailing: TextButton.icon(
+                        onPressed: () =>
+                            _showAddRcvWhDialog(itemTool.idFormDetail),
+                        icon: const Icon(Icons.add, size: 18),
+                        label: const Text('Add'),
+                        style: TextButton.styleFrom(foregroundColor: clrOrange),
+                      ),
                     ),
-                    ...filteredListRcvWh.map(_buildRcvWhCard),
+                    if (filteredListRcvWh.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 4),
+                        child: Text(
+                          '',
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: Colors.grey.shade600),
+                        ),
+                      )
+                    else
+                      ...filteredListRcvWh.map(_buildRcvWhCard),
                   ],
                 ),
               );
@@ -680,9 +2369,6 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                   .toList();
             },
             builder: (context, filteredListRcvTool) {
-              if (filteredListRcvTool.isEmpty) {
-                return const SizedBox.shrink();
-              }
               return Padding(
                 padding: const EdgeInsets.only(top: 12),
                 child: Column(
@@ -691,8 +2377,25 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                     _buildSectionHeader(
                       'Date Tool Room Received ',
                       icon: Icons.storage,
+                      trailing: TextButton.icon(
+                        onPressed: () =>
+                            _showAddRcvToolDialog(itemTool.idFormDetail),
+                        icon: const Icon(Icons.add, size: 18),
+                        label: const Text('Add'),
+                        style: TextButton.styleFrom(foregroundColor: clrOrange),
+                      ),
                     ),
-                    ...filteredListRcvTool.map(_buildRcvToolCard),
+                    if (filteredListRcvTool.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 4),
+                        child: Text(
+                          '',
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: Colors.grey.shade600),
+                        ),
+                      )
+                    else
+                      ...filteredListRcvTool.map(_buildRcvToolCard),
                   ],
                 ),
               );
@@ -726,9 +2429,10 @@ class _ToolDataState extends State<ToolData> with MixinPref {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(24),
-        child: Material(
+          child: Material(
           color: Colors.transparent,
           child: ExpansionTile(
+            key: ValueKey<String>('form_${forms.idForm}'),
             tilePadding: const EdgeInsets.fromLTRB(18, 18, 18, 8),
             childrenPadding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
             shape: const Border(),
@@ -810,7 +2514,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
             children: [
               const SizedBox(height: 10),
               _buildSectionHeader(
-                'Ringkasan Request',
+                'Request Summary',
                 icon: Icons.description_outlined,
                 trailing: IconButton(
                   tooltip: 'Edit request',
@@ -890,13 +2594,15 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                         context: context,
                         title: 'Reject Request Approval',
                         contentTitle: ' Are you sure reject ?',
-                        onPressedNo: () {
-                          if (!context.mounted) return;
-                          Navigator.pop(context);
+                        onPressedNo: (dialogContext) {
+                          if (!dialogContext.mounted) return;
+                          Navigator.pop(dialogContext);
                         },
-                        onPressedYes: () async {
-                          Navigator.pop(context);
-                          if (!context.mounted) return;
+                        onPressedYes: (dialogContext) async {
+                          if (dialogContext.mounted) {
+                            Navigator.pop(dialogContext);
+                          }
+                          if (!mounted) return;
                         },
                         textNo: 'Cancel',
                         textYes: 'Yes',
@@ -914,13 +2620,15 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                         context: context,
                         title: 'Please make sure all data is correct',
                         contentTitle: ' Are you sure approve ?',
-                        onPressedNo: () {
-                          if (!context.mounted) return;
-                          Navigator.pop(context);
+                        onPressedNo: (dialogContext) {
+                          if (!dialogContext.mounted) return;
+                          Navigator.pop(dialogContext);
                         },
-                        onPressedYes: () async {
-                          Navigator.pop(context);
-                          if (!context.mounted) return;
+                        onPressedYes: (dialogContext) async {
+                          if (dialogContext.mounted) {
+                            Navigator.pop(dialogContext);
+                          }
+                          if (!mounted) return;
                         },
                         textNo: 'Cancel',
                         textYes: 'Yes',
@@ -940,7 +2648,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                 ],
               ),
               const SizedBox(height: 20),
-              _buildSectionHeader('Daftar Tool', icon: Icons.handyman_outlined),
+              _buildSectionHeader('Tool List', icon: Icons.handyman_outlined),
               StoreConnector<AppState, List<PostList>>(
                 converter: (store) {
                   final allTool = store.state.formsDetailState.formsDetail;
@@ -967,7 +2675,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                           ),
                           const SizedBox(height: 10),
                           Text(
-                            'Belum ada detail tool untuk request ini.',
+                            'No tool details for this request yet.',
                             style: Theme.of(context).textTheme.bodyMedium,
                           ),
                         ],

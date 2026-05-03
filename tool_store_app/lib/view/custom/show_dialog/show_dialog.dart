@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+/// Receives the dialog [BuildContext] so [Navigator.pop] targets the modal route.
+typedef ShowDialogButtonHandler = void Function(BuildContext dialogContext);
+
 class ShowDialogBox {
   static void show({
     required BuildContext context,
@@ -7,27 +10,30 @@ class ShowDialogBox {
     required String contentTitle,
     required String textNo,
     required String textYes,
-    required void Function()? onPressedNo,
-    required void Function()? onPressedYes,
+    required ShowDialogButtonHandler onPressedNo,
+    required ShowDialogButtonHandler onPressedYes,
     required Color textColorNo,
     required Color textColorYes,
   }) {
-    showDialog(
+    showDialog<void>(
       context: context,
-      barrierDismissible: false, // User harus pilih salah satu tombol
-      builder: (context) => AlertDialog(
-        title: Text(title, style: Theme.of(context).textTheme.titleMedium),
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(
+          title,
+          style: Theme.of(dialogContext).textTheme.titleMedium,
+        ),
         content: Text(
           contentTitle,
-          style: Theme.of(context).textTheme.titleSmall,
+          style: Theme.of(dialogContext).textTheme.titleSmall,
         ),
         actions: [
           TextButton(
-            onPressed: onPressedNo,
+            onPressed: () => onPressedNo(dialogContext),
             child: Text(textNo, style: TextStyle(color: textColorNo)),
           ),
           TextButton(
-            onPressed: onPressedYes,
+            onPressed: () => onPressedYes(dialogContext),
             child: Text(textYes, style: TextStyle(color: textColorYes)),
           ),
         ],
