@@ -1,3 +1,5 @@
+import 'dart:math' show max;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_redux/flutter_redux.dart';
 import 'package:tool_store_app/controller/api_url/post_list.dart';
@@ -9,10 +11,33 @@ import 'package:tool_store_app/view/custom/form/text_form_field.dart';
 import 'package:tool_store_app/view/custom/mixin/mixin_pref.dart';
 import 'package:tool_store_app/view/custom/navbar/sliver_appbars.dart';
 import 'package:tool_store_app/view/custom/navbar/sliver_fill_remaining.dart';
-import 'package:tool_store_app/view/custom/routes/page_routes.dart';
 import 'package:tool_store_app/view/menu/drawer/drawer.dart';
 import 'package:tool_store_app/view/var/var.dart';
 import 'package:intl/intl.dart';
+import 'package:redux/redux.dart';
+
+/// Redux [StoreConnector] equality for order timeline rebuilds.
+class _OrderTimelineViewModel {
+  const _OrderTimelineViewModel({
+    required this.orangeCompleted,
+    this.redStepIndex,
+  });
+
+  /// Number of leading steps (0–7) shown as completed (orange) when [redStepIndex] is null.
+  final int orangeCompleted;
+
+  /// When set, this step is shown in red (rejection / hold) instead of orange.
+  final int? redStepIndex;
+
+  @override
+  bool operator ==(Object other) =>
+      other is _OrderTimelineViewModel &&
+      other.orangeCompleted == orangeCompleted &&
+      other.redStepIndex == redStepIndex;
+
+  @override
+  int get hashCode => Object.hash(orangeCompleted, redStepIndex);
+}
 
 class ToolData extends StatefulWidget {
   const ToolData({super.key});
@@ -81,19 +106,49 @@ class _ToolDataState extends State<ToolData> with MixinPref {
         formUserUpdate: '',
       ),
     );
+    await store.dispatch(
+      getDataToolDetail(
+        param: paramViewDataTool,
+        idFormDetail: '',
+        idFrom: '',
+        formComment: '',
+        pnGroup: '',
+        pnDesc: '',
+        qty: '',
+        explan: '',
+        actionNote: '',
+        valType: '',
+        partValue: '',
+        formDetailDate: '',
+        formDetailUser: '',
+      ),
+    );
   }
 
   Future<void> _pickDateIntoController(
     BuildContext dialogContext,
     TextEditingController controller,
   ) async {
+    final firstDate = DateTime(2000);
+    final lastDate = DateTime(2100);
     final parsed = DateTime.tryParse(controller.text.trim());
-    final initialDate = parsed ?? DateTime.now();
+    final now = DateTime.now();
+    final fallbackDate = now.isBefore(firstDate)
+        ? firstDate
+        : now.isAfter(lastDate)
+        ? lastDate
+        : now;
+    final initialDate =
+        parsed != null &&
+            !parsed.isBefore(firstDate) &&
+            !parsed.isAfter(lastDate)
+        ? parsed
+        : fallbackDate;
     final picked = await showDatePicker(
       context: dialogContext,
       initialDate: initialDate,
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2100),
+      firstDate: firstDate,
+      lastDate: lastDate,
     );
     if (picked == null) return;
     controller.text = DateFormat('yyyy-MM-dd').format(picked);
@@ -111,6 +166,48 @@ class _ToolDataState extends State<ToolData> with MixinPref {
       _searchQuery = '';
       _searchField = 'all';
     });
+  }
+
+  /// After a successful save on a form, focus the list search on that form's number.
+  void _setSearchToFormNumber(PostList formHeader) {
+    if (!mounted) return;
+    final no = formHeader.formNo.trim();
+    if (no.isEmpty) return;
+    _searchController.text = no;
+    setState(() {
+      _searchQuery = no;
+      _searchField = 'formNo';
+    });
+  }
+
+  /// True when any SO/PR or PO row linked to this form matches [query].
+  bool _formMatchesOrderDocsSearch(PostList form, String query) {
+    final q = query.trim().toLowerCase();
+    if (q.isEmpty) return false;
+
+    final idForm = form.idForm.trim();
+    if (idForm.isEmpty) return false;
+
+    final detailIds = store.state.formsDetailState.formsDetail
+        .where((t) => t.idForm.trim() == idForm)
+        .map((t) => t.idFormDetail.trim())
+        .where((s) => s.isNotEmpty)
+        .toSet();
+    if (detailIds.isEmpty) return false;
+
+    String norm(String v) => v.toLowerCase();
+
+    for (final so in store.state.sosDetailState.sosDetail) {
+      if (!detailIds.contains(so.idFormDetail.trim())) continue;
+      if (norm(so.so).contains(q) || norm(so.noteSo).contains(q)) {
+        return true;
+      }
+    }
+    for (final po in store.state.posDetailState.posDetail) {
+      if (!detailIds.contains(po.idFormDetail.trim())) continue;
+      if (norm(po.poNo).contains(q)) return true;
+    }
+    return false;
   }
 
   bool _matchesSearch(PostList form) {
@@ -136,7 +233,8 @@ class _ToolDataState extends State<ToolData> with MixinPref {
           form.formServComment,
           form.idForm,
         ];
-        return candidates.any((value) => normalize(value).contains(query));
+        return candidates.any((value) => normalize(value).contains(query)) ||
+            _formMatchesOrderDocsSearch(form, query);
     }
   }
 
@@ -177,6 +275,48 @@ class _ToolDataState extends State<ToolData> with MixinPref {
         normalized == 'NO';
   }
 
+  /// Service admin milestone → CONTINUE / HOLD for the Service Support tile.
+  ({String? text, Color? color, IconData? icon})
+  _serviceSupportMilestoneStatusVisual(String formMilestone) {
+    final m = formMilestone.trim().toUpperCase();
+    if (m == 'CONTINUE' || m == 'REVIEWED BY SERVICE ADMIN') {
+      return (
+        text: 'CONTINUE',
+        color: clrGreen,
+        icon: Icons.play_circle_outline,
+      );
+    }
+    if (m == 'HOLD' || m == 'HOLD BY SERVICE ADMIN') {
+      return (
+        text: 'HOLD',
+        color: Colors.orange.shade800,
+        icon: Icons.pause_circle_outline,
+      );
+    }
+    return (text: null, color: null, icon: null);
+  }
+
+  Widget _buildServiceSupportCommentInfoTile(PostList forms) {
+    final milestoneUi = _serviceSupportMilestoneStatusVisual(
+      forms.formMilestone,
+    );
+    return _buildInfoTile(
+      icon: Icons.comment_bank_outlined,
+      label: 'SERVICE SUPPORT COMMENT',
+      value: forms.formSadminComment,
+      statusText: milestoneUi.text,
+      statusColor: milestoneUi.color,
+      statusIcon: milestoneUi.icon,
+      trailing: _buildCommentCardTrailingAction(
+        icon: Icons.rate_review_outlined,
+        label: 'Service Support Review',
+        backgroundColor: Colors.indigo,
+        tooltip: 'Service Support Review',
+        onPressed: () => _showServiceAdminReviewDialog(forms),
+      ),
+    );
+  }
+
   Widget _buildInfoTile({
     required IconData icon,
     required String label,
@@ -187,8 +327,11 @@ class _ToolDataState extends State<ToolData> with MixinPref {
     IconData? statusIcon,
   }) {
     final isDesktop = MediaQuery.sizeOf(context).width >= mobileWidth;
+    final tilePadding = isDesktop
+        ? const EdgeInsets.symmetric(horizontal: 8, vertical: 7)
+        : const EdgeInsets.all(12);
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: tilePadding,
       decoration: BoxDecoration(
         color: Colors.grey.shade50,
         borderRadius: BorderRadius.circular(14),
@@ -204,115 +347,68 @@ class _ToolDataState extends State<ToolData> with MixinPref {
             ),
             child: Icon(icon, size: 18, color: clrOrange),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 8),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Expanded(
-                  child: Row(
+                Text.rich(
+                  TextSpan(
                     children: [
-                      Expanded(
-                        child: Text.rich(
-                          TextSpan(
-                            children: [
-                              TextSpan(
-                                text: label,
-                                style: Theme.of(context).textTheme.labelMedium
-                                    ?.copyWith(
-                                      color: Colors.grey.shade700,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                              ),
-                              if (isDesktop &&
-                                  statusText != null &&
-                                  statusText.isNotEmpty) ...[
-                                TextSpan(
-                                  text: ' - ',
-                                  style: Theme.of(context).textTheme.labelMedium
-                                      ?.copyWith(
-                                        color: Colors.grey.shade600,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                ),
-                                if (statusIcon != null)
-                                  WidgetSpan(
-                                    alignment: PlaceholderAlignment.middle,
-                                    child: Padding(
-                                      padding: const EdgeInsets.only(right: 4),
-                                      child: Icon(
-                                        statusIcon,
-                                        size: 13,
-                                        color:
-                                            statusColor ?? Colors.grey.shade700,
-                                      ),
-                                    ),
-                                  ),
-                                TextSpan(
-                                  text: statusText,
-                                  style: Theme.of(context).textTheme.labelSmall
-                                      ?.copyWith(
-                                        color:
-                                            statusColor ?? Colors.grey.shade700,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                ),
-                              ],
-                              if (!isDesktop &&
-                                  statusText != null &&
-                                  statusText.isNotEmpty) ...[
-                                TextSpan(
-                                  text: ' - ',
-                                  style: Theme.of(context).textTheme.labelMedium
-                                      ?.copyWith(
-                                        color: Colors.grey.shade600,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                ),
-                                if (statusIcon != null)
-                                  WidgetSpan(
-                                    alignment: PlaceholderAlignment.middle,
-                                    child: Padding(
-                                      padding: const EdgeInsets.only(right: 4),
-                                      child: Icon(
-                                        statusIcon,
-                                        size: 13,
-                                        color:
-                                            statusColor ?? Colors.grey.shade700,
-                                      ),
-                                    ),
-                                  ),
-                                TextSpan(
-                                  text: statusText,
-                                  style: Theme.of(context).textTheme.labelSmall
-                                      ?.copyWith(
-                                        color:
-                                            statusColor ?? Colors.grey.shade700,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                ),
-                              ],
-                            ],
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                      TextSpan(
+                        text: label,
+                        style: Theme.of(context).textTheme.labelMedium
+                            ?.copyWith(
+                              color: Colors.grey.shade700,
+                              fontWeight: FontWeight.w600,
+                            ),
                       ),
+                      if (statusText != null && statusText.isNotEmpty) ...[
+                        TextSpan(
+                          text: ' - ',
+                          style: Theme.of(context).textTheme.labelMedium
+                              ?.copyWith(
+                                color: Colors.grey.shade600,
+                                fontWeight: FontWeight.w600,
+                              ),
+                        ),
+                        if (statusIcon != null)
+                          WidgetSpan(
+                            alignment: PlaceholderAlignment.middle,
+                            child: Padding(
+                              padding: const EdgeInsets.only(right: 4),
+                              child: Icon(
+                                statusIcon,
+                                size: 13,
+                                color: statusColor ?? Colors.grey.shade700,
+                              ),
+                            ),
+                          ),
+                        TextSpan(
+                          text: statusText,
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(
+                                color: statusColor ?? Colors.grey.shade700,
+                                fontWeight: FontWeight.w700,
+                              ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
-                const SizedBox(height: 1),
-                Expanded(
-                  child: SelectableText(
-                    _displayValue(value),
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+                const SizedBox(height: 2),
+                SelectableText(
+                  _displayValue(value),
+                  maxLines: 2,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
                 ),
               ],
             ),
           ),
-          if (trailing != null) ...[const SizedBox(width: 6), trailing],
+          if (trailing != null) ...[const SizedBox(width: 4), trailing],
         ],
       ),
     );
@@ -334,11 +430,366 @@ class _ToolDataState extends State<ToolData> with MixinPref {
               title,
               style: Theme.of(
                 context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
             ),
           ),
           trailing ?? const SizedBox.shrink(),
         ],
+      ),
+    );
+  }
+
+  static const int _orderTimelineStepCount = 7;
+  static const double _timelineAboveBand = 80;
+  static const double _timelineBelowBand = 80;
+  static const double _timelineNodeDiameter = 28;
+  static const double _timelineVConnectorHeight = 8;
+
+  /// Milestone text normalized for comparisons (case, dots, runs of spaces).
+  static String _normFormMilestone(String raw) {
+    return raw
+        .trim()
+        .toUpperCase()
+        .replaceAll('.', '')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+  }
+
+  /// Highest completed step count (0–7) from [forms.formMilestone] alone.
+  static int _filledStepsFromMilestoneNorm(String n) {
+    if (n.isEmpty || n == 'DRAFT') return 0;
+    if (n == 'RECEIVED TOOL STORE' ||
+        n == 'PARTIAL RECEIVED TOOL STORE' ||
+        n == 'RECEIVED BY TOOL STORE' ||
+        n == 'PARTIAL RECEIVED BY TOOL STORE') {
+      return 7;
+    }
+    if (n == 'RECEIVED BY WH/GA' || n == 'PARTIAL RECEIVED BY WH/GA') {
+      return 6;
+    }
+    if (n == 'ORDER PROCESSED' || n == 'PROCESSING ORDER') return 5;
+    if (n == 'APPROVED BY SERVICE DEPT HEAD') return 4;
+    if (n == 'REVIEWED BY SERVICE ADMIN' || n == 'CONTINUE') return 3;
+    if (n == 'SUPERIOR APPROVED') return 2;
+    if (n == 'CHECK BY TOOL STORE') return 1;
+    return 0;
+  }
+
+  /// Timeline segment fill and per-step styling for the order workflow.
+  _OrderTimelineViewModel _computeOrderTimelineViewModel(
+    Store<AppState> store,
+    PostList forms,
+  ) {
+    if (forms.idForm.trim().isEmpty) {
+      return const _OrderTimelineViewModel(orangeCompleted: 0);
+    }
+
+    final mUpper = forms.formMilestone.trim().toUpperCase();
+    final n = _normFormMilestone(forms.formMilestone);
+
+    if (mUpper == 'REJECTED BY SUPERIOR' || n == 'REJECTED BY SUPERIOR') {
+      return const _OrderTimelineViewModel(orangeCompleted: 1, redStepIndex: 1);
+    }
+    if (n == 'REJECTED BY SERVICE DEPT HEAD') {
+      return const _OrderTimelineViewModel(orangeCompleted: 3, redStepIndex: 3);
+    }
+    if (mUpper == 'HOLD BY SERVICE ADMIN' || n == 'HOLD BY SERVICE ADMIN') {
+      return const _OrderTimelineViewModel(orangeCompleted: 2, redStepIndex: 2);
+    }
+
+    var filled = _filledStepsFromMilestoneNorm(n);
+
+    if (_isApprovedValue(forms.formSuperiorAprd)) {
+      filled = max(filled, 2);
+    }
+    if (forms.formSadminComment.trim().isNotEmpty) {
+      filled = max(filled, 3);
+    }
+    if (_isApprovedValue(forms.formSheadAprd)) {
+      filled = max(filled, 4);
+    }
+
+    final tools = store.state.formsDetailState.formsDetail
+        .where((t) => t.idForm.trim() == forms.idForm.trim())
+        .toList();
+    if (filled >= 5 && tools.isNotEmpty) {
+      final detailIds = tools
+          .map((e) => e.idFormDetail.trim())
+          .where((s) => s.isNotEmpty)
+          .toSet();
+      if (detailIds.isNotEmpty) {
+        final hasRcvWh = store.state.rcvWhState.rcvWhs.any(
+          (r) => detailIds.contains(r.idFormDetail.trim()),
+        );
+        final hasRcvTool = store.state.rcvToolState.rcvTools.any(
+          (r) => detailIds.contains(r.idFormDetail.trim()),
+        );
+        if (hasRcvWh) filled = max(filled, 6);
+        if (hasRcvTool) filled = max(filled, 7);
+      }
+    }
+
+    return _OrderTimelineViewModel(
+      orangeCompleted: filled.clamp(0, _orderTimelineStepCount),
+    );
+  }
+
+  Widget _buildHorizontalTrackSegments({
+    required int completed,
+    required double trackHeight,
+  }) {
+    final activeColor = clrOrange;
+    final connectorMuted = Colors.grey.shade300;
+    final capR = trackHeight / 2;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Expanded(flex: 1, child: SizedBox()),
+        for (int k = 0; k < _orderTimelineStepCount - 1; k++)
+          Expanded(
+            flex: 2,
+            child: Container(
+              height: trackHeight,
+              decoration: BoxDecoration(
+                color: k < completed ? activeColor : connectorMuted,
+                borderRadius: BorderRadius.horizontal(
+                  left: k == 0 ? Radius.circular(capR) : Radius.zero,
+                  right: k == _orderTimelineStepCount - 2
+                      ? Radius.circular(capR)
+                      : Radius.zero,
+                ),
+              ),
+            ),
+          ),
+        const Expanded(flex: 1, child: SizedBox()),
+      ],
+    );
+  }
+
+  Widget _buildOrderStatusTimeline(_OrderTimelineViewModel vm) {
+    const steps = <(String, String)>[
+      ('Order Request', 'Request submitted.'),
+      ('Order Approval 1', 'Superior approval.'),
+      ('Order Review', 'Service support review.'),
+      ('Order Approval 2', 'Dept. head approval.'),
+      ('Order Processing', 'Tool lines / purchasing in progress.'),
+      ('WH Received', 'Warehouse received.'),
+      ('Tool Received', 'Tool room received.'),
+    ];
+
+    final panelBg = clrOrange.withValues(alpha: 0.08);
+    final activeColor = clrOrange;
+    final errorColor = Colors.red.shade700;
+    final inactiveCardBg = Colors.grey.shade50;
+    final inactiveTitle = Colors.grey.shade900;
+    final connectorMuted = Colors.grey.shade300;
+    final isMobile = MediaQuery.sizeOf(context).width < mobileWidth;
+    final orangeSteps = vm.orangeCompleted.clamp(0, _orderTimelineStepCount);
+    final trackOrangeThrough = (vm.redStepIndex ?? vm.orangeCompleted).clamp(
+      0,
+      _orderTimelineStepCount,
+    );
+    const trackHeight = 3.0;
+    final aboveBand = isMobile ? 56.0 : _timelineAboveBand + 18;
+    final belowBand = isMobile ? 56.0 : _timelineBelowBand + 18;
+    final connectorGap = isMobile ? 2.0 : 4.0;
+    final panelPadding = isMobile
+        ? const EdgeInsets.fromLTRB(6, 6, 6, 6)
+        : const EdgeInsets.fromLTRB(8, 8, 8, 8);
+
+    Widget timelineNode(int i) {
+      final isRed = vm.redStepIndex == i;
+      final isOrangeDone = !isRed && i < orangeSteps;
+      final accent = isRed ? errorColor : activeColor;
+      return Container(
+        width: _timelineNodeDiameter,
+        height: _timelineNodeDiameter,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: (isOrangeDone || isRed) ? accent : Colors.white,
+          border: Border.all(
+            color: (isOrangeDone || isRed) ? accent : Colors.grey.shade300,
+            width: 2,
+          ),
+          boxShadow: (isOrangeDone || isRed)
+              ? null
+              : [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.06),
+                    blurRadius: 4,
+                    offset: const Offset(0, 1),
+                  ),
+                ],
+        ),
+        child: isRed
+            ? const Icon(Icons.close, color: Colors.white, size: 15)
+            : (isOrangeDone
+                  ? const Icon(Icons.check, color: Colors.white, size: 15)
+                  : null),
+      );
+    }
+
+    Widget stepCard(int i) {
+      final isRed = vm.redStepIndex == i;
+      final isOrangeDone = !isRed && i < orangeSteps;
+      final title = steps[i].$1;
+      final subtitle = steps[i].$2;
+      final accent = isRed ? errorColor : activeColor;
+      if (isMobile) {
+        return Container(
+          width: 42,
+          height: 42,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: (isOrangeDone || isRed) ? accent : inactiveCardBg,
+            border: Border.all(
+              color: (isOrangeDone || isRed) ? accent : Colors.grey.shade200,
+            ),
+          ),
+          child: Text(
+            '${i + 1}',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w800,
+              color: (isOrangeDone || isRed) ? Colors.white : inactiveTitle,
+            ),
+          ),
+        );
+      }
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+        decoration: BoxDecoration(
+          color: (isOrangeDone || isRed) ? accent : inactiveCardBg,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: (isOrangeDone || isRed) ? accent : Colors.grey.shade200,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                fontWeight: FontWeight.w700,
+                fontSize: 10,
+                height: 1.15,
+                color: (isOrangeDone || isRed) ? Colors.white : inactiveTitle,
+              ),
+            ),
+            const SizedBox(height: 3),
+            Text(
+              subtitle,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                fontSize: 8,
+                height: 1.2,
+                color: (isOrangeDone || isRed)
+                    ? Colors.white.withValues(alpha: 0.9)
+                    : Colors.black.withValues(alpha: 0.72),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    Widget verticalConnector(int i) {
+      final lineActive = vm.redStepIndex != null
+          ? i <= vm.redStepIndex!
+          : i < orangeSteps;
+      return Container(
+        width: 2,
+        height: _timelineVConnectorHeight,
+        decoration: BoxDecoration(
+          color: lineActive ? activeColor : connectorMuted,
+          borderRadius: BorderRadius.circular(1),
+        ),
+      );
+    }
+
+    final trackTop = aboveBand + _timelineNodeDiameter / 2 - trackHeight / 2;
+    final stackHeight = aboveBand + _timelineNodeDiameter + belowBand;
+
+    return Container(
+      width: double.infinity,
+      padding: panelPadding,
+      decoration: BoxDecoration(
+        color: panelBg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: clrOrange.withValues(alpha: 0.18)),
+      ),
+      child: SizedBox(
+        height: stackHeight,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Positioned(
+              left: 0,
+              right: 0,
+              top: trackTop,
+              height: trackHeight,
+              child: _buildHorizontalTrackSegments(
+                completed: trackOrangeThrough,
+                trackHeight: trackHeight,
+              ),
+            ),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: List.generate(_orderTimelineStepCount, (i) {
+                final cardAbove = i.isEven;
+                return Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.only(
+                      left: i == 0 ? 0 : 2,
+                      right: i == _orderTimelineStepCount - 1 ? 0 : 2,
+                    ),
+                    child: Column(
+                      children: [
+                        SizedBox(
+                          height: aboveBand,
+                          child: cardAbove
+                              ? Column(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    stepCard(i),
+                                    SizedBox(height: connectorGap),
+                                    verticalConnector(i),
+                                  ],
+                                )
+                              : const SizedBox.shrink(),
+                        ),
+                        SizedBox(
+                          height: _timelineNodeDiameter,
+                          child: Center(child: timelineNode(i)),
+                        ),
+                        SizedBox(
+                          height: belowBand,
+                          child: !cardAbove
+                              ? Column(
+                                  mainAxisAlignment: MainAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    verticalConnector(i),
+                                    SizedBox(height: connectorGap),
+                                    stepCard(i),
+                                  ],
+                                )
+                              : const SizedBox.shrink(),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -486,7 +937,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
     );
   }
 
-  Widget _buildAddToolHeaderAction() {
+  Widget _buildAddToolHeaderAction(PostList forms) {
     final isMobile = MediaQuery.sizeOf(context).width < mobileWidth;
     if (isMobile) {
       return IconButton(
@@ -498,7 +949,21 @@ class _ToolDataState extends State<ToolData> with MixinPref {
         ),
         icon: const Icon(Icons.add_circle_outline, size: 20),
         onPressed: () {
-          PageRoutes.routeUserFormDetail(context, 'ADD DATA');
+          postMultipleToolCont(
+            '',
+            forms.idForm,
+            '',
+            '',
+            '',
+            '',
+            '',
+            '',
+            '',
+            '',
+            '',
+            context,
+            navigateAsAdd: true,
+          );
         },
       );
     }
@@ -507,7 +972,21 @@ class _ToolDataState extends State<ToolData> with MixinPref {
       label: 'Add Tool',
       backgroundColor: Colors.orange.shade700,
       onPressed: () {
-        PageRoutes.routeUserFormDetail(context, 'ADD DATA');
+        postMultipleToolCont(
+          '',
+          forms.idForm,
+          '',
+          '',
+          '',
+          '',
+          '',
+          '',
+          '',
+          '',
+          '',
+          context,
+          navigateAsAdd: true,
+        );
       },
     );
   }
@@ -732,7 +1211,12 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                                     .trim(),
                                 formSadminComment: forms.formSadminComment
                                     .trim(),
-                                formMilestone: forms.formMilestone.trim(),
+                                formMilestone: switch ((selectedApproval ?? '')
+                                    .trim()) {
+                                  'APPROVED' => 'SUPERIOR APPROVED',
+                                  'REJECTED' => 'REJECTED BY SUPERIOR',
+                                  _ => forms.formMilestone.trim(),
+                                },
                                 formStatusOrder: forms.formStatusOrder.trim(),
                                 formSheadAprd: forms.formSheadAprd.trim(),
                                 formSheadComment: forms.formSheadComment.trim(),
@@ -947,7 +1431,14 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                                     .trim(),
                                 formSadminComment: forms.formSadminComment
                                     .trim(),
-                                formMilestone: forms.formMilestone.trim(),
+                                formMilestone: switch ((selectedApproval ?? '')
+                                    .trim()) {
+                                  'APPROVED' =>
+                                    'APPROVED BY SERVICE DEPT. HEAD',
+                                  'REJECTED' =>
+                                    'REJECTED BY SERVICE DEPT. HEAD',
+                                  _ => forms.formMilestone.trim(),
+                                },
                                 formStatusOrder: forms.formStatusOrder.trim(),
                                 formSheadAprd: (selectedApproval ?? '').trim(),
                                 formSheadComment: commentController.text.trim(),
@@ -1030,6 +1521,15 @@ class _ToolDataState extends State<ToolData> with MixinPref {
     final commentController = TextEditingController(
       text: forms.formSadminComment.trim(),
     );
+    final initialMilestone = forms.formMilestone.trim().toUpperCase();
+    String? selectedContinueHold;
+    if (initialMilestone == 'CONTINUE' ||
+        initialMilestone == 'REVIEWED BY SERVICE ADMIN') {
+      selectedContinueHold = 'CONTINUE';
+    } else if (initialMilestone == 'HOLD' ||
+        initialMilestone == 'HOLD BY SERVICE ADMIN') {
+      selectedContinueHold = 'HOLD';
+    }
 
     if (!mounted) return;
     await showDialog<void>(
@@ -1068,6 +1568,32 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    DropdownButtonFormField<String>(
+                      value: selectedContinueHold,
+                      decoration: const InputDecoration(
+                        labelText: 'Continue or hold',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: const [
+                        DropdownMenuItem(
+                          value: 'CONTINUE',
+                          child: Text('CONTINUE'),
+                        ),
+                        DropdownMenuItem(value: 'HOLD', child: Text('HOLD')),
+                      ],
+                      onChanged: (value) {
+                        setStateDialog(() {
+                          selectedContinueHold = value;
+                        });
+                      },
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Continue or hold is required';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 12),
                     TextFormField(
                       controller: commentController,
                       decoration: const InputDecoration(
@@ -1122,7 +1648,13 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                                     .trim(),
                                 formSadminComment: commentController.text
                                     .trim(),
-                                formMilestone: forms.formMilestone.trim(),
+                                formMilestone: switch ((selectedContinueHold ??
+                                        '')
+                                    .trim()) {
+                                  'CONTINUE' => 'REVIEWED BY SERVICE ADMIN',
+                                  'HOLD' => 'HOLD BY SERVICE ADMIN',
+                                  _ => forms.formMilestone.trim(),
+                                },
                                 formStatusOrder: forms.formStatusOrder.trim(),
                                 formSheadAprd: forms.formSheadAprd.trim(),
                                 formSheadComment: forms.formSheadComment.trim(),
@@ -1181,6 +1713,162 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                           }
                         },
                   style: ElevatedButton.styleFrom(backgroundColor: clrGreen),
+                  child: isSubmitting
+                      ? const SizedBox(
+                          height: 16,
+                          width: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text(
+                          'Submit',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _showRequestOrderToolDialog(PostList forms) async {
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        bool isSubmitting = false;
+        return StatefulBuilder(
+          builder: (statefulContext, setStateDialog) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              titlePadding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
+              contentPadding: const EdgeInsets.fromLTRB(20, 8, 20, 10),
+              actionsPadding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+              title: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: clrOrange.withValues(alpha: 0.14),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      Icons.local_mall_outlined,
+                      color: clrOrange,
+                      size: 18,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  const Expanded(child: Text('Request order tool')),
+                ],
+              ),
+              content: Text(
+                'Submit To Superior for Approval',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isSubmitting
+                      ? null
+                      : () => Navigator.pop(dialogContext),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: isSubmitting
+                      ? null
+                      : () async {
+                          final confirmed = await _showSubmitConfirmationDialog(
+                            dialogContext: dialogContext,
+                            title: 'Confirm request order',
+                            message:
+                                'Submit the tool order request for this form?',
+                            icon: Icons.local_mall_outlined,
+                          );
+                          if (confirmed != true) return;
+                          setStateDialog(() => isSubmitting = true);
+                          const milestoneRequestOrder = 'CHECK BY TOOL STORE';
+                          final nextCheckBy = name.trim().isNotEmpty
+                              ? name.trim()
+                              : forms.formCheckBy.trim();
+                          final nextDateCheckBy = name.trim().isNotEmpty
+                              ? DateFormat('yyyy-MM-dd').format(DateTime.now())
+                              : forms.formDateCheckBy.trim();
+                          try {
+                            final responseList = await store.dispatch(
+                              getDataTool(
+                                param: paramEditDataForm,
+                                idForm: forms.idForm.trim(),
+                                formNo: forms.formNo.trim(),
+                                formServName: forms.formServName.trim(),
+                                formCheckBy: nextCheckBy,
+                                formDateCheckBy: nextDateCheckBy,
+                                formDateServName: forms.formDateServName.trim(),
+                                formServComment: forms.formServComment.trim(),
+                                formSuperiorAprd: forms.formSuperiorAprd.trim(),
+                                formSuperiorComment: forms.formSuperiorComment
+                                    .trim(),
+                                formSadminComment: forms.formSadminComment
+                                    .trim(),
+                                formMilestone: milestoneRequestOrder,
+                                formStatusOrder: forms.formStatusOrder.trim(),
+                                formSheadAprd: forms.formSheadAprd.trim(),
+                                formSheadComment: forms.formSheadComment.trim(),
+                                fromDateUpdate: DateFormat(
+                                  'yyyy-MM-dd',
+                                ).format(DateTime.now()),
+                                formUserUpdate: idUsersApp.isNotEmpty
+                                    ? idUsersApp
+                                    : forms.formUserUpdate.trim(),
+                              ),
+                            );
+
+                            final apiResponse =
+                                responseList is List && responseList.isNotEmpty
+                                ? responseList.last
+                                : null;
+                            final responseValue =
+                                apiResponse?.valueResponse.toString() ?? "";
+                            final responseMessage =
+                                apiResponse?.messageResponse.toString() ?? "";
+                            final isSuccess = responseValue == "1";
+
+                            if (!mounted) return;
+                            Navigator.pop(dialogContext);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                backgroundColor: isSuccess
+                                    ? Colors.green
+                                    : Colors.red,
+                                content: Text(
+                                  responseMessage.isNotEmpty
+                                      ? responseMessage
+                                      : (isSuccess
+                                            ? "Order request submitted"
+                                            : "Failed to submit order request"),
+                                ),
+                              ),
+                            );
+                            if (isSuccess) {
+                              await _refreshData();
+                            }
+                          } catch (_) {
+                            if (!mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                backgroundColor: Colors.red,
+                                content: Text('Failed to submit order request'),
+                              ),
+                            );
+                          } finally {
+                            if (dialogContext.mounted) {
+                              setStateDialog(() => isSubmitting = false);
+                            }
+                          }
+                        },
+                  style: ElevatedButton.styleFrom(backgroundColor: clrOrange),
                   child: isSubmitting
                       ? const SizedBox(
                           height: 16,
@@ -1280,6 +1968,12 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                   );
                   if (editResult.statusValue == '1') {
                     await _refreshData();
+                    final parent = _parentFormForDetailId(itemPO.idFormDetail);
+                    if (parent != null) {
+                      final header =
+                          _formHeaderFromStore(parent.idForm) ?? parent;
+                      _setSearchToFormNumber(header);
+                    }
                   }
                   if (!mounted) return;
                   if (editResult.statusValue == '1') {
@@ -1342,7 +2036,173 @@ class _ToolDataState extends State<ToolData> with MixinPref {
     );
   }
 
-  Future<void> _showAddPurchaseOrderDialog(String idFormDetail) async {
+  Set<String> _detailIdsForForm(PostList forms) {
+    final tools = store.state.formsDetailState.formsDetail
+        .where((t) => t.idForm.trim() == forms.idForm.trim())
+        .toList();
+    if (tools.isEmpty) return const <String>{};
+    final ids = tools
+        .map((t) => t.idFormDetail.trim())
+        .where((s) => s.isNotEmpty)
+        .toSet();
+    if (ids.length != tools.length) return const <String>{};
+    return ids;
+  }
+
+  /// Parent form header row for a tool line (`id_form_detail`), or null if not found.
+  PostList? _parentFormForDetailId(String idFormDetail) {
+    final id = idFormDetail.trim();
+    if (id.isEmpty) return null;
+    String idForm = '';
+    for (final t in store.state.formsDetailState.formsDetail) {
+      if (t.idFormDetail.trim() == id) {
+        idForm = t.idForm.trim();
+        break;
+      }
+    }
+    if (idForm.isEmpty) return null;
+    for (final f in store.state.formsState.forms) {
+      if (f.idForm.trim() == idForm) return f;
+    }
+    return null;
+  }
+
+  PostList? _formHeaderFromStore(String idForm) {
+    final id = idForm.trim();
+    if (id.isEmpty) return null;
+    for (final f in store.state.formsState.forms) {
+      if (f.idForm.trim() == id) return f;
+    }
+    return null;
+  }
+
+  Future<void> _dispatchFormMilestoneUpdate(
+    PostList forms,
+    String newMilestone,
+  ) async {
+    if (forms.formMilestone.trim().toUpperCase() ==
+        newMilestone.trim().toUpperCase()) {
+      return;
+    }
+    try {
+      await store.dispatch(
+        getDataTool(
+          param: paramEditDataForm,
+          idForm: forms.idForm.trim(),
+          formNo: forms.formNo.trim(),
+          formServName: forms.formServName.trim(),
+          formCheckBy: forms.formCheckBy.trim(),
+          formDateCheckBy: forms.formDateCheckBy.trim(),
+          formDateServName: forms.formDateServName.trim(),
+          formServComment: forms.formServComment.trim(),
+          formSuperiorAprd: forms.formSuperiorAprd.trim(),
+          formSuperiorComment: forms.formSuperiorComment.trim(),
+          formSadminComment: forms.formSadminComment.trim(),
+          formMilestone: newMilestone,
+          formStatusOrder: forms.formStatusOrder.trim(),
+          formSheadAprd: forms.formSheadAprd.trim(),
+          formSheadComment: forms.formSheadComment.trim(),
+          fromDateUpdate: DateFormat('yyyy-MM-dd').format(DateTime.now()),
+          formUserUpdate: idUsersApp.isNotEmpty
+              ? idUsersApp
+              : forms.formUserUpdate.trim(),
+        ),
+      );
+    } catch (_) {}
+  }
+
+  /// Sets [forms.formMilestone] from SO coverage across tool lines:
+  /// - every detail line has a non-empty SO → `ORDER PROCESSED`;
+  /// - at least one line has SO but not all → `PROCESSING ORDER`;
+  /// - does not change milestones already past warehouse receipt (step > 5).
+  Future<void> _updateFormMilestoneFromSoFillState(PostList forms) async {
+    const milestoneOrderProcessed = 'ORDER PROCESSED';
+    const milestoneProcessingOrder = 'PROCESSING ORDER';
+
+    final detailIds = _detailIdsForForm(forms);
+    if (detailIds.isEmpty) return;
+
+    final currentNorm = _normFormMilestone(forms.formMilestone);
+    final filledSteps = _filledStepsFromMilestoneNorm(currentNorm);
+    if (filledSteps > 5) return;
+
+    final sosForForm = store.state.sosDetailState.sosDetail
+        .where((so) => detailIds.contains(so.idFormDetail.trim()))
+        .toList();
+
+    bool detailHasNonEmptySo(String id) {
+      return sosForForm.any(
+        (so) => so.idFormDetail.trim() == id && so.so.trim().isNotEmpty,
+      );
+    }
+
+    final allSoFilled = detailIds.every(detailHasNonEmptySo);
+    if (allSoFilled) {
+      await _dispatchFormMilestoneUpdate(forms, milestoneOrderProcessed);
+      return;
+    }
+
+    final anySoFilled = detailIds.any(detailHasNonEmptySo);
+    if (!anySoFilled) return;
+
+    final currentUpper = forms.formMilestone.trim().toUpperCase();
+    if (currentUpper == milestoneOrderProcessed) return;
+
+    await _dispatchFormMilestoneUpdate(forms, milestoneProcessingOrder);
+  }
+
+  Future<void> _updateFormMilestoneForRcvWh(PostList forms) async {
+    const milestoneFull = 'RECEIVED BY WH/GA';
+    const milestonePartial = 'PARTIAL RECEIVED BY WH/GA';
+
+    final detailIds = _detailIdsForForm(forms);
+    if (detailIds.isEmpty) return;
+
+    final rcvWhFilledIds = store.state.rcvWhState.rcvWhs
+        .map((r) => r.idFormDetail.trim())
+        .where((s) => s.isNotEmpty)
+        .toSet();
+
+    final filledCount = detailIds.where(rcvWhFilledIds.contains).length;
+    if (filledCount == 0) return;
+
+    final targetMilestone = filledCount == detailIds.length
+        ? milestoneFull
+        : milestonePartial;
+
+    await _dispatchFormMilestoneUpdate(forms, targetMilestone);
+  }
+
+  Future<void> _updateFormMilestoneForRcvTool(PostList forms) async {
+    const milestoneFull = 'RECEIVED TOOL STORE';
+    const milestonePartial = 'PARTIAL RECEIVED TOOL STORE';
+
+    final detailIds = _detailIdsForForm(forms);
+    if (detailIds.isEmpty) return;
+
+    final rcvToolFilledDetailIds = store.state.rcvToolState.rcvTools
+        .where(
+          (r) =>
+              r.idFormDetail.trim().isNotEmpty &&
+              r.rcvToolDate.trim().isNotEmpty,
+        )
+        .map((r) => r.idFormDetail.trim())
+        .toSet();
+
+    final filledCount = detailIds.where(rcvToolFilledDetailIds.contains).length;
+    if (filledCount == 0) return;
+
+    final targetMilestone = filledCount == detailIds.length
+        ? milestoneFull
+        : milestonePartial;
+
+    await _dispatchFormMilestoneUpdate(forms, targetMilestone);
+  }
+
+  Future<void> _showAddPurchaseOrderDialog(
+    PostList forms,
+    String idFormDetail,
+  ) async {
     final addPoNoCont = TextEditingController();
     final formKey = GlobalKey<FormState>();
 
@@ -1419,6 +2279,10 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                     );
                     if (addResult.statusValue == '1') {
                       await _refreshData();
+                      final header =
+                          _formHeaderFromStore(forms.idForm) ?? forms;
+                      await _updateFormMilestoneFromSoFillState(header);
+                      _setSearchToFormNumber(header);
                     }
                     if (!mounted) return;
                     if (addResult.statusValue == '1') {
@@ -1541,6 +2405,11 @@ class _ToolDataState extends State<ToolData> with MixinPref {
       );
       if (deleteResult.statusValue == '1') {
         await _refreshData();
+        final parent = _parentFormForDetailId(itemPO.idFormDetail);
+        if (parent != null) {
+          final header = _formHeaderFromStore(parent.idForm) ?? parent;
+          _setSearchToFormNumber(header);
+        }
       }
       if (!mounted) return;
       if (deleteResult.statusValue == '1') {
@@ -1597,7 +2466,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('Update Sales Order'),
+          title: const Text('Update Sales Order (SO) / Purchase Request (PR)'),
           content: SingleChildScrollView(
             child: Form(
               key: formKey,
@@ -1612,12 +2481,12 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                   ),
                   const SizedBox(height: 12),
                   TextFormFields(
-                    labelTexts: 'SO number',
+                    labelTexts: 'SO / PR number',
                     textColor: clrBlack,
                     controllers: soCont,
                     validators: (v) {
                       if (v == null || v.trim().isEmpty) {
-                        return 'SO number is required';
+                        return 'SO / PR number is required';
                       }
                       return null;
                     },
@@ -1630,10 +2499,15 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                     suffixIcon: const Icon(Icons.calendar_month_outlined),
                     onTap: () =>
                         _pickDateIntoController(dialogContext, etaCont),
-                    validators: (_) => null,
+                    validators: (v) {
+                      if (v == null || v.trim().isEmpty) {
+                        return 'ETA is required';
+                      }
+                      return null;
+                    },
                   ),
                   TextFormFields(
-                    labelTexts: 'Note SO',
+                    labelTexts: 'Note SO / PR',
                     textColor: clrBlack,
                     controllers: noteSoCont,
                     validators: (_) => null,
@@ -1684,6 +2558,12 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                   );
                   if (editResult.statusValue == '1') {
                     await _refreshData();
+                    final parent = _parentFormForDetailId(itemSO.idFormDetail);
+                    if (parent != null) {
+                      final header =
+                          _formHeaderFromStore(parent.idForm) ?? parent;
+                      await _updateFormMilestoneFromSoFillState(header);
+                    }
                   }
                   if (!mounted) return;
                   if (editResult.statusValue == '1') {
@@ -1746,7 +2626,10 @@ class _ToolDataState extends State<ToolData> with MixinPref {
     );
   }
 
-  Future<void> _showAddSalesOrderDialog(String idFormDetail) async {
+  Future<void> _showAddSalesOrderDialog(
+    PostList forms,
+    String idFormDetail,
+  ) async {
     final addSoCont = TextEditingController();
     final addEtaCont = TextEditingController();
     final addNoteSoCont = TextEditingController();
@@ -1758,7 +2641,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
         context: context,
         builder: (dialogContext) {
           return AlertDialog(
-            title: const Text('Add Sales Order'),
+            title: const Text('Add Sales Order (SO) / Purchase Request (PR)'),
             content: SingleChildScrollView(
               child: Form(
                 key: formKey,
@@ -1773,12 +2656,12 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                     ),
                     const SizedBox(height: 12),
                     TextFormFields(
-                      labelTexts: 'SO number',
+                      labelTexts: 'SO /PR number',
                       textColor: clrBlack,
                       controllers: addSoCont,
                       validators: (v) {
                         if (v == null || v.trim().isEmpty) {
-                          return 'SO number is required';
+                          return 'SO / PR number is required';
                         }
                         return null;
                       },
@@ -1791,10 +2674,15 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                       suffixIcon: const Icon(Icons.calendar_month_outlined),
                       onTap: () =>
                           _pickDateIntoController(dialogContext, addEtaCont),
-                      validators: (_) => null,
+                      validators: (v) {
+                        if (v == null || v.trim().isEmpty) {
+                          return 'ETA is required';
+                        }
+                        return null;
+                      },
                     ),
                     TextFormFields(
-                      labelTexts: 'Note SO',
+                      labelTexts: 'Note SO / PR',
                       textColor: clrBlack,
                       controllers: addNoteSoCont,
                       validators: (_) => null,
@@ -1845,6 +2733,9 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                     );
                     if (addResult.statusValue == '1') {
                       await _refreshData();
+                      final header =
+                          _formHeaderFromStore(forms.idForm) ?? forms;
+                      await _updateFormMilestoneFromSoFillState(header);
                     }
                     if (!mounted) return;
                     if (addResult.statusValue == '1') {
@@ -1916,9 +2807,9 @@ class _ToolDataState extends State<ToolData> with MixinPref {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('Delete Sales Order'),
+          title: const Text('Delete Sales Order / Purchase Request (SO/PR)'),
           content: Text(
-            'Are you sure you want to delete SO ${_displayValue(itemSO.so)}? '
+            'Are you sure you want to delete SO / PR number ${_displayValue(itemSO.so)}? '
             'This will be removed from the server.',
           ),
           actions: [
@@ -1971,6 +2862,11 @@ class _ToolDataState extends State<ToolData> with MixinPref {
       );
       if (deleteResult.statusValue == '1') {
         await _refreshData();
+        final parent = _parentFormForDetailId(itemSO.idFormDetail);
+        if (parent != null) {
+          final header = _formHeaderFromStore(parent.idForm) ?? parent;
+          _setSearchToFormNumber(header);
+        }
       }
       if (!mounted) return;
       if (deleteResult.statusValue == '1') {
@@ -1978,7 +2874,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
             (deleteResult.serverMessage != null &&
                 deleteResult.serverMessage!.isNotEmpty)
             ? deleteResult.serverMessage!
-            : 'Sales order deleted';
+            : 'Sales order / Purchase request (SO/PR) deleted';
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -2157,7 +3053,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
     }
   }
 
-  Future<void> _showAddRcvWhDialog(String idFormDetail) async {
+  Future<void> _showAddRcvWhDialog(PostList forms, String idFormDetail) async {
     final dateCont = TextEditingController();
     final formKey = GlobalKey<FormState>();
     final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
@@ -2235,6 +3131,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                       ),
                     );
                     if (addResult.statusValue == '1') {
+                      await _updateFormMilestoneForRcvWh(forms);
                       await _refreshData();
                     }
                     if (!mounted) return;
@@ -2479,6 +3376,10 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                       ),
                     );
                     if (editResult.statusValue == '1') {
+                      final parent = _parentFormForDetailId(item.idFormDetail);
+                      if (parent != null) {
+                        await _updateFormMilestoneForRcvTool(parent);
+                      }
                       await _refreshData();
                     }
                     if (!mounted) return;
@@ -2545,7 +3446,10 @@ class _ToolDataState extends State<ToolData> with MixinPref {
     }
   }
 
-  Future<void> _showAddRcvToolDialog(String idFormDetail) async {
+  Future<void> _showAddRcvToolDialog(
+    PostList forms,
+    String idFormDetail,
+  ) async {
     final dateCont = TextEditingController();
     final formKey = GlobalKey<FormState>();
     final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
@@ -2623,6 +3527,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                       ),
                     );
                     if (addResult.statusValue == '1') {
+                      await _updateFormMilestoneForRcvTool(forms);
                       await _refreshData();
                     }
                     if (!mounted) return;
@@ -2746,6 +3651,10 @@ class _ToolDataState extends State<ToolData> with MixinPref {
         ),
       );
       if (deleteResult.statusValue == '1') {
+        final parent = _parentFormForDetailId(item.idFormDetail);
+        if (parent != null) {
+          await _updateFormMilestoneForRcvTool(parent);
+        }
         await _refreshData();
       }
       if (!mounted) return;
@@ -3034,7 +3943,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
     );
   }
 
-  Widget _buildToolItemCard(PostList itemTool, int index) {
+  Widget _buildToolItemCard(PostList itemTool, int index, PostList forms) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
@@ -3151,8 +4060,10 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                       'Purchase Order',
                       icon: Icons.receipt,
                       trailing: TextButton.icon(
-                        onPressed: () =>
-                            _showAddPurchaseOrderDialog(itemTool.idFormDetail),
+                        onPressed: () => _showAddPurchaseOrderDialog(
+                          forms,
+                          itemTool.idFormDetail,
+                        ),
                         icon: const Icon(Icons.add, size: 18),
                         label: const Text('Add'),
                         style: TextButton.styleFrom(foregroundColor: clrOrange),
@@ -3190,11 +4101,13 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildSectionHeader(
-                      'Sales Order',
+                      'Sales Order / Purchase Request (SO/PR)',
                       icon: Icons.route,
                       trailing: TextButton.icon(
-                        onPressed: () =>
-                            _showAddSalesOrderDialog(itemTool.idFormDetail),
+                        onPressed: () => _showAddSalesOrderDialog(
+                          forms,
+                          itemTool.idFormDetail,
+                        ),
                         icon: const Icon(Icons.add, size: 18),
                         label: const Text('Add'),
                         style: TextButton.styleFrom(foregroundColor: clrOrange),
@@ -3238,7 +4151,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                       icon: Icons.warehouse,
                       trailing: TextButton.icon(
                         onPressed: () =>
-                            _showAddRcvWhDialog(itemTool.idFormDetail),
+                            _showAddRcvWhDialog(forms, itemTool.idFormDetail),
                         icon: const Icon(Icons.add, size: 18),
                         label: const Text('Add'),
                         style: TextButton.styleFrom(foregroundColor: clrOrange),
@@ -3281,7 +4194,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                       icon: Icons.storage,
                       trailing: TextButton.icon(
                         onPressed: () =>
-                            _showAddRcvToolDialog(itemTool.idFormDetail),
+                            _showAddRcvToolDialog(forms, itemTool.idFormDetail),
                         icon: const Icon(Icons.add, size: 18),
                         label: const Text('Add'),
                         style: TextButton.styleFrom(foregroundColor: clrOrange),
@@ -3404,17 +4317,29 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                 ),
               ],
             ),
-            subtitle: Padding(
-              padding: const EdgeInsets.only(top: 12),
-              child: Text(
-                '',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: Colors.grey.shade700),
-              ),
+            subtitle: StoreConnector<AppState, _OrderTimelineViewModel>(
+              converter: (store) =>
+                  _computeOrderTimelineViewModel(store, forms),
+              builder: (context, timelineVm) {
+                // [formStatusOrder] is HOLDER / NON HOLDER from the form editor, not
+                // workflow state — use milestone for the order timeline label.
+                final orderStatus = forms.formMilestone.trim().isEmpty
+                    ? 'DRAFT'
+                    : forms.formMilestone.trim();
+                return Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildSectionHeader('Timeline', icon: Icons.timeline),
+                      _buildOrderStatusTimeline(timelineVm),
+                    ],
+                  ),
+                );
+              },
             ),
             children: [
-              const SizedBox(height: 10),
+              const SizedBox(height: 16),
               _buildSectionHeader(
                 'Request Summary',
                 icon: Icons.description_outlined,
@@ -3450,10 +4375,10 @@ class _ToolDataState extends State<ToolData> with MixinPref {
               GridView.count(
                 crossAxisCount: MediaQuery.sizeOf(context).width < mobileWidth
                     ? 1
-                    : 2,
-                childAspectRatio: MediaQuery.sizeOf(context).width < mobileWidth
-                    ? 3.8
-                    : 4.4,
+                    : (MediaQuery.sizeOf(context).width >= 1500 ? 3 : 2),
+                mainAxisExtent: MediaQuery.sizeOf(context).width < mobileWidth
+                    ? 132
+                    : (MediaQuery.sizeOf(context).width >= 1500 ? 100 : 104),
                 mainAxisSpacing: 10,
                 crossAxisSpacing: 10,
                 shrinkWrap: true,
@@ -3468,6 +4393,13 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                     icon: Icons.person_outline,
                     label: 'Check By',
                     value: forms.formCheckBy,
+                    trailing: _buildCommentCardTrailingAction(
+                      icon: Icons.local_mall_outlined,
+                      label: 'Request order',
+                      backgroundColor: Colors.deepOrange.shade600,
+                      tooltip: 'Request order tool',
+                      onPressed: () => _showRequestOrderToolDialog(forms),
+                    ),
                   ),
                   _buildInfoTile(
                     icon: Icons.comment_bank_outlined,
@@ -3496,18 +4428,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                       onPressed: () => _showSupervisorValidationDialog(forms),
                     ),
                   ),
-                  _buildInfoTile(
-                    icon: Icons.comment_bank_outlined,
-                    label: 'SERVICE SUPPORT COMMENT',
-                    value: forms.formSadminComment,
-                    trailing: _buildCommentCardTrailingAction(
-                      icon: Icons.rate_review_outlined,
-                      label: 'Service Support Review',
-                      backgroundColor: Colors.indigo,
-                      tooltip: 'Service Support Review',
-                      onPressed: () => _showServiceAdminReviewDialog(forms),
-                    ),
-                  ),
+                  _buildServiceSupportCommentInfoTile(forms),
                   _buildInfoTile(
                     icon: Icons.comment_bank_sharp,
                     label: 'SERVICE DEPT. HEAD',
@@ -3541,7 +4462,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
               _buildSectionHeader(
                 'Tool List',
                 icon: Icons.handyman_outlined,
-                trailing: _buildAddToolHeaderAction(),
+                trailing: _buildAddToolHeaderAction(forms),
               ),
               StoreConnector<AppState, List<PostList>>(
                 converter: (store) {
@@ -3583,7 +4504,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                     itemCount: filteredList.length,
                     itemBuilder: (context, ii) {
                       final itemTool = filteredList[ii];
-                      return _buildToolItemCard(itemTool, ii);
+                      return _buildToolItemCard(itemTool, ii, forms);
                     },
                   );
                 },

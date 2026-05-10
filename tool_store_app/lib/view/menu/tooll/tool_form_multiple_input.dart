@@ -106,7 +106,11 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
   @override
   void initState() {
     super.initState();
-    if (_isAddMode || idFormDetailCont.isEmpty) {
+    final bool hasSeededRows =
+        idFormToolCont.isNotEmpty || idFormDetailCont.isNotEmpty;
+    if (_isAddMode && !hasSeededRows) {
+      _addRow();
+    } else if (!_isAddMode && idFormDetailCont.isEmpty) {
       _addRow();
     }
   }
@@ -330,7 +334,7 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              _isAddMode ? "Add Tool Items" : "Edit Tool Item",
+              _isAddMode ? "Add Tool Items " : "Edit Tool Item",
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 color: clrOrange,
                 fontWeight: FontWeight.w800,
@@ -417,7 +421,7 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
                     return _buildSectionCard(
                       context: context,
                       title: _isAddMode
-                          ? "Item ${i + 1}"
+                          ? "Item ${i + 1} - ${idFormToolCont[i].text}"
                           : "Item ${itemCont.text}",
                       icon: Icons.inventory_2_outlined,
                       child: Column(

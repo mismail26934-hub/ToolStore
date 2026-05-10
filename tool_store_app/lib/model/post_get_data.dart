@@ -627,6 +627,7 @@ ThunkAction<AppState> getDataSO({
       dio.options.receiveTimeout = const Duration(seconds: 20);
       final response = await dio.post(ApiUrl.contSO, data: map);
       final SoFetchResult result = _parseSoFetchResponse(response.data, param);
+      print('response.data: ${response.data}');
       store.dispatch(DataSOLoadedAction(result.list));
       return result;
     } on DioException catch (e) {

@@ -141,8 +141,11 @@ void postMultipleToolCont(
   actionNote,
   valType,
   partValue,
-  BuildContext context,
-) {
+  BuildContext context, {
+  /// True when opening the form to add new tool rows (API ADD) while still
+  /// pre-filling parent [idFormTool] / [idFormDetail] from the list context.
+  bool navigateAsAdd = false,
+}) {
   idFormToolCont.clear();
   idFormDetailCont.clear();
   formCommentCont.clear();
@@ -168,6 +171,6 @@ void postMultipleToolCont(
 
   PageRoutes.routeUserFormDetail(
     context,
-    idFormToolCont.isEmpty ? 'ADD DATA' : 'EDIT DATA',
+    navigateAsAdd ? 'ADD DATA' : 'EDIT DATA',
   );
 }

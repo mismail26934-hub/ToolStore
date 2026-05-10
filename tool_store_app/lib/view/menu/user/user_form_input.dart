@@ -716,7 +716,7 @@ class _UserFormInputState extends State<UserFormInput> {
                             items:
                                 [
                                       "USER",
-                                      "ADMIN",
+                                      "SUPERADMIN",
                                       "MECHANIC",
                                       "SERVICE_ADMIN",
                                       "SUPERIOR",
