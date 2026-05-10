@@ -4323,7 +4323,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
               builder: (context, timelineVm) {
                 // [formStatusOrder] is HOLDER / NON HOLDER from the form editor, not
                 // workflow state — use milestone for the order timeline label.
-                final orderStatus = forms.formMilestone.trim().isEmpty
+                forms.formMilestone.trim().isEmpty
                     ? 'DRAFT'
                     : forms.formMilestone.trim();
                 return Padding(

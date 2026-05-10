@@ -34,6 +34,8 @@ String token = "";
 String idTu = "";
 String status = "";
 String foto = "";
+String superiorId = "";
+String namaSuperior = "";
 
 final formKey = GlobalKey<FormState>();
 // List<PostList?>? list;
@@ -145,6 +147,7 @@ String paramDeleteDataUser = 'DELETED DATA USER';
 final TextEditingController iduserFormCont = TextEditingController();
 final TextEditingController usernameFormCont = TextEditingController();
 final TextEditingController passwordFormCont = TextEditingController();
+final TextEditingController confirmPasswordFormCont = TextEditingController();
 final TextEditingController namaFormCont = TextEditingController();
 final TextEditingController telpFormCont = TextEditingController();
 final TextEditingController tuidFormCont = TextEditingController();

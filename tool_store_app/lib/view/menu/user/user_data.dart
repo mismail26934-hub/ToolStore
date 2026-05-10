@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_redux/flutter_redux.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tool_store_app/controller/cont_crud/redux/state.dart';
 import 'package:tool_store_app/controller/cont_crud/redux/store.dart';
 import 'package:tool_store_app/controller/function/funct.dart';
 import 'package:tool_store_app/model/post_get_data.dart';
 import 'package:tool_store_app/view/custom/mixin/mixin_pref.dart';
 import 'package:tool_store_app/view/custom/navbar/sliver_appbars.dart';
+import 'package:tool_store_app/view/custom/routes/page_routes.dart';
 import 'package:tool_store_app/view/custom/navbar/sliver_fill_remaining.dart';
 import 'package:tool_store_app/view/menu/drawer/drawer.dart';
 import 'package:tool_store_app/view/var/var.dart';
@@ -22,6 +24,43 @@ class _UserDataState extends State<UserData> with MixinPref {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   String _searchField = 'all';
+
+  bool _accessPending = true;
+  bool _accessGranted = false;
+
+  static bool _isSuperAdminLevel(String raw) =>
+      raw.trim().toUpperCase() == 'SUPERADMIN';
+
+  Future<void> _verifySuperAdminAccess() async {
+    await refreshPref();
+    if (!mounted) return;
+    if (_isSuperAdminLevel(level)) {
+      setState(() {
+        _accessPending = false;
+        _accessGranted = true;
+      });
+      return;
+    }
+    setState(() {
+      _accessPending = false;
+      _accessGranted = false;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Akses ditolak. Menu User hanya untuk SUPERADMIN. '
+            'Sesi diakhiri — silakan login kembali.',
+          ),
+        ),
+      );
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.clear();
+      if (!mounted) return;
+      await PageRoutes.routeLoginFast(context);
+    });
+  }
 
   static const Map<String, String> _searchFieldLabels = {
     'all': 'Semua',
@@ -257,7 +296,7 @@ class _UserDataState extends State<UserData> with MixinPref {
   @override
   void initState() {
     super.initState();
-    refreshPref();
+    _verifySuperAdminAccess();
   }
 
   @override
@@ -380,6 +419,25 @@ class _UserDataState extends State<UserData> with MixinPref {
 
   @override
   Widget build(BuildContext context) {
+    if (_accessPending) {
+      return SafeArea(
+        bottom: true,
+        child: Scaffold(
+          backgroundColor: clrWhite,
+          body: Center(child: CircularProgressIndicator(color: clrOrange)),
+        ),
+      );
+    }
+    if (!_accessGranted) {
+      return SafeArea(
+        bottom: true,
+        child: Scaffold(
+          backgroundColor: clrWhite,
+          body: const SizedBox.shrink(),
+        ),
+      );
+    }
+
     return SafeArea(
       bottom: true,
       child: Scaffold(

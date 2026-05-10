@@ -1,18 +1,48 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tool_store_app/controller/function/funct.dart';
 import 'package:tool_store_app/view/custom/routes/page_routes.dart';
 import 'package:tool_store_app/view/custom/show_dialog/show_dialog.dart';
 import 'package:tool_store_app/view/var/var.dart';
 
-class DrawerMenu extends StatelessWidget {
+Future<String> _drawerReadPrefLevel() async {
+  final prefs = await SharedPreferences.getInstance();
+  return prefs.getString('level') ?? '';
+}
+
+bool _drawerIsSuperAdmin(String raw) =>
+    raw.trim().toUpperCase() == 'SUPERADMIN';
+
+class DrawerMenu extends StatefulWidget {
   const DrawerMenu({super.key, required this.title});
 
   final String title;
 
-  bool get _isLoggedIn => title.trim().isNotEmpty;
+  @override
+  State<DrawerMenu> createState() => _DrawerMenuState();
+}
+
+class _DrawerMenuState extends State<DrawerMenu> {
+  late Future<String> _levelFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _levelFuture = _drawerReadPrefLevel();
+  }
+
+  @override
+  void didUpdateWidget(DrawerMenu oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.title != widget.title) {
+      _levelFuture = _drawerReadPrefLevel();
+    }
+  }
+
+  bool get _isLoggedIn => widget.title.trim().isNotEmpty;
 
   String get _displayName =>
-      _isLoggedIn ? title.trim().toUpperCase() : 'GUEST USER';
+      _isLoggedIn ? widget.title.trim().toUpperCase() : 'GUEST USER';
 
   Widget _buildSectionTitle(BuildContext context, String label) {
     return Padding(
@@ -167,82 +197,142 @@ class DrawerMenu extends StatelessWidget {
       ),
       child: SafeArea(
         bottom: true,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+        child: FutureBuilder<String>(
+          future: _levelFuture,
+          builder: (context, snapshot) {
+            final levelSubtitle = !_isLoggedIn
+                ? 'Silakan login untuk melanjutkan'
+                : (snapshot.connectionState == ConnectionState.waiting
+                      ? 'Memuat…'
+                      : ((snapshot.data ?? '').trim().isEmpty
+                            ? '—'
+                            : (snapshot.data ?? '').trim()));
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 64,
-                  height: 64,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.22),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Icon(
-                    Icons.handyman,
-                    color: Colors.white,
-                    size: 34,
-                  ),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        _displayName,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                Row(
+                  children: [
+                    Container(
+                      width: 64,
+                      height: 64,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.22),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: const Icon(
+                        Icons.handyman,
+                        color: Colors.white,
+                        size: 34,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _displayName,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.titleLarge
+                                ?.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            levelSubtitle,
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(
+                                  color: Colors.white.withValues(alpha: 0.92),
+                                  fontWeight: FontWeight.w500,
+                                ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (_isLoggedIn)
+                      IconButton(
+                        tooltip: 'Edit data user $superiorId',
+                        onPressed: () => _openEditProfile(context),
+                        icon: const Icon(
+                          Icons.edit_outlined,
                           color: Colors.white,
-                          fontWeight: FontWeight.w800,
+                          size: 22,
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        _isLoggedIn ? level : 'Silakan login untuk melanjutkan',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.white.withValues(alpha: 0.92),
-                          fontWeight: FontWeight.w500,
+                  ],
+                ),
+                const SizedBox(height: 18),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.18),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.tips_and_updates_outlined,
+                        color: Colors.white,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Akses cepat ke dashboard, data tool, riwayat, dan pengaturan user.',
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: Colors.white, height: 1.35),
                         ),
                       ),
                     ],
                   ),
                 ),
               ],
-            ),
-            const SizedBox(height: 18),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.14),
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
-              ),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.tips_and_updates_outlined,
-                    color: Colors.white,
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      'Akses cepat ke dashboard, data tool, riwayat, dan pengaturan user.',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.white,
-                        height: 1.35,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+            );
+          },
         ),
       ),
     );
+  }
+
+  Future<void> _openEditProfile(BuildContext context) async {
+    if (!_isLoggedIn) return;
+    final prefs = await SharedPreferences.getInstance();
+    if (!context.mounted) return;
+    final idUsers = (prefs.getString('idUsersApp') ?? '').trim();
+    if (idUsers.isEmpty) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Data pengguna tidak lengkap. Silakan login ulang.'),
+        ),
+      );
+      return;
+    }
+    statusFormCont.text = prefs.getString('status') ?? '';
+    final lvl = (prefs.getString('level') ?? '').trim().toUpperCase();
+    postContUser(
+      idUsers,
+      prefs.getString('username') ?? '',
+      prefs.getString('password') ?? '',
+      prefs.getString('name') ?? '',
+      prefs.getString('noTelp') ?? '',
+      prefs.getString('idTu') ?? '',
+      lvl,
+      prefs.getString('superiorId') ?? '',
+      prefs.getString('namaSuperior') ?? '',
+      context,
+      levelReadOnly: true,
+      popOnSuccess: true,
+    );
+    if (context.mounted) Navigator.pop(context);
   }
 
   Future<void> _handleLogout(BuildContext context) async {
@@ -265,6 +355,39 @@ class DrawerMenu extends StatelessWidget {
       textYes: 'Yes',
       textColorNo: clrBlack,
       textColorYes: clrRed,
+    );
+  }
+
+  Widget _buildSuperAdminUserSection(BuildContext context) {
+    return FutureBuilder<String>(
+      future: _levelFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const SizedBox.shrink();
+        }
+        final raw = snapshot.data ?? '';
+        if (!_drawerIsSuperAdmin(raw)) {
+          return const SizedBox.shrink();
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildSectionTitle(context, 'Account'),
+            _buildMenuTile(
+              context: context,
+              icon: Icons.person_outline,
+              title: 'User',
+              subtitle: 'Kelola data user dan informasi akun.',
+              iconColor: Colors.purple,
+              onTap: () {
+                PageRoutes.routeUser(context);
+                Navigator.pop(context);
+              },
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -319,18 +442,7 @@ class DrawerMenu extends StatelessWidget {
               Navigator.pop(context);
             },
           ),
-          _buildSectionTitle(context, 'Account'),
-          _buildMenuTile(
-            context: context,
-            icon: Icons.person_outline,
-            title: 'User',
-            subtitle: 'Kelola data user dan informasi akun.',
-            iconColor: Colors.purple,
-            onTap: () {
-              PageRoutes.routeUser(context);
-              Navigator.pop(context);
-            },
-          ),
+          _buildSuperAdminUserSection(context),
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 12, 12, 20),
             child: Material(

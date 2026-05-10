@@ -323,9 +323,13 @@ class UserFormInput extends StatefulWidget {
     super.key,
     required this.title,
     required this.onPressTailing,
+    this.levelReadOnly = false,
+    this.popOnSuccess = false,
   });
   final String title;
   final void Function()? onPressTailing;
+  final bool levelReadOnly;
+  final bool popOnSuccess;
 
   @override
   State<UserFormInput> createState() => _UserFormInputState();
@@ -414,7 +418,12 @@ class _UserFormInputState extends State<UserFormInput> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(backgroundColor: Colors.green, content: Text(msg)),
         );
-        await PageRoutes.routeUser(context);
+        if (widget.popOnSuccess) {
+          if (!mounted) return;
+          Navigator.of(context).pop();
+        } else {
+          await PageRoutes.routeUser(context);
+        }
       } else {
         await _refreshUserList();
         if (!mounted) return;
@@ -635,7 +644,7 @@ class _UserFormInputState extends State<UserFormInput> {
           ),
         ),
         actions: [
-          if (_isEditMode)
+          if (_isEditMode && !widget.levelReadOnly)
             Padding(
               padding: const EdgeInsets.only(right: 14, top: 10, bottom: 10),
               child: Container(
@@ -689,10 +698,20 @@ class _UserFormInputState extends State<UserFormInput> {
                             passwordFormCont,
                             "Password",
                             isPassword: true,
-                            optional: _isEditMode,
+                            showClearButton: true,
+                            onChanged: (_) => setState(() {}),
                           ),
                           const SizedBox(height: 10),
-                          _buildTextField(namaFormCont, "Nama Lengkap"),
+                          _buildTextField(
+                            confirmPasswordFormCont,
+                            "Confirm Password",
+                            isPassword: true,
+                            showClearButton: true,
+                            confirmMatchesPassword: true,
+                            onChanged: (_) => setState(() {}),
+                          ),
+                          const SizedBox(height: 10),
+                          _buildTextField(namaFormCont, "Name"),
                           const SizedBox(height: 10),
                           _buildTextField(
                             telpFormCont,
@@ -737,8 +756,11 @@ class _UserFormInputState extends State<UserFormInput> {
                                       ),
                                     )
                                     .toList(),
-                            onChanged: (val) =>
-                                setState(() => levelFormCont.text = val ?? ''),
+                            onChanged: widget.levelReadOnly
+                                ? null
+                                : (val) => setState(
+                                    () => levelFormCont.text = val ?? '',
+                                  ),
                             decoration: _dropdownDecoration(context, "Level"),
                             validator: (value) {
                               if (value == null || value.isEmpty) {
@@ -941,11 +963,18 @@ class _UserFormInputState extends State<UserFormInput> {
     bool isPassword = false,
     bool isPhone = false,
     bool optional = false,
+    bool showClearButton = false,
+    bool confirmMatchesPassword = false,
+    ValueChanged<String>? onChanged,
   }) {
     return TextFormField(
       controller: controller,
       obscureText: isPassword,
       keyboardType: isPhone ? TextInputType.phone : TextInputType.text,
+      onChanged: onChanged,
+      autovalidateMode: confirmMatchesPassword
+          ? AutovalidateMode.onUserInteraction
+          : AutovalidateMode.disabled,
       decoration: InputDecoration(
         labelText: optional ? '$label (opsional)' : label,
         filled: true,
@@ -966,9 +995,30 @@ class _UserFormInputState extends State<UserFormInput> {
           horizontal: 12,
           vertical: 14,
         ),
+        suffixIcon: showClearButton && controller.text.isNotEmpty
+            ? IconButton(
+                tooltip: 'Clear',
+                icon: const Icon(Icons.clear_rounded, size: 20),
+                onPressed: () {
+                  controller.clear();
+                  onChanged?.call('');
+                  setState(() {});
+                },
+              )
+            : null,
       ),
       validator: (value) {
         if (optional && (value == null || value.trim().isEmpty)) {
+          return null;
+        }
+        if (confirmMatchesPassword) {
+          if (value == null || value.isEmpty) {
+            controller.text = passwordFormCont.text;
+            return null;
+          }
+          if (value != passwordFormCont.text) {
+            return 'Password tidak cocok';
+          }
           return null;
         }
         if (value == null || value.isEmpty) return 'Required !';

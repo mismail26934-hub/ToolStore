@@ -50,7 +50,11 @@ class _LoginState extends State<Login> {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [clrOrange.withValues(alpha: 0.08), Colors.white, Colors.white],
+            colors: [
+              clrOrange.withValues(alpha: 0.08),
+              Colors.white,
+              Colors.white,
+            ],
           ),
         ),
         child: SafeArea(
@@ -136,7 +140,9 @@ class _LoginState extends State<Login> {
                                     Container(
                                       padding: const EdgeInsets.all(8),
                                       decoration: BoxDecoration(
-                                        color: clrOrange.withValues(alpha: 0.12),
+                                        color: clrOrange.withValues(
+                                          alpha: 0.12,
+                                        ),
                                         borderRadius: BorderRadius.circular(10),
                                       ),
                                       child: Icon(
@@ -287,6 +293,24 @@ class _LoginState extends State<Login> {
                                                   await prefs.setString(
                                                     'foto',
                                                     userData['foto']
+                                                            ?.toString() ??
+                                                        "",
+                                                  );
+                                                  await prefs.setString(
+                                                    'superiorId',
+                                                    userData['superior_id']
+                                                            ?.toString() ??
+                                                        "",
+                                                  );
+                                                  await prefs.setString(
+                                                    'namaSuperior',
+                                                    userData['nama_superior']
+                                                            ?.toString() ??
+                                                        "",
+                                                  );
+                                                  await prefs.setString(
+                                                    'noTelp',
+                                                    userData['no_telp']
                                                             ?.toString() ??
                                                         "",
                                                   );

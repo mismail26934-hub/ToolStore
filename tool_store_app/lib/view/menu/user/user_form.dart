@@ -8,10 +8,14 @@ class UserForm extends StatefulWidget {
     super.key,
     required this.title,
     required this.onPressTailing,
+    this.levelReadOnly = false,
+    this.popOnSuccess = false,
   });
 
   final String title;
   final void Function()? onPressTailing;
+  final bool levelReadOnly;
+  final bool popOnSuccess;
 
   @override
   State<UserForm> createState() => _UserFormState();
@@ -22,7 +26,12 @@ class _UserFormState extends State<UserForm> {
   Widget build(BuildContext context) {
     return Scaffold(
       drawer: DrawerMenu(title: name),
-      body: UserFormInput(title: 'FORM USER', onPressTailing: () {}),
+      body: UserFormInput(
+        title: 'FORM USER',
+        onPressTailing: () {},
+        levelReadOnly: widget.levelReadOnly,
+        popOnSuccess: widget.popOnSuccess,
+      ),
     );
   }
 }

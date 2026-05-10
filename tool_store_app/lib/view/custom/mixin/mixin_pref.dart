@@ -21,6 +21,8 @@ mixin MixinPref<T extends StatefulWidget> on State<T> {
       idTu = preferences.getString('idTu') ?? "";
       foto = preferences.getString('foto') ?? "";
       status = preferences.getString('status') ?? "";
+      superiorId = preferences.getString('superiorId') ?? "";
+      namaSuperior = preferences.getString('namaSuperior') ?? "";
     });
   }
 }

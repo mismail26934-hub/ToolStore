@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tool_store_app/view/menu/dashboard/dashboard.dart';
 import 'package:tool_store_app/view/menu/home/home.dart';
 import 'package:tool_store_app/view/menu/splash_login/login.dart';
@@ -47,6 +48,23 @@ class PageRoutes {
     // Cek apakah context masih aktif/valid di layar
     if (!context.mounted) return;
 
+    final prefs = await SharedPreferences.getInstance();
+    if (!context.mounted) return;
+
+    final lvl = (prefs.getString('level') ?? '').trim().toUpperCase();
+    if (lvl != 'SUPERADMIN') {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Akses ditolak. Menu User hanya untuk pengguna level SUPERADMIN.',
+          ),
+        ),
+      );
+      return;
+    }
+
+    if (!context.mounted) return;
     Navigator.of(
       context,
     ).pushReplacement(MaterialPageRoute(builder: (_) => const UserData()));
@@ -74,8 +92,10 @@ class PageRoutes {
   static Future<void> routeUserForm(
     BuildContext context,
     titles,
-    onPressTailing,
-  ) async {
+    onPressTailing, {
+    bool levelReadOnly = false,
+    bool popOnSuccess = false,
+  }) async {
     await Future.delayed(const Duration(milliseconds: 1));
 
     // Cek apakah context masih aktif/valid di layar
@@ -83,7 +103,12 @@ class PageRoutes {
 
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => UserForm(title: titles, onPressTailing: onPressTailing),
+        builder: (_) => UserForm(
+          title: titles,
+          onPressTailing: onPressTailing,
+          levelReadOnly: levelReadOnly,
+          popOnSuccess: popOnSuccess,
+        ),
       ),
     );
   }

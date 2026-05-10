@@ -14,11 +14,14 @@ void postContUser(
   level,
   String superiorId,
   String namaSuperior,
-  BuildContext context,
-) {
+  BuildContext context, {
+  bool levelReadOnly = false,
+  bool popOnSuccess = false,
+}) {
   iduserFormCont.text = idUsers;
   usernameFormCont.text = username;
   passwordFormCont.text = password;
+  confirmPasswordFormCont.text = password;
   namaFormCont.text = namaUser;
   telpFormCont.text = noTelp;
   tuidFormCont.text = idTU;
@@ -29,6 +32,8 @@ void postContUser(
     context,
     iduserFormCont.text.isEmpty ? 'ADD DATA' : 'EDIT DATA',
     () {},
+    levelReadOnly: levelReadOnly,
+    popOnSuccess: popOnSuccess,
   );
 }
 
@@ -142,6 +147,7 @@ void postMultipleToolCont(
   valType,
   partValue,
   BuildContext context, {
+
   /// True when opening the form to add new tool rows (API ADD) while still
   /// pre-filling parent [idFormTool] / [idFormDetail] from the list context.
   bool navigateAsAdd = false,

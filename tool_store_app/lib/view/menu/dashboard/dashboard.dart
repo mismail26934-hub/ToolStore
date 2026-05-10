@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_redux/flutter_redux.dart';
+import 'package:tool_store_app/controller/cont_crud/redux/state.dart';
+import 'package:tool_store_app/controller/cont_crud/redux/store.dart';
+import 'package:tool_store_app/model/post_get_data.dart';
 import 'package:tool_store_app/view/custom/routes/page_routes.dart';
 import 'package:tool_store_app/view/menu/drawer/drawer.dart';
 import 'package:tool_store_app/view/var/var.dart';
@@ -11,7 +15,46 @@ class Dashboard extends StatefulWidget {
 }
 
 class _DashboardState extends State<Dashboard> {
+  static const _milestoneCheckByToolStore = 'CHECK BY TOOL STORE';
+  static const _milestoneSuperiorApproved = 'SUPERIOR APPROVED';
+  static const _milestoneReviewedByServiceAdmin = 'REVIEWED BY SERVICE ADMIN';
+  static const _milestoneApprovedByServiceDeptHead =
+      'APPROVED BY SERVICE DEPT. HEAD';
+  static const _milestoneReceivedByWhGa = 'RECEIVED BY WH/GA';
+
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
+  Future<void> _refreshDashboardData() async {
+    await store.dispatch(
+      getDataTool(
+        param: paramViewDataForm,
+        idForm: '',
+        formNo: '',
+        formServName: '',
+        formCheckBy: '',
+        formDateCheckBy: '',
+        formDateServName: '',
+        formServComment: '',
+        formSuperiorAprd: '',
+        formSuperiorComment: '',
+        formSadminComment: '',
+        formMilestone: '',
+        formStatusOrder: '',
+        formSheadAprd: '',
+        formSheadComment: '',
+        fromDateUpdate: '',
+        formUserUpdate: '',
+      ),
+    );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _refreshDashboardData();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -39,65 +82,170 @@ class _DashboardState extends State<Dashboard> {
                         (constraints.maxHeight - (mainAxisSpacing * 2)) / 3;
                     final childAspectRatio = cardWidth / cardHeight;
 
-                    return GridView.count(
-                      shrinkWrap: false,
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      crossAxisCount: 2,
-                      crossAxisSpacing: crossAxisSpacing,
-                      mainAxisSpacing: mainAxisSpacing,
-                      childAspectRatio: childAspectRatio,
-                      children: [
-                        _DashboardCard(
-                          title: 'Draft',
-                          subtitle: 'Request baru yang masih perlu dicek.',
-                          icon: Icons.drafts_outlined,
-                          value: '1',
-                          iconColor: Colors.deepOrange,
-                          onTap: () {
-                            PageRoutes.routeLazyListExample(context, '');
-                          },
-                        ),
-                        _DashboardCard(
-                          title: 'Superior Approval',
-                          subtitle: 'Menunggu persetujuan atasan terkait.',
-                          icon: Icons.fact_check_outlined,
-                          value: '5',
-                          iconColor: Colors.blue,
-                          onTap: () {},
-                        ),
-                        _DashboardCard(
-                          title: 'Service Admin',
-                          subtitle: 'Masuk ke proses validasi admin service.',
-                          icon: Icons.playlist_add_check_circle_outlined,
-                          value: '2',
-                          iconColor: Colors.purple,
-                          onTap: () {},
-                        ),
-                        _DashboardCard(
-                          title: 'Dept. Head Approval',
-                          subtitle: 'Perlu persetujuan dari kepala departemen.',
-                          icon: Icons.approval_outlined,
-                          value: '3',
-                          iconColor: Colors.teal,
-                          onTap: () {},
-                        ),
-                        _DashboardCard(
-                          title: 'Counter / GA Processing',
-                          subtitle: 'Sedang diproses oleh Counter atau GA.',
-                          icon: Icons.inventory_2_outlined,
-                          value: '4',
-                          iconColor: Colors.amber.shade800,
-                          onTap: () {},
-                        ),
-                        _DashboardCard(
-                          title: 'Completed',
-                          subtitle: 'Request selesai dan siap ditinjau.',
-                          icon: Icons.task_alt_outlined,
-                          value: '6',
-                          iconColor: Colors.green,
-                          onTap: () {},
-                        ),
-                      ],
+                    return RefreshIndicator(
+                      color: clrOrange,
+                      onRefresh: _refreshDashboardData,
+                      child: GridView.count(
+                        shrinkWrap: false,
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        crossAxisCount: 2,
+                        crossAxisSpacing: crossAxisSpacing,
+                        mainAxisSpacing: mainAxisSpacing,
+                        childAspectRatio: childAspectRatio,
+                        children: [
+                          StoreConnector<AppState, _ToolFormsCountVm>(
+                            distinct: true,
+                            converter: (store) {
+                              final forms = store.state.formsState.forms;
+                              final draftCount = forms
+                                  .where((f) => f.formMilestone.trim().isEmpty)
+                                  .length;
+                              return _ToolFormsCountVm(
+                                count: draftCount,
+                                isLoading: store.state.formsState.isLoadingTool,
+                              );
+                            },
+                            builder: (context, vm) => _DashboardCard(
+                              title: 'Draft',
+                              subtitle: 'Request baru yang masih perlu dicek.',
+                              icon: Icons.drafts_outlined,
+                              value: vm.displayValue,
+                              iconColor: Colors.deepOrange,
+                              onTap: () {
+                                PageRoutes.routeLazyListExample(context, '');
+                              },
+                            ),
+                          ),
+                          StoreConnector<AppState, _ToolFormsCountVm>(
+                            distinct: true,
+                            converter: (store) {
+                              final forms = store.state.formsState.forms;
+                              final superiorCount = forms
+                                  .where(
+                                    (f) =>
+                                        f.formMilestone.trim().toUpperCase() ==
+                                        _milestoneCheckByToolStore,
+                                  )
+                                  .length;
+                              return _ToolFormsCountVm(
+                                count: superiorCount,
+                                isLoading: store.state.formsState.isLoadingTool,
+                              );
+                            },
+                            builder: (context, vm) => _DashboardCard(
+                              title: 'Superior Approval',
+                              subtitle: 'Menunggu persetujuan atasan terkait.',
+                              icon: Icons.fact_check_outlined,
+                              value: vm.displayValue,
+                              iconColor: Colors.blue,
+                              onTap: () {},
+                            ),
+                          ),
+                          StoreConnector<AppState, _ToolFormsCountVm>(
+                            distinct: true,
+                            converter: (store) {
+                              final forms = store.state.formsState.forms;
+                              final serviceAdminCount = forms
+                                  .where(
+                                    (f) =>
+                                        f.formMilestone.trim().toUpperCase() ==
+                                        _milestoneSuperiorApproved,
+                                  )
+                                  .length;
+                              return _ToolFormsCountVm(
+                                count: serviceAdminCount,
+                                isLoading: store.state.formsState.isLoadingTool,
+                              );
+                            },
+                            builder: (context, vm) => _DashboardCard(
+                              title: 'Service Admin',
+                              subtitle:
+                                  'Masuk ke proses validasi admin service.',
+                              icon: Icons.playlist_add_check_circle_outlined,
+                              value: vm.displayValue,
+                              iconColor: Colors.purple,
+                              onTap: () {},
+                            ),
+                          ),
+                          StoreConnector<AppState, _ToolFormsCountVm>(
+                            distinct: true,
+                            converter: (store) {
+                              final forms = store.state.formsState.forms;
+                              final deptHeadCount = forms
+                                  .where(
+                                    (f) =>
+                                        f.formMilestone.trim().toUpperCase() ==
+                                        _milestoneReviewedByServiceAdmin,
+                                  )
+                                  .length;
+                              return _ToolFormsCountVm(
+                                count: deptHeadCount,
+                                isLoading: store.state.formsState.isLoadingTool,
+                              );
+                            },
+                            builder: (context, vm) => _DashboardCard(
+                              title: 'Dept. Head Approval',
+                              subtitle:
+                                  'Perlu persetujuan dari kepala departemen.',
+                              icon: Icons.approval_outlined,
+                              value: vm.displayValue,
+                              iconColor: Colors.teal,
+                              onTap: () {},
+                            ),
+                          ),
+                          StoreConnector<AppState, _ToolFormsCountVm>(
+                            distinct: true,
+                            converter: (store) {
+                              final forms = store.state.formsState.forms;
+                              final counterGaCount = forms
+                                  .where(
+                                    (f) =>
+                                        f.formMilestone.trim().toUpperCase() ==
+                                        _milestoneApprovedByServiceDeptHead,
+                                  )
+                                  .length;
+                              return _ToolFormsCountVm(
+                                count: counterGaCount,
+                                isLoading: store.state.formsState.isLoadingTool,
+                              );
+                            },
+                            builder: (context, vm) => _DashboardCard(
+                              title: 'Counter / GA Processing',
+                              subtitle: 'Sedang diproses oleh Counter atau GA.',
+                              icon: Icons.inventory_2_outlined,
+                              value: vm.displayValue,
+                              iconColor: Colors.amber.shade800,
+                              onTap: () {},
+                            ),
+                          ),
+                          StoreConnector<AppState, _ToolFormsCountVm>(
+                            distinct: true,
+                            converter: (store) {
+                              final forms = store.state.formsState.forms;
+                              final receivedWhCount = forms
+                                  .where(
+                                    (f) =>
+                                        f.formMilestone.trim().toUpperCase() ==
+                                        _milestoneReceivedByWhGa,
+                                  )
+                                  .length;
+                              return _ToolFormsCountVm(
+                                count: receivedWhCount,
+                                isLoading: store.state.formsState.isLoadingTool,
+                              );
+                            },
+                            builder: (context, vm) => _DashboardCard(
+                              title: 'Tool Received at Warehouse/GA',
+                              subtitle:
+                                  'Tool sudah tiba dan follow up ke Warehouse/GA.',
+                              icon: Icons.task_alt_outlined,
+                              value: vm.displayValue,
+                              iconColor: Colors.green,
+                              onTap: () {},
+                            ),
+                          ),
+                        ],
+                      ),
                     );
                   },
                 ),
@@ -361,4 +509,22 @@ class _DashboardCard extends StatelessWidget {
       ),
     );
   }
+}
+
+class _ToolFormsCountVm {
+  const _ToolFormsCountVm({required this.count, required this.isLoading});
+
+  final int count;
+  final bool isLoading;
+
+  String get displayValue => isLoading ? '...' : '$count';
+
+  @override
+  bool operator ==(Object other) =>
+      other is _ToolFormsCountVm &&
+      other.count == count &&
+      other.isLoading == isLoading;
+
+  @override
+  int get hashCode => Object.hash(count, isLoading);
 }
