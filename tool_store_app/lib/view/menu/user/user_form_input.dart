@@ -2,6 +2,7 @@ import 'dart:math' show min;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_redux/flutter_redux.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tool_store_app/controller/api_url/post_list.dart';
 import 'package:tool_store_app/controller/cont_crud/redux/state.dart';
 import 'package:tool_store_app/controller/cont_crud/redux/store.dart';
@@ -340,6 +341,13 @@ class _UserFormInputState extends State<UserFormInput> {
   bool _isLoading = false;
   bool get _isEditMode => iduserFormCont.text.isNotEmpty;
 
+  Future<void> _clearSessionAndRouteLogin() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+    if (!mounted) return;
+    PageRoutes.routeLoginFast(context);
+  }
+
   Future<void> _refreshUserList() async {
     await store.dispatch(
       getDataUser(
@@ -418,6 +426,16 @@ class _UserFormInputState extends State<UserFormInput> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(backgroundColor: Colors.green, content: Text(msg)),
         );
+        if (params == paramEditDataUser) {
+          final prefs = await SharedPreferences.getInstance();
+          final currentLevel = (prefs.getString('level') ?? '')
+              .trim()
+              .toUpperCase();
+          if (currentLevel != 'SUPERADMIN') {
+            await _clearSessionAndRouteLogin();
+            return;
+          }
+        }
         if (widget.popOnSuccess) {
           if (!mounted) return;
           Navigator.of(context).pop();

@@ -40,7 +40,21 @@ class _OrderTimelineViewModel {
 }
 
 class ToolData extends StatefulWidget {
-  const ToolData({super.key});
+  const ToolData({
+    super.key,
+    this.title,
+    this.formMilestoneFilter,
+    this.excludeFormMilestoneFilter = false,
+    this.excludeFormMilestoneFilters = const <String>[],
+    this.filterBlankFormMilestone = false,
+  });
+
+  final String? title;
+  final String? formMilestoneFilter;
+  final bool excludeFormMilestoneFilter;
+  final List<String> excludeFormMilestoneFilters;
+  final bool filterBlankFormMilestone;
+
   @override
   State<ToolData> createState() => _ToolDataState();
 }
@@ -51,6 +65,24 @@ class _ToolDataState extends State<ToolData> with MixinPref {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   String _searchField = 'all';
+
+  String get _pageTitle {
+    final customTitle = widget.title?.trim();
+    return customTitle != null && customTitle.isNotEmpty
+        ? customTitle
+        : titleDataTool;
+  }
+
+  String get _milestoneFilterNorm =>
+      _normFormMilestone(widget.formMilestoneFilter ?? '');
+
+  bool get _hasMilestoneFilter => _milestoneFilterNorm.isNotEmpty;
+
+  Set<String> get _excludeMilestoneFilterNorms => widget
+      .excludeFormMilestoneFilters
+      .map(_normFormMilestone)
+      .where((value) => value.isNotEmpty)
+      .toSet();
 
   static const Map<String, String> _searchFieldLabels = {
     'all': 'All',
@@ -238,6 +270,24 @@ class _ToolDataState extends State<ToolData> with MixinPref {
     }
   }
 
+  bool _matchesMilestoneFilter(PostList form) {
+    if (widget.filterBlankFormMilestone) {
+      final isBlank = form.formMilestone.trim().isEmpty;
+      if (widget.excludeFormMilestoneFilter) return !isBlank;
+      return isBlank;
+    }
+    final currentMilestoneNorm = _normFormMilestone(form.formMilestone);
+    final excludeMilestoneFilterNorms = _excludeMilestoneFilterNorms;
+    if (excludeMilestoneFilterNorms.isNotEmpty &&
+        excludeMilestoneFilterNorms.contains(currentMilestoneNorm)) {
+      return false;
+    }
+    if (!_hasMilestoneFilter) return true;
+    final isMatch = currentMilestoneNorm == _milestoneFilterNorm;
+    if (widget.excludeFormMilestoneFilter) return !isMatch;
+    return isMatch;
+  }
+
   Color _statusColor(String value) {
     final status = value.toLowerCase();
     if (status.contains('approve') || status.contains('done')) {
@@ -307,14 +357,35 @@ class _ToolDataState extends State<ToolData> with MixinPref {
       statusText: milestoneUi.text,
       statusColor: milestoneUi.color,
       statusIcon: milestoneUi.icon,
-      trailing: _buildCommentCardTrailingAction(
-        icon: Icons.rate_review_outlined,
-        label: 'Service Support Review',
-        backgroundColor: Colors.indigo,
-        tooltip: 'Service Support Review',
-        onPressed: () => _showServiceAdminReviewDialog(forms),
-      ),
+      trailing: _canAccessRequestOrderTool
+          ? _buildCommentCardTrailingAction(
+              icon: Icons.rate_review_outlined,
+              label: 'Service Support Review',
+              backgroundColor: Colors.indigo,
+              tooltip: 'Service Support Review',
+              onPressed: () => _showServiceAdminReviewDialog(forms),
+            )
+          : null,
     );
+  }
+
+  bool get _canAccessRequestOrderTool {
+    final currentLevel = level.trim().toUpperCase();
+    return currentLevel == 'SERVICE_ADMIN' || currentLevel == 'SUPERADMIN';
+  }
+
+  bool get _canAccessDeptHeadApproval {
+    final currentLevel = level.trim().toUpperCase();
+    return currentLevel == 'HEAD_SERVICE' || currentLevel == 'SUPERADMIN';
+  }
+
+  bool _canAccessSupervisorApproval(PostList forms) {
+    final currentLevel = level.trim().toUpperCase();
+    if (currentLevel == 'SUPERADMIN') return true;
+    final currentUserId = superiorId.trim();
+    final formSuperiorId = forms.superiorId.trim();
+    if (currentUserId.isEmpty || formSuperiorId.isEmpty) return false;
+    return currentUserId == formSuperiorId;
   }
 
   Widget _buildInfoTile({
@@ -440,6 +511,18 @@ class _ToolDataState extends State<ToolData> with MixinPref {
   }
 
   static const int _orderTimelineStepCount = 7;
+
+  /// Canonical [PostList.formMilestone] values aligned with [_buildOrderStatusTimeline] steps.
+  static const List<String> _orderTimelineNextMilestoneLabels = [
+    '1. CHECK BY TOOL STORE',
+    '2. SUPERIOR APPROVED',
+    '3. REVIEWED BY SERVICE ADMIN',
+    '4. APPROVED BY SERVICE DEPT HEAD',
+    '5. PROCESSING ORDER',
+    '6. RECEIVED BY WH/GA',
+    '7. RECEIVED TOOL STORE',
+  ];
+
   static const double _timelineAboveBand = 80;
   static const double _timelineBelowBand = 80;
   static const double _timelineNodeDiameter = 28;
@@ -534,6 +617,19 @@ class _ToolDataState extends State<ToolData> with MixinPref {
     );
   }
 
+  /// Milestone string for the upcoming workflow step (matches timeline step cards).
+  static String _nextOrderTimelineMilestoneLabel(_OrderTimelineViewModel vm) {
+    if (vm.redStepIndex != null) {
+      final i = vm.redStepIndex!.clamp(0, _orderTimelineStepCount - 1);
+      return _orderTimelineNextMilestoneLabels[i];
+    }
+    final nextIdx = vm.orangeCompleted.clamp(0, _orderTimelineStepCount);
+    if (nextIdx >= _orderTimelineStepCount) {
+      return 'COMPLETED';
+    }
+    return _orderTimelineNextMilestoneLabels[nextIdx];
+  }
+
   Widget _buildHorizontalTrackSegments({
     required int completed,
     required double trackHeight,
@@ -566,15 +662,18 @@ class _ToolDataState extends State<ToolData> with MixinPref {
     );
   }
 
-  Widget _buildOrderStatusTimeline(_OrderTimelineViewModel vm) {
+  Widget _buildOrderStatusTimeline(
+    _OrderTimelineViewModel vm, {
+    bool wrapInPanel = true,
+  }) {
     const steps = <(String, String)>[
-      ('Order Request', 'Request submitted.'),
-      ('Order Approval 1', 'Superior approval.'),
-      ('Order Review', 'Service support review.'),
-      ('Order Approval 2', 'Dept. head approval.'),
-      ('Order Processing', 'Tool lines / purchasing in progress.'),
-      ('WH Received', 'Warehouse received.'),
-      ('Tool Received', 'Tool room received.'),
+      ('1. Order Request', 'Request submitted.'),
+      ('2. Order Approval 1', 'Superior approval.'),
+      ('3. Order Review', 'Service support review.'),
+      ('4. Order Approval 2', 'Dept. head approval.'),
+      ('5. Order Processing', 'Tool lines / purchasing in progress.'),
+      ('6. WH Received', 'Warehouse received.'),
+      ('7. Tool Received', 'Tool room received.'),
     ];
 
     final panelBg = clrOrange.withValues(alpha: 0.08);
@@ -593,9 +692,13 @@ class _ToolDataState extends State<ToolData> with MixinPref {
     final aboveBand = isMobile ? 56.0 : _timelineAboveBand + 18;
     final belowBand = isMobile ? 56.0 : _timelineBelowBand + 18;
     final connectorGap = isMobile ? 2.0 : 4.0;
-    final panelPadding = isMobile
-        ? const EdgeInsets.fromLTRB(6, 6, 6, 6)
-        : const EdgeInsets.fromLTRB(8, 8, 8, 8);
+    final panelPadding = wrapInPanel
+        ? (isMobile
+              ? const EdgeInsets.fromLTRB(6, 6, 6, 6)
+              : const EdgeInsets.fromLTRB(8, 8, 8, 8))
+        : (isMobile
+              ? const EdgeInsets.fromLTRB(6, 2, 6, 6)
+              : const EdgeInsets.fromLTRB(8, 2, 8, 8));
 
     Widget timelineNode(int i) {
       final isRed = vm.redStepIndex == i;
@@ -715,6 +818,79 @@ class _ToolDataState extends State<ToolData> with MixinPref {
     final trackTop = aboveBand + _timelineNodeDiameter / 2 - trackHeight / 2;
     final stackHeight = aboveBand + _timelineNodeDiameter + belowBand;
 
+    final timelineBody = SizedBox(
+      height: stackHeight,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned(
+            left: 0,
+            right: 0,
+            top: trackTop,
+            height: trackHeight,
+            child: _buildHorizontalTrackSegments(
+              completed: trackOrangeThrough,
+              trackHeight: trackHeight,
+            ),
+          ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: List.generate(_orderTimelineStepCount, (i) {
+              final cardAbove = i.isEven;
+              return Expanded(
+                child: Padding(
+                  padding: EdgeInsets.only(
+                    left: i == 0 ? 0 : 2,
+                    right: i == _orderTimelineStepCount - 1 ? 0 : 2,
+                  ),
+                  child: Column(
+                    children: [
+                      SizedBox(
+                        height: aboveBand,
+                        child: cardAbove
+                            ? Column(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  stepCard(i),
+                                  SizedBox(height: connectorGap),
+                                  verticalConnector(i),
+                                ],
+                              )
+                            : const SizedBox.shrink(),
+                      ),
+                      SizedBox(
+                        height: _timelineNodeDiameter,
+                        child: Center(child: timelineNode(i)),
+                      ),
+                      SizedBox(
+                        height: belowBand,
+                        child: !cardAbove
+                            ? Column(
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  verticalConnector(i),
+                                  SizedBox(height: connectorGap),
+                                  stepCard(i),
+                                ],
+                              )
+                            : const SizedBox.shrink(),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }),
+          ),
+        ],
+      ),
+    );
+
+    if (!wrapInPanel) {
+      return Padding(padding: panelPadding, child: timelineBody);
+    }
+
     return Container(
       width: double.infinity,
       padding: panelPadding,
@@ -723,74 +899,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: clrOrange.withValues(alpha: 0.18)),
       ),
-      child: SizedBox(
-        height: stackHeight,
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Positioned(
-              left: 0,
-              right: 0,
-              top: trackTop,
-              height: trackHeight,
-              child: _buildHorizontalTrackSegments(
-                completed: trackOrangeThrough,
-                trackHeight: trackHeight,
-              ),
-            ),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: List.generate(_orderTimelineStepCount, (i) {
-                final cardAbove = i.isEven;
-                return Expanded(
-                  child: Padding(
-                    padding: EdgeInsets.only(
-                      left: i == 0 ? 0 : 2,
-                      right: i == _orderTimelineStepCount - 1 ? 0 : 2,
-                    ),
-                    child: Column(
-                      children: [
-                        SizedBox(
-                          height: aboveBand,
-                          child: cardAbove
-                              ? Column(
-                                  mainAxisAlignment: MainAxisAlignment.end,
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    stepCard(i),
-                                    SizedBox(height: connectorGap),
-                                    verticalConnector(i),
-                                  ],
-                                )
-                              : const SizedBox.shrink(),
-                        ),
-                        SizedBox(
-                          height: _timelineNodeDiameter,
-                          child: Center(child: timelineNode(i)),
-                        ),
-                        SizedBox(
-                          height: belowBand,
-                          child: !cardAbove
-                              ? Column(
-                                  mainAxisAlignment: MainAxisAlignment.start,
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    verticalConnector(i),
-                                    SizedBox(height: connectorGap),
-                                    stepCard(i),
-                                  ],
-                                )
-                              : const SizedBox.shrink(),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }),
-            ),
-          ],
-        ),
-      ),
+      child: timelineBody,
     );
   }
 
@@ -4259,8 +4368,20 @@ class _ToolDataState extends State<ToolData> with MixinPref {
               setState(() {
                 if (expanded) {
                   _expandedForms.add(forms.idForm);
+                  final formNo = forms.formNo.trim();
+                  if (formNo.isNotEmpty) {
+                    _searchController.value = TextEditingValue(
+                      text: formNo,
+                      selection: TextSelection.collapsed(offset: formNo.length),
+                    );
+                    _searchQuery = formNo;
+                    _searchField = 'formNo';
+                  }
                 } else {
                   _expandedForms.remove(forms.idForm);
+                  _searchController.clear();
+                  _searchQuery = '';
+                  _searchField = 'all';
                 }
               });
             },
@@ -4321,19 +4442,46 @@ class _ToolDataState extends State<ToolData> with MixinPref {
               converter: (store) =>
                   _computeOrderTimelineViewModel(store, forms),
               builder: (context, timelineVm) {
-                // [formStatusOrder] is HOLDER / NON HOLDER from the form editor, not
-                // workflow state — use milestone for the order timeline label.
-                forms.formMilestone.trim().isEmpty
-                    ? 'DRAFT'
-                    : forms.formMilestone.trim();
+                final nextMilestone = _nextOrderTimelineMilestoneLabel(
+                  timelineVm,
+                );
+                final panelBg = clrOrange.withValues(alpha: 0.08);
                 return Padding(
                   padding: const EdgeInsets.only(top: 10),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildSectionHeader('Timeline', icon: Icons.timeline),
-                      _buildOrderStatusTimeline(timelineVm),
-                    ],
+                  child: Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: panelBg,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: clrOrange.withValues(alpha: 0.18),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.04),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+                          child: _buildSectionHeader(
+                            nextMilestone == 'COMPLETED'
+                                ? 'COMPLETED'
+                                : 'Next: $nextMilestone',
+                            icon: Icons.timeline,
+                          ),
+                        ),
+                        _buildOrderStatusTimeline(
+                          timelineVm,
+                          wrapInPanel: false,
+                        ),
+                      ],
+                    ),
                   ),
                 );
               },
@@ -4393,13 +4541,15 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                     icon: Icons.person_outline,
                     label: 'Check By',
                     value: forms.formCheckBy,
-                    trailing: _buildCommentCardTrailingAction(
-                      icon: Icons.local_mall_outlined,
-                      label: 'Request order',
-                      backgroundColor: Colors.deepOrange.shade600,
-                      tooltip: 'Request order tool',
-                      onPressed: () => _showRequestOrderToolDialog(forms),
-                    ),
+                    trailing: _canAccessRequestOrderTool
+                        ? _buildCommentCardTrailingAction(
+                            icon: Icons.local_mall_outlined,
+                            label: 'Request Order',
+                            backgroundColor: Colors.deepOrange.shade600,
+                            tooltip: 'Request Order Tool',
+                            onPressed: () => _showRequestOrderToolDialog(forms),
+                          )
+                        : null,
                   ),
                   _buildInfoTile(
                     icon: Icons.comment_bank_outlined,
@@ -4420,13 +4570,16 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                         : _isRejectedValue(forms.formSuperiorAprd)
                         ? Icons.cancel
                         : Icons.pending,
-                    trailing: _buildCommentCardTrailingAction(
-                      icon: Icons.task_alt_outlined,
-                      label: 'Superior Approval',
-                      backgroundColor: clrGreen,
-                      tooltip: 'Superior Approval',
-                      onPressed: () => _showSupervisorValidationDialog(forms),
-                    ),
+                    trailing: _canAccessSupervisorApproval(forms)
+                        ? _buildCommentCardTrailingAction(
+                            icon: Icons.task_alt_outlined,
+                            label: 'Superior Approval',
+                            backgroundColor: clrGreen,
+                            tooltip: 'Superior Approval',
+                            onPressed: () =>
+                                _showSupervisorValidationDialog(forms),
+                          )
+                        : null,
                   ),
                   _buildServiceSupportCommentInfoTile(forms),
                   _buildInfoTile(
@@ -4448,13 +4601,16 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                         : _isRejectedValue(forms.formSheadAprd)
                         ? Icons.cancel
                         : Icons.pending,
-                    trailing: _buildCommentCardTrailingAction(
-                      icon: Icons.verified_user_outlined,
-                      label: 'Dept Head Approval',
-                      backgroundColor: Colors.teal,
-                      tooltip: 'Dept Head Approval',
-                      onPressed: () => _showDeptHeadValidationDialog(forms),
-                    ),
+                    trailing: _canAccessDeptHeadApproval
+                        ? _buildCommentCardTrailingAction(
+                            icon: Icons.verified_user_outlined,
+                            label: 'Dept Head Approval',
+                            backgroundColor: Colors.teal,
+                            tooltip: 'Dept Head Approval',
+                            onPressed: () =>
+                                _showDeptHeadValidationDialog(forms),
+                          )
+                        : null,
                   ),
                 ],
               ),
@@ -4612,6 +4768,9 @@ class _ToolDataState extends State<ToolData> with MixinPref {
   }
 
   Widget _buildSearchNotFoundContent() {
+    final message = _searchQuery.isEmpty && _hasMilestoneFilter
+        ? 'No completed data found'
+        : '$_searchQuery Not Found';
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -4625,8 +4784,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
             ),
             const SizedBox(height: 12),
             Text(
-              '$_searchQuery '
-              'Not Found ',
+              message,
               textAlign: TextAlign.center,
               style: Theme.of(
                 context,
@@ -4651,7 +4809,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
           child: CustomScrollView(
             slivers: [
               SliverAppbars(
-                title: titleDataTool,
+                title: _pageTitle,
                 onPressTailing: () {
                   postContForm(
                     "",
@@ -4685,6 +4843,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                 converter: (store) => store.state.formsState,
                 builder: (context, state) {
                   final filteredForms = state.forms
+                      .where(_matchesMilestoneFilter)
                       .where(_matchesSearch)
                       .toList();
                   if (state.isLoadingTool) {

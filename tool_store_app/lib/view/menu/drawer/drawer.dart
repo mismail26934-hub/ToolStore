@@ -418,17 +418,16 @@ class _DrawerMenuState extends State<DrawerMenu> {
             subtitle: 'Buka daftar request tool dan detail item pekerjaan.',
             iconColor: Colors.blue,
             onTap: () {
-              PageRoutes.routeHome(context);
-              Navigator.pop(context);
-            },
-          ),
-          _buildMenuTile(
-            context: context,
-            icon: Icons.history_outlined,
-            title: 'History',
-            subtitle: 'Pantau data request sebelumnya dan progres terbaru.',
-            iconColor: Colors.teal,
-            onTap: () {
+              PageRoutes.routeTool(
+                context,
+                title: 'Data Tool',
+                excludeFormMilestoneFilters: const <String>[
+                  'RECEIVED TOOL STORE',
+                  'HOLD BY SERVICE ADMIN',
+                  'REJECTED BY SUPERIOR',
+                  'REJECTED BY SERVICE DEPT. HEAD',
+                ],
+              );
               Navigator.pop(context);
             },
           ),
@@ -439,9 +438,68 @@ class _DrawerMenuState extends State<DrawerMenu> {
             subtitle: 'Lihat item yang sudah selesai diproses.',
             iconColor: Colors.green,
             onTap: () {
+              PageRoutes.routeTool(
+                context,
+                title: 'Completed',
+                formMilestoneFilter: 'RECEIVED TOOL STORE',
+              );
+            },
+          ),
+          _buildMenuTile(
+            context: context,
+            icon: Icons.stop_circle_outlined,
+            title: 'Hold Order',
+            subtitle: 'Orderan Tidak Dilanjutkan oleh Service Admin',
+            iconColor: Colors.orange,
+            onTap: () {
+              PageRoutes.routeTool(
+                context,
+                title: 'Hold Order',
+                formMilestoneFilter: 'HOLD BY SERVICE ADMIN',
+              );
               Navigator.pop(context);
             },
           ),
+          _buildMenuTile(
+            context: context,
+            icon: Icons.cancel_outlined,
+            title: 'Rejected',
+            subtitle: 'Orderan Dibatalkan Oleh Foreman / Superior',
+            iconColor: Colors.red,
+            onTap: () {
+              PageRoutes.routeTool(
+                context,
+                title: 'Rejected',
+                formMilestoneFilter: 'REJECTED BY SUPERIOR',
+              );
+              Navigator.pop(context);
+            },
+          ),
+          _buildMenuTile(
+            context: context,
+            icon: Icons.cancel_rounded,
+            title: 'Rejected',
+            subtitle: 'Orderan Dibatalkan Oleh Dept Head',
+            iconColor: Colors.red,
+            onTap: () {
+              PageRoutes.routeTool(
+                context,
+                title: 'Rejected',
+                formMilestoneFilter: 'REJECTED BY SERVICE DEPT. HEAD',
+              );
+              Navigator.pop(context);
+            },
+          ),
+          // _buildMenuTile(
+          //   context: context,
+          //   icon: Icons.history_outlined,
+          //   title: 'History',
+          //   subtitle: 'Pantau data request sebelumnya dan progres terbaru.',
+          //   iconColor: Colors.teal,
+          //   onTap: () {
+          //     Navigator.pop(context);
+          //   },
+          // ),
           _buildSuperAdminUserSection(context),
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 12, 12, 20),

@@ -1,11 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_redux/flutter_redux.dart';
+import 'package:tool_store_app/controller/api_url/post_list.dart';
 import 'package:tool_store_app/controller/cont_crud/redux/state.dart';
 import 'package:tool_store_app/controller/cont_crud/redux/store.dart';
 import 'package:tool_store_app/model/post_get_data.dart';
 import 'package:tool_store_app/view/custom/routes/page_routes.dart';
 import 'package:tool_store_app/view/menu/drawer/drawer.dart';
 import 'package:tool_store_app/view/var/var.dart';
+
+const _milestoneCheckByToolStore = 'CHECK BY TOOL STORE';
+const _milestoneSuperiorApproved = 'SUPERIOR APPROVED';
+const _milestoneReviewedByServiceAdmin = 'REVIEWED BY SERVICE ADMIN';
+const _milestoneApprovedByServiceDeptHead = 'APPROVED BY SERVICE DEPT. HEAD';
+const _milestoneReceivedByWhGa = 'RECEIVED BY WH/GA';
+const _milestoneOrderProcessed = 'ORDER PROCESSED';
+
+const _trackedMilestones = <String>{
+  _milestoneCheckByToolStore,
+  _milestoneSuperiorApproved,
+  _milestoneReviewedByServiceAdmin,
+  _milestoneApprovedByServiceDeptHead,
+  _milestoneReceivedByWhGa,
+};
+
+int _calculateDashboardTotal(List<PostList> forms) {
+  return forms.where((f) {
+    final milestone = f.formMilestone.trim().toUpperCase();
+    return milestone.isEmpty || _trackedMilestones.contains(milestone);
+  }).length;
+}
 
 class Dashboard extends StatefulWidget {
   const Dashboard({super.key});
@@ -15,13 +38,6 @@ class Dashboard extends StatefulWidget {
 }
 
 class _DashboardState extends State<Dashboard> {
-  static const _milestoneCheckByToolStore = 'CHECK BY TOOL STORE';
-  static const _milestoneSuperiorApproved = 'SUPERIOR APPROVED';
-  static const _milestoneReviewedByServiceAdmin = 'REVIEWED BY SERVICE ADMIN';
-  static const _milestoneApprovedByServiceDeptHead =
-      'APPROVED BY SERVICE DEPT. HEAD';
-  static const _milestoneReceivedByWhGa = 'RECEIVED BY WH/GA';
-
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   Future<void> _refreshDashboardData() async {
@@ -78,8 +94,9 @@ class _DashboardState extends State<Dashboard> {
                     const mainAxisSpacing = 12.0;
                     final cardWidth =
                         (constraints.maxWidth - crossAxisSpacing) / 2;
-                    final cardHeight =
+                    final autoCardHeight =
                         (constraints.maxHeight - (mainAxisSpacing * 2)) / 3;
+                    final cardHeight = autoCardHeight.clamp(170.0, 182.0);
                     final childAspectRatio = cardWidth / cardHeight;
 
                     return RefreshIndicator(
@@ -111,9 +128,14 @@ class _DashboardState extends State<Dashboard> {
                               icon: Icons.drafts_outlined,
                               value: vm.displayValue,
                               iconColor: Colors.deepOrange,
-                              onTap: () {
-                                PageRoutes.routeLazyListExample(context, '');
-                              },
+                              onTap: vm.isLoading || vm.count == 0
+                                  ? null
+                                  : () => PageRoutes.routeTool(
+                                      context,
+                                      title: 'Draft',
+                                      formMilestoneFilter: '',
+                                      filterBlankFormMilestone: true,
+                                    ),
                             ),
                           ),
                           StoreConnector<AppState, _ToolFormsCountVm>(
@@ -138,7 +160,14 @@ class _DashboardState extends State<Dashboard> {
                               icon: Icons.fact_check_outlined,
                               value: vm.displayValue,
                               iconColor: Colors.blue,
-                              onTap: () {},
+                              onTap: vm.isLoading || vm.count == 0
+                                  ? null
+                                  : () => PageRoutes.routeTool(
+                                      context,
+                                      title: 'Superior Approval',
+                                      formMilestoneFilter:
+                                          _milestoneCheckByToolStore,
+                                    ),
                             ),
                           ),
                           StoreConnector<AppState, _ToolFormsCountVm>(
@@ -164,7 +193,14 @@ class _DashboardState extends State<Dashboard> {
                               icon: Icons.playlist_add_check_circle_outlined,
                               value: vm.displayValue,
                               iconColor: Colors.purple,
-                              onTap: () {},
+                              onTap: vm.isLoading || vm.count == 0
+                                  ? null
+                                  : () => PageRoutes.routeTool(
+                                      context,
+                                      title: 'Service Admin',
+                                      formMilestoneFilter:
+                                          _milestoneSuperiorApproved,
+                                    ),
                             ),
                           ),
                           StoreConnector<AppState, _ToolFormsCountVm>(
@@ -190,7 +226,14 @@ class _DashboardState extends State<Dashboard> {
                               icon: Icons.approval_outlined,
                               value: vm.displayValue,
                               iconColor: Colors.teal,
-                              onTap: () {},
+                              onTap: vm.isLoading || vm.count == 0
+                                  ? null
+                                  : () => PageRoutes.routeTool(
+                                      context,
+                                      title: 'Dept. Head Approval',
+                                      formMilestoneFilter:
+                                          _milestoneReviewedByServiceAdmin,
+                                    ),
                             ),
                           ),
                           StoreConnector<AppState, _ToolFormsCountVm>(
@@ -211,11 +254,18 @@ class _DashboardState extends State<Dashboard> {
                             },
                             builder: (context, vm) => _DashboardCard(
                               title: 'Counter / GA Processing',
-                              subtitle: 'Sedang diproses oleh Counter atau GA.',
+                              subtitle: 'Menunggu Proses Counter atau GA.',
                               icon: Icons.inventory_2_outlined,
                               value: vm.displayValue,
                               iconColor: Colors.amber.shade800,
-                              onTap: () {},
+                              onTap: vm.isLoading || vm.count == 0
+                                  ? null
+                                  : () => PageRoutes.routeTool(
+                                      context,
+                                      title: 'Counter / GA Processing',
+                                      formMilestoneFilter:
+                                          _milestoneApprovedByServiceDeptHead,
+                                    ),
                             ),
                           ),
                           StoreConnector<AppState, _ToolFormsCountVm>(
@@ -235,13 +285,20 @@ class _DashboardState extends State<Dashboard> {
                               );
                             },
                             builder: (context, vm) => _DashboardCard(
-                              title: 'Tool Received at Warehouse/GA',
+                              title: 'Tool Received at Warehouse / GA',
                               subtitle:
-                                  'Tool sudah tiba dan follow up ke Warehouse/GA.',
+                                  'Tool sudah tiba dan follow up ke Warehouse / GA.',
                               icon: Icons.task_alt_outlined,
                               value: vm.displayValue,
                               iconColor: Colors.green,
-                              onTap: () {},
+                              onTap: vm.isLoading || vm.count == 0
+                                  ? null
+                                  : () => PageRoutes.routeTool(
+                                      context,
+                                      title: 'Order Processed',
+                                      formMilestoneFilter:
+                                          _milestoneOrderProcessed,
+                                    ),
                             ),
                           ),
                         ],
@@ -264,7 +321,6 @@ class _DashboardHeader extends StatelessWidget {
   static const _headerRadius = 28.0;
   static const _buttonRadius = 16.0;
   static const _logoRadius = 20.0;
-  static const _notificationCount = '6';
 
   final VoidCallback onMenuTap;
 
@@ -340,30 +396,37 @@ class _DashboardHeader extends StatelessWidget {
   }
 
   Widget _buildNotificationBadge(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.16),
-        borderRadius: BorderRadius.circular(_buttonRadius),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
+    return StoreConnector<AppState, _ToolFormsCountVm>(
+      distinct: true,
+      converter: (store) => _ToolFormsCountVm(
+        count: _calculateDashboardTotal(store.state.formsState.forms),
+        isLoading: store.state.formsState.isLoadingTool,
       ),
-      child: Row(
-        children: [
-          const Icon(
-            Icons.notifications_none_rounded,
-            color: Colors.white,
-            size: 18,
-          ),
-          const SizedBox(width: 6),
-          Text(
-            _notificationCount,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+      builder: (context, vm) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.16),
+          borderRadius: BorderRadius.circular(_buttonRadius),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
+        ),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.notifications_none_rounded,
               color: Colors.white,
-              fontWeight: FontWeight.w700,
+              size: 18,
             ),
-          ),
-        ],
+            const SizedBox(width: 6),
+            Text(
+              vm.displayValue,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -418,95 +481,168 @@ class _DashboardCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(22),
-        child: Ink(
-          decoration: BoxDecoration(
-            color: Colors.white,
+    final titleStyle = Theme.of(context).textTheme.titleSmall?.copyWith(
+      fontWeight: FontWeight.w700,
+      height: 1.2,
+      color: const Color(0xFF1F2937),
+    );
+    final subtitleStyle = Theme.of(context).textTheme.bodySmall?.copyWith(
+      color: const Color(0xFF6B7280),
+      height: 1.25,
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compactMode = constraints.maxHeight < 176;
+        return Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
             borderRadius: BorderRadius.circular(22),
-            border: Border.all(color: Colors.grey.shade200),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 18,
-                offset: const Offset(0, 8),
+            child: Ink(
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFFFFFFF), Color(0xFFF9FAFB)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(color: const Color(0xFFE5E7EB)),
+                boxShadow: [
+                  BoxShadow(
+                    color: iconColor.withValues(alpha: 0.11),
+                    blurRadius: 22,
+                    offset: const Offset(0, 10),
+                  ),
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
-            ],
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Container(
-                      width: 40,
-                      height: 40,
+                      height: 3,
+                      width: 48,
                       decoration: BoxDecoration(
-                        color: iconColor.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Icon(icon, color: iconColor, size: 22),
-                    ),
-                    const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 9,
-                        vertical: 5,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF7F8FA),
                         borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Text(
-                        value,
-                        style: const TextStyle(
-                          color: Colors.black,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
+                        gradient: LinearGradient(
+                          colors: [
+                            iconColor.withValues(alpha: 0.90),
+                            iconColor.withValues(alpha: 0.45),
+                          ],
                         ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                iconColor.withValues(alpha: 0.18),
+                                iconColor.withValues(alpha: 0.08),
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(13),
+                            border: Border.all(
+                              color: iconColor.withValues(alpha: 0.2),
+                            ),
+                          ),
+                          child: Icon(icon, color: iconColor, size: 22),
+                        ),
+                        const Spacer(),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 9,
+                            vertical: 5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: iconColor.withValues(alpha: 0.10),
+                            borderRadius: BorderRadius.circular(999),
+                            border: Border.all(
+                              color: iconColor.withValues(alpha: 0.25),
+                            ),
+                          ),
+                          child: Text(
+                            value,
+                            style: TextStyle(
+                              color: iconColor.withValues(alpha: 0.95),
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Expanded(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Text(
+                                title,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.center,
+                                style: titleStyle,
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                subtitle,
+                                maxLines: compactMode ? 1 : 2,
+                                overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.center,
+                                style: subtitleStyle,
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          if (compactMode)
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  'Lihat detail',
+                                  style: Theme.of(context).textTheme.labelSmall
+                                      ?.copyWith(
+                                        color: iconColor.withValues(alpha: 0.9),
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                ),
+                                const SizedBox(width: 4),
+                                Icon(
+                                  Icons.arrow_forward_rounded,
+                                  size: 16,
+                                  color: iconColor.withValues(alpha: 0.8),
+                                ),
+                              ],
+                            ),
+                        ],
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 10),
-                Expanded(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          height: 1.15,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        subtitle,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.grey.shade700,
-                          height: 1.2,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
