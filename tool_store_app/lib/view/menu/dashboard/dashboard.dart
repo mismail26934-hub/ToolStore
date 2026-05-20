@@ -61,6 +61,8 @@ class _DashboardState extends State<Dashboard> {
         formSheadComment: '',
         fromDateUpdate: '',
         formUserUpdate: '',
+        page: 1,
+        limit: kToolFormDashboardFetchLimit,
       ),
     );
   }

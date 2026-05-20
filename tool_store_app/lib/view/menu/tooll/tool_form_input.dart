@@ -343,6 +343,7 @@ class ToolFormInputState extends State<ToolFormInput> {
             level: '',
             status: '',
             superiorId: '',
+            limit: kUserFullFetchLimit,
           ),
         );
       }

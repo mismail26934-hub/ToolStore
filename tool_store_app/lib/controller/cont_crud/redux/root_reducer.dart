@@ -1,31 +1,107 @@
 import 'package:redux/redux.dart';
+import 'package:tool_store_app/controller/api_url/post_list.dart';
 import 'package:tool_store_app/controller/cont_crud/redux/action.dart';
 import 'package:tool_store_app/controller/cont_crud/redux/state.dart';
 
+List<PostList> _mergeUsers(List<PostList> existing, List<PostList> incoming) {
+  if (incoming.isEmpty) return existing;
+  final ids = existing.map((u) => u.idUsers.trim()).toSet();
+  final merged = List<PostList>.from(existing);
+  for (final user in incoming) {
+    final id = user.idUsers.trim();
+    if (id.isEmpty || !ids.contains(id)) {
+      merged.add(user);
+      if (id.isNotEmpty) ids.add(id);
+    }
+  }
+  return merged;
+}
+
 final userReducer = combineReducers<UserState>([
   TypedReducer<UserState, FetchUsersAction>(
-    (state, action) => state.copyWith(users: [], isLoading: true, error: null),
+    (state, action) => state.copyWith(
+      users: [],
+      isLoading: true,
+      isLoadingMore: false,
+      hasMore: true,
+      error: null,
+    ),
   ).call,
-  TypedReducer<UserState, UsersLoadedAction>((state, action) {
-    return state.copyWith(isLoading: false, users: action.users);
-  }).call,
+  TypedReducer<UserState, FetchUsersMoreAction>(
+    (state, action) => state.copyWith(isLoadingMore: true, error: null),
+  ).call,
+  TypedReducer<UserState, UsersLoadedAction>(
+    (state, action) => state.copyWith(
+      isLoading: false,
+      isLoadingMore: false,
+      users: action.users,
+      hasMore: action.hasMore,
+    ),
+  ).call,
+  TypedReducer<UserState, UsersAppendAction>(
+    (state, action) => state.copyWith(
+      isLoadingMore: false,
+      users: _mergeUsers(state.users, action.users),
+      hasMore: action.hasMore,
+    ),
+  ).call,
   TypedReducer<UserState, UsersErrorAction>(
-    (state, action) => state.copyWith(isLoading: false, error: action.errors),
+    (state, action) => state.copyWith(
+      isLoading: false,
+      isLoadingMore: false,
+      error: action.errors,
+    ),
   ).call,
 ]);
 
+List<PostList> _mergeForms(List<PostList> existing, List<PostList> incoming) {
+  if (incoming.isEmpty) return existing;
+  final ids = existing.map((f) => f.idForm.trim()).toSet();
+  final merged = List<PostList>.from(existing);
+  for (final form in incoming) {
+    final id = form.idForm.trim();
+    if (id.isEmpty || !ids.contains(id)) {
+      merged.add(form);
+      if (id.isNotEmpty) ids.add(id);
+    }
+  }
+  return merged;
+}
+
 final formReducer = combineReducers<FormsState>([
   TypedReducer<FormsState, FetchDatasAction>(
-    (state, action) =>
-        state.copyWith(forms: [], isLoadingTool: true, error: null),
+    (state, action) => state.copyWith(
+      forms: [],
+      isLoadingTool: true,
+      isLoadingMore: false,
+      hasMore: true,
+      error: null,
+    ),
+  ).call,
+  TypedReducer<FormsState, FetchDatasMoreAction>(
+    (state, action) => state.copyWith(isLoadingMore: true, error: null),
   ).call,
   TypedReducer<FormsState, DatasLoadedAction>(
-    (state, action) =>
-        state.copyWith(isLoadingTool: false, forms: action.forms),
+    (state, action) => state.copyWith(
+      isLoadingTool: false,
+      isLoadingMore: false,
+      forms: action.forms,
+      hasMore: action.hasMore,
+    ),
+  ).call,
+  TypedReducer<FormsState, DatasAppendAction>(
+    (state, action) => state.copyWith(
+      isLoadingMore: false,
+      forms: _mergeForms(state.forms, action.forms),
+      hasMore: action.hasMore,
+    ),
   ).call,
   TypedReducer<FormsState, DatasErrorAction>(
-    (state, action) =>
-        state.copyWith(isLoadingTool: false, error: action.errors),
+    (state, action) => state.copyWith(
+      isLoadingTool: false,
+      isLoadingMore: false,
+      error: action.errors,
+    ),
   ).call,
 ]);
 

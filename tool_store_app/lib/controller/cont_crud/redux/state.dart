@@ -4,18 +4,34 @@ import 'package:tool_store_app/controller/api_url/post_list.dart';
 class UserState {
   final List<PostList> users;
   final bool isLoading;
+  final bool isLoadingMore;
+  final bool hasMore;
   final String? error;
 
-  UserState({this.users = const [], this.isLoading = false, this.error});
+  UserState({
+    this.users = const [],
+    this.isLoading = false,
+    this.isLoadingMore = false,
+    this.hasMore = true,
+    this.error,
+  });
 
   // Factory untuk state awal
   factory UserState.initial() => UserState(users: [], isLoading: false);
 
-  UserState copyWith({List<PostList>? users, bool? isLoading, String? error}) {
+  UserState copyWith({
+    List<PostList>? users,
+    bool? isLoading,
+    bool? isLoadingMore,
+    bool? hasMore,
+    String? error,
+  }) {
     return UserState(
       // Jika parameter baru (list) null, gunakan nilai yang sudah ada (this.users)
       users: users ?? this.users,
       isLoading: isLoading ?? this.isLoading,
+      isLoadingMore: isLoadingMore ?? this.isLoadingMore,
+      hasMore: hasMore ?? this.hasMore,
       error: error ?? this.error,
     );
   }
@@ -24,9 +40,17 @@ class UserState {
 class FormsState {
   final List<PostList> forms;
   final bool isLoadingTool;
+  final bool isLoadingMore;
+  final bool hasMore;
   final String? error;
 
-  FormsState({this.forms = const [], this.isLoadingTool = false, this.error});
+  FormsState({
+    this.forms = const [],
+    this.isLoadingTool = false,
+    this.isLoadingMore = false,
+    this.hasMore = true,
+    this.error,
+  });
 
   // Factory untuk state awal
   factory FormsState.initial() => FormsState(forms: [], isLoadingTool: false);
@@ -34,12 +58,16 @@ class FormsState {
   FormsState copyWith({
     List<PostList>? forms,
     bool? isLoadingTool,
+    bool? isLoadingMore,
+    bool? hasMore,
     String? error,
   }) {
     return FormsState(
       // Jika parameter baru (list) null, gunakan nilai yang sudah ada (this.forms)
       forms: forms ?? this.forms,
       isLoadingTool: isLoadingTool ?? this.isLoadingTool,
+      isLoadingMore: isLoadingMore ?? this.isLoadingMore,
+      hasMore: hasMore ?? this.hasMore,
       error: error ?? this.error,
     );
   }

@@ -3,10 +3,21 @@ import 'package:tool_store_app/controller/api_url/post_list.dart';
 // Dipanggil saat mulai loading
 class FetchUsersAction {}
 
+class FetchUsersMoreAction {}
+
 class UsersLoadedAction {
   // Dipanggil saat data berhasil didapat
   final List<PostList> users;
-  UsersLoadedAction(this.users);
+  final bool hasMore;
+
+  UsersLoadedAction(this.users, {this.hasMore = false});
+}
+
+class UsersAppendAction {
+  final List<PostList> users;
+  final bool hasMore;
+
+  UsersAppendAction(this.users, {required this.hasMore});
 }
 
 class UsersErrorAction {
@@ -18,10 +29,21 @@ class UsersErrorAction {
 // TOOL
 class FetchDatasAction {}
 
+class FetchDatasMoreAction {}
+
 class DatasLoadedAction {
   // Dipanggil saat data berhasil didapat
   final List<PostList> forms;
-  DatasLoadedAction(this.forms);
+  final bool hasMore;
+
+  DatasLoadedAction(this.forms, {this.hasMore = false});
+}
+
+class DatasAppendAction {
+  final List<PostList> forms;
+  final bool hasMore;
+
+  DatasAppendAction(this.forms, {required this.hasMore});
 }
 
 class DatasErrorAction {

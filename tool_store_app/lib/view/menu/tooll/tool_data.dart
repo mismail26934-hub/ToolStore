@@ -64,10 +64,9 @@ class _ToolDataState extends State<ToolData> with MixinPref {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final Set<String> _expandedForms = <String>{};
   final TextEditingController _searchController = TextEditingController();
-  static const int _pageSize = 20;
   String _searchQuery = '';
   String _searchField = 'all';
-  int _visibleFormsCount = _pageSize;
+  int _currentPage = 1;
 
   String get _pageTitle {
     final customTitle = widget.title?.trim();
@@ -121,7 +120,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
     });
   }
 
-  Future<void> _refreshData() async {
+  Future<void> _fetchFormsPage({required int page, required bool append}) async {
     await store.dispatch(
       getDataTool(
         param: paramViewDataForm,
@@ -141,8 +140,17 @@ class _ToolDataState extends State<ToolData> with MixinPref {
         formSheadComment: '',
         fromDateUpdate: '',
         formUserUpdate: '',
+        page: page,
+        limit: kToolFormPageSize,
+        append: append,
       ),
     );
+  }
+
+  Future<void> _refreshData() async {
+    if (!mounted) return;
+    setState(() => _currentPage = 1);
+    await _fetchFormsPage(page: 1, append: false);
     await store.dispatch(
       getDataToolDetail(
         param: paramViewDataTool,
@@ -194,7 +202,6 @@ class _ToolDataState extends State<ToolData> with MixinPref {
   void _onSearchChanged(String value) {
     setState(() {
       _searchQuery = value.trim();
-      _visibleFormsCount = _pageSize;
     });
   }
 
@@ -203,7 +210,6 @@ class _ToolDataState extends State<ToolData> with MixinPref {
     setState(() {
       _searchQuery = '';
       _searchField = 'all';
-      _visibleFormsCount = _pageSize;
     });
   }
 
@@ -216,17 +222,21 @@ class _ToolDataState extends State<ToolData> with MixinPref {
     setState(() {
       _searchQuery = no;
       _searchField = 'formNo';
-      _visibleFormsCount = _pageSize;
     });
   }
 
-  void _showMoreForms(int total) {
-    setState(() {
-      _visibleFormsCount = max(_visibleFormsCount + _pageSize, _pageSize);
-      if (_visibleFormsCount > total) {
-        _visibleFormsCount = total;
-      }
-    });
+  Future<void> _loadMoreForms() async {
+    if (store.state.formsState.isLoadingMore ||
+        !store.state.formsState.hasMore) {
+      return;
+    }
+    final nextPage = _currentPage + 1;
+    try {
+      await _fetchFormsPage(page: nextPage, append: true);
+      if (mounted) setState(() => _currentPage = nextPage);
+    } catch (_) {
+      // Error already dispatched to Redux store.
+    }
   }
 
   /// True when any SO/PR or PO row linked to this form matches [query].
@@ -5002,10 +5012,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                   .toList(),
               onChanged: (value) {
                 if (value == null) return;
-                setState(() {
-                  _searchField = value;
-                  _visibleFormsCount = _pageSize;
-                });
+                setState(() => _searchField = value);
               },
             ),
           ),
@@ -5105,13 +5112,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                       .where(_matchesMilestoneFilter)
                       .where(_matchesSearch)
                       .toList();
-                  final visibleCount = filteredForms.length < _visibleFormsCount
-                      ? filteredForms.length
-                      : _visibleFormsCount;
-                  final visibleForms = filteredForms
-                      .take(visibleCount)
-                      .toList();
-                  final hasMoreForms = filteredForms.length > visibleCount;
+                  final hasMoreForms = state.hasMore;
                   if (state.isLoadingTool) {
                     return SliverFillRemaiings(
                       errors: "Loading",
@@ -5158,9 +5159,9 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                       ),
                       SliverList(
                         delegate: SliverChildBuilderDelegate((context, index) {
-                          final forms = visibleForms[index];
+                          final forms = filteredForms[index];
                           return _buildFormCard(forms, index);
-                        }, childCount: visibleForms.length),
+                        }, childCount: filteredForms.length),
                       ),
                       if (hasMoreForms)
                         SliverToBoxAdapter(
@@ -5169,7 +5170,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                             child: Column(
                               children: [
                                 Text(
-                                  'Showing $visibleCount of ${filteredForms.length} items',
+                                  'Showing ${filteredForms.length} of ${state.forms.length} loaded items',
                                   style: Theme.of(context).textTheme.bodySmall
                                       ?.copyWith(color: context.textSecondary),
                                 ),
@@ -5177,10 +5178,24 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                                 SizedBox(
                                   width: double.infinity,
                                   child: OutlinedButton.icon(
-                                    onPressed: () =>
-                                        _showMoreForms(filteredForms.length),
-                                    icon: const Icon(Icons.expand_more),
-                                    label: const Text('Load 20 more'),
+                                    onPressed: state.isLoadingMore
+                                        ? null
+                                        : _loadMoreForms,
+                                    icon: state.isLoadingMore
+                                        ? SizedBox(
+                                            width: 18,
+                                            height: 18,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: Colors.orange.shade800,
+                                            ),
+                                          )
+                                        : const Icon(Icons.expand_more),
+                                    label: Text(
+                                      state.isLoadingMore
+                                          ? 'Loading...'
+                                          : 'Load $kToolFormPageSize more',
+                                    ),
                                   ),
                                 ),
                               ],

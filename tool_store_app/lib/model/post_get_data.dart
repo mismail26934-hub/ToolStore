@@ -10,6 +10,12 @@ import 'package:tool_store_app/controller/cont_crud/redux/action.dart';
 import 'package:tool_store_app/controller/cont_crud/redux/state.dart';
 import 'package:tool_store_app/view/var/var.dart';
 
+/// Page size for user list lazy loading (matches PHP default in cont_user.php).
+const int kUserPageSize = 20;
+
+/// Larger fetch when the full user list is needed (dropdowns, app preload).
+const int kUserFullFetchLimit = 1000;
+
 // DATA USER
 ThunkAction<AppState> getDataUser({
   required String param,
@@ -24,10 +30,22 @@ ThunkAction<AppState> getDataUser({
   required String level,
   required String status,
   required String superiorId,
+  int page = 1,
+  int limit = kUserPageSize,
+  bool append = false,
+
+  /// Server-side list filter for [paramViewDataUser] (sent as POST `keyword` / `search_field`).
+  String viewKeyword = '',
+  String viewSearchField = 'all',
 }) {
   return (Store<AppState> store) async {
-    store.dispatch(FetchUsersAction());
-    var map = FormData.fromMap({
+    final isView = param == paramViewDataUser;
+    if (append && isView) {
+      store.dispatch(FetchUsersMoreAction());
+    } else {
+      store.dispatch(FetchUsersAction());
+    }
+    final body = <String, dynamic>{
       'param': param,
       'id_users': idUsers,
       'username': username,
@@ -40,7 +58,17 @@ ThunkAction<AppState> getDataUser({
       'level': level,
       'status': status,
       'superior_id': superiorId,
-    });
+      'page': page.toString(),
+      'limit': limit.toString(),
+    };
+    final kw = viewKeyword.trim();
+    if (isView && kw.isNotEmpty) {
+      body['keyword'] = kw;
+      body['search_field'] = viewSearchField.trim().isEmpty
+          ? 'all'
+          : viewSearchField.trim();
+    }
+    var map = FormData.fromMap(body);
 
     var dio = Dio();
     try {
@@ -48,8 +76,13 @@ ThunkAction<AppState> getDataUser({
       dio.options.receiveTimeout = const Duration(seconds: 20);
       final response = await dio.post(ApiUrl.contDataUser, data: map);
       List<PostList> listUser = parseResponse(response.data);
-      // Dispatch ke store (Redux)
-      store.dispatch(UsersLoadedAction(listUser));
+      print('response.data: ${response.data}');
+      final hasMore = isView && listUser.length >= limit;
+      if (append && isView) {
+        store.dispatch(UsersAppendAction(listUser, hasMore: hasMore));
+      } else {
+        store.dispatch(UsersLoadedAction(listUser, hasMore: hasMore));
+      }
       return listUser;
     } on DioException catch (e) {
       if (e.type == DioExceptionType.connectionError ||
@@ -75,6 +108,12 @@ ThunkAction<AppState> getDataUser({
   };
 }
 
+/// Page size for tool form list lazy loading (matches PHP default in cont_form.php).
+const int kToolFormPageSize = 20;
+
+/// Larger fetch for dashboard milestone counts (not paginated in UI).
+const int kToolFormDashboardFetchLimit = 1000;
+
 // DATA TOOL
 ThunkAction<AppState> getDataTool({
   required String param,
@@ -94,9 +133,17 @@ ThunkAction<AppState> getDataTool({
   required String formSheadComment,
   required String fromDateUpdate,
   required String formUserUpdate,
+  int page = 1,
+  int limit = kToolFormPageSize,
+  bool append = false,
 }) {
   return (Store<AppState> store) async {
-    store.dispatch(FetchDatasAction());
+    final isView = param == paramViewDataForm;
+    if (append && isView) {
+      store.dispatch(FetchDatasMoreAction());
+    } else {
+      store.dispatch(FetchDatasAction());
+    }
     var map = FormData.fromMap({
       'param': param,
       'id_form': idForm,
@@ -115,6 +162,8 @@ ThunkAction<AppState> getDataTool({
       'form_shead_comment': formSheadComment,
       'from_date_update': fromDateUpdate,
       'form_user_update': formUserUpdate,
+      'page': page.toString(),
+      'limit': limit.toString(),
     });
 
     var dio = Dio();
@@ -123,8 +172,12 @@ ThunkAction<AppState> getDataTool({
       dio.options.receiveTimeout = const Duration(seconds: 20);
       final response = await dio.post(ApiUrl.contDataTool, data: map);
       List<PostList> listTool = parseResponse(response.data);
-      // Dispatch ke store (Redux)
-      store.dispatch(DatasLoadedAction(listTool));
+      final hasMore = isView && listTool.length >= limit;
+      if (append && isView) {
+        store.dispatch(DatasAppendAction(listTool, hasMore: hasMore));
+      } else {
+        store.dispatch(DatasLoadedAction(listTool, hasMore: hasMore));
+      }
       return listTool;
     } on DioException catch (e) {
       if (e.type == DioExceptionType.connectionError ||

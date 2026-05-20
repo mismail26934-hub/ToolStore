@@ -35,6 +35,7 @@ Future<void> main() async {
       level: '',
       status: '',
       superiorId: '',
+      limit: kUserFullFetchLimit,
     ),
   );
 

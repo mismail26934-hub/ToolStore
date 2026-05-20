@@ -26,6 +26,7 @@ class _UserDataState extends State<UserData> with MixinPref {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   String _searchField = 'all';
+  int _currentPage = 1;
 
   bool _accessPending = true;
   bool _accessGranted = false;
@@ -41,6 +42,7 @@ class _UserDataState extends State<UserData> with MixinPref {
         _accessPending = false;
         _accessGranted = true;
       });
+      _refreshUsers();
       return;
     }
     setState(() {
@@ -73,11 +75,15 @@ class _UserDataState extends State<UserData> with MixinPref {
     'status': 'Status',
   };
 
-  void _onSearchChanged(String value) {
+  /// Memanggil [getDataUser] dengan keyword dari field (hanya saat ikon search diklik).
+  void _submitSearch() {
     setState(() {
-      _searchQuery = value.trim();
+      _searchQuery = _searchController.text.trim();
     });
+    _refreshUsers();
   }
+
+  void _onSearchTextEdited() => setState(() {});
 
   void _clearSearch() {
     _searchController.clear();
@@ -85,36 +91,7 @@ class _UserDataState extends State<UserData> with MixinPref {
       _searchQuery = '';
       _searchField = 'all';
     });
-  }
-
-  bool _matchesSearch(dynamic users) {
-    if (_searchQuery.isEmpty) return true;
-    final query = _searchQuery.toLowerCase();
-
-    String normalize(dynamic value) => value.toString().toLowerCase();
-
-    switch (_searchField) {
-      case 'username':
-        return normalize(users.username).contains(query);
-      case 'name':
-        return normalize(users.namaUser).contains(query);
-      case 'phone':
-        return normalize(users.noTelp).contains(query);
-      case 'level':
-        return normalize(users.level).contains(query);
-      case 'status':
-        return normalize(users.status).contains(query);
-      case 'all':
-      default:
-        final candidates = <dynamic>[
-          users.username,
-          users.namaUser,
-          users.noTelp,
-          users.level,
-          users.status,
-        ];
-        return candidates.any((value) => normalize(value).contains(query));
-    }
+    _refreshUsers();
   }
 
   String _displayValue(String? value) {
@@ -298,6 +275,54 @@ class _UserDataState extends State<UserData> with MixinPref {
     );
   }
 
+  Future<void> _fetchUsersPage({required int page, required bool append}) async {
+    await store.dispatch(
+      getDataUser(
+        param: paramViewDataUser,
+        idUsers: '',
+        username: '',
+        password: '',
+        namaUser: '',
+        foto: '',
+        idTU: '',
+        noTelp: '',
+        token: '',
+        level: '',
+        status: '',
+        superiorId: '',
+        page: page,
+        limit: kUserPageSize,
+        append: append,
+        viewKeyword: _searchQuery,
+        viewSearchField: _searchField,
+      ),
+    );
+  }
+
+  Future<void> _refreshUsers() async {
+    if (!mounted) return;
+    setState(() => _currentPage = 1);
+    try {
+      await _fetchUsersPage(page: 1, append: false);
+    } catch (_) {
+      // Error already dispatched to Redux store.
+    }
+  }
+
+  Future<void> _loadMoreUsers() async {
+    if (store.state.userState.isLoadingMore ||
+        !store.state.userState.hasMore) {
+      return;
+    }
+    final nextPage = _currentPage + 1;
+    try {
+      await _fetchUsersPage(page: nextPage, append: true);
+      if (mounted) setState(() => _currentPage = nextPage);
+    } catch (_) {
+      // Error already dispatched to Redux store.
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -319,12 +344,16 @@ class _UserDataState extends State<UserData> with MixinPref {
           Expanded(
             child: TextField(
               controller: _searchController,
-              onChanged: _onSearchChanged,
+              onChanged: (_) => _onSearchTextEdited(),
               textInputAction: TextInputAction.search,
               decoration: InputDecoration(
                 hintText: 'Cari data user...',
                 hintStyle: TextStyle(color: context.iconMuted),
-                prefixIcon: Icon(Icons.search, color: clrOrange),
+                prefixIcon: IconButton(
+                  icon: Icon(Icons.search, color: clrOrange),
+                  tooltip: 'Cari',
+                  onPressed: _submitSearch,
+                ),
                 filled: true,
                 fillColor: context.searchAccentFill,
                 contentPadding: const EdgeInsets.symmetric(
@@ -376,10 +405,11 @@ class _UserDataState extends State<UserData> with MixinPref {
                 setState(() {
                   _searchField = value;
                 });
+                _refreshUsers();
               },
             ),
           ),
-          if (_searchQuery.isNotEmpty)
+          if (_searchController.text.trim().isNotEmpty)
             Container(
               margin: const EdgeInsets.only(left: 6),
               decoration: BoxDecoration(
@@ -450,24 +480,7 @@ class _UserDataState extends State<UserData> with MixinPref {
         backgroundColor: context.pageBackground,
         drawer: DrawerMenu(title: name),
         body: RefreshIndicator(
-          onRefresh: () async {
-            await store.dispatch(
-              getDataUser(
-                param: paramViewDataUser,
-                idUsers: '',
-                username: '',
-                password: '',
-                namaUser: '',
-                foto: '',
-                idTU: '',
-                noTelp: '',
-                token: '',
-                level: '',
-                status: '',
-                superiorId: '',
-              ),
-            );
-          },
+          onRefresh: _refreshUsers,
           child: CustomScrollView(
             slivers: [
               SliverAppbars(
@@ -482,9 +495,7 @@ class _UserDataState extends State<UserData> with MixinPref {
               StoreConnector<AppState, UserState>(
                 converter: (store) => store.state.userState,
                 builder: (context, state) {
-                  final filteredUsers = state.users
-                      .where(_matchesSearch)
-                      .toList();
+                  final hasMoreUsers = state.hasMore;
                   // 1. Tampilan saat Loading
                   if (state.isLoading) {
                     return SliverFillRemaiings(
@@ -499,14 +510,8 @@ class _UserDataState extends State<UserData> with MixinPref {
                       hasScrollBodys: false,
                     );
                   }
-                  // 3. Tampilan saat Data Kosong
-                  if (state.users.isEmpty) {
-                    return SliverFillRemaiings(
-                      errors: state.error ?? "No Record Data Found",
-                      hasScrollBodys: false,
-                    );
-                  }
-                  if (filteredUsers.isEmpty) {
+                  // 3. Pencarian API: kosong dengan keyword → tidak ada hasil
+                  if (state.users.isEmpty && _searchQuery.isNotEmpty) {
                     return SliverMainAxisGroup(
                       slivers: [
                         SliverPersistentHeader(
@@ -523,6 +528,13 @@ class _UserDataState extends State<UserData> with MixinPref {
                       ],
                     );
                   }
+                  // 4. Data benar-benar kosong (tanpa filter)
+                  if (state.users.isEmpty) {
+                    return SliverFillRemaiings(
+                      errors: state.error ?? "No Record Data Found",
+                      hasScrollBodys: false,
+                    );
+                  }
                   return SliverMainAxisGroup(
                     slivers: [
                       SliverPersistentHeader(
@@ -534,10 +546,49 @@ class _UserDataState extends State<UserData> with MixinPref {
                       ),
                       SliverList(
                         delegate: SliverChildBuilderDelegate((context, index) {
-                          final users = filteredUsers[index];
+                          final users = state.users[index];
                           return _buildUserCard(users, index);
-                        }, childCount: filteredUsers.length),
+                        }, childCount: state.users.length),
                       ),
+                      if (hasMoreUsers)
+                        SliverToBoxAdapter(
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
+                            child: Column(
+                              children: [
+                                Text(
+                                  '${state.users.length} user(s) loaded',
+                                  style: Theme.of(context).textTheme.bodySmall
+                                      ?.copyWith(color: context.textSecondary),
+                                ),
+                                const SizedBox(height: 8),
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: OutlinedButton.icon(
+                                    onPressed: state.isLoadingMore
+                                        ? null
+                                        : _loadMoreUsers,
+                                    icon: state.isLoadingMore
+                                        ? SizedBox(
+                                            width: 18,
+                                            height: 18,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: Colors.orange.shade800,
+                                            ),
+                                          )
+                                        : const Icon(Icons.expand_more),
+                                    label: Text(
+                                      state.isLoadingMore
+                                          ? 'Loading...'
+                                          : 'Load $kUserPageSize more',
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                     ],
                   );
                 },

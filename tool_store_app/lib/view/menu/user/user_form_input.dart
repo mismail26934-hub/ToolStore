@@ -364,6 +364,7 @@ class _UserFormInputState extends State<UserFormInput> {
         level: '',
         status: '',
         superiorId: '',
+        limit: kUserFullFetchLimit,
       ),
     );
   }
