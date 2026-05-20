@@ -5,6 +5,7 @@ import 'package:tool_store_app/controller/cont_crud/redux/state.dart';
 import 'package:tool_store_app/controller/cont_crud/redux/store.dart';
 import 'package:tool_store_app/model/post_get_data.dart';
 import 'package:tool_store_app/view/custom/routes/page_routes.dart';
+import 'package:tool_store_app/theme/app_theme.dart';
 import 'package:tool_store_app/view/menu/drawer/drawer.dart';
 import 'package:tool_store_app/view/var/var.dart';
 
@@ -78,7 +79,7 @@ class _DashboardState extends State<Dashboard> {
       bottom: true,
       child: Scaffold(
         key: _scaffoldKey,
-        backgroundColor: const Color(0xFFF7F8FA),
+        backgroundColor: context.pageBackground,
         drawer: DrawerMenu(title: name),
         body: Column(
           children: [
@@ -318,7 +319,6 @@ class _DashboardState extends State<Dashboard> {
 class _DashboardHeader extends StatelessWidget {
   const _DashboardHeader({required this.onMenuTap});
 
-  static const _headerRadius = 28.0;
   static const _buttonRadius = 16.0;
   static const _logoRadius = 20.0;
 
@@ -328,16 +328,9 @@ class _DashboardHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 18, 20, 22),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [clrOrange, const Color.fromARGB(255, 255, 184, 76)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: const BorderRadius.only(
-          bottomLeft: Radius.circular(_headerRadius),
-          bottomRight: Radius.circular(_headerRadius),
-        ),
+      decoration: const BoxDecoration(
+        gradient: AppTheme.dashboardHeaderGradient,
+        borderRadius: AppTheme.dashboardHeaderBottomRadius,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -484,12 +477,11 @@ class _DashboardCard extends StatelessWidget {
     final titleStyle = Theme.of(context).textTheme.titleSmall?.copyWith(
       fontWeight: FontWeight.w700,
       height: 1.2,
-      color: const Color(0xFF1F2937),
+      color: context.textPrimary,
     );
-    final subtitleStyle = Theme.of(context).textTheme.bodySmall?.copyWith(
-      color: const Color(0xFF6B7280),
-      height: 1.25,
-    );
+    final subtitleStyle = Theme.of(
+      context,
+    ).textTheme.bodySmall?.copyWith(color: context.textSecondary, height: 1.25);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -501,13 +493,13 @@ class _DashboardCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(22),
             child: Ink(
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFFFFFFFF), Color(0xFFF9FAFB)],
+                gradient: LinearGradient(
+                  colors: [context.cardGradientStart, context.cardGradientEnd],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
                 borderRadius: BorderRadius.circular(22),
-                border: Border.all(color: const Color(0xFFE5E7EB)),
+                border: Border.all(color: context.cardBorder),
                 boxShadow: [
                   BoxShadow(
                     color: iconColor.withValues(alpha: 0.11),

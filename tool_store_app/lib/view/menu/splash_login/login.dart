@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tool_store_app/model/post_get_data.dart';
+import 'package:tool_store_app/theme/app_theme.dart';
 import 'package:tool_store_app/view/menu/dashboard/dashboard.dart';
-import 'package:tool_store_app/view/menu/tooll/tool_data.dart';
 import 'package:tool_store_app/view/var/var.dart';
 
 class Login extends StatefulWidget {
@@ -15,7 +15,8 @@ class Login extends StatefulWidget {
 class _LoginState extends State<Login> {
   bool _obscurePassword = true;
 
-  InputDecoration _inputDecoration({
+  InputDecoration _inputDecoration(
+    BuildContext context, {
     required String label,
     required IconData icon,
     Widget? suffixIcon,
@@ -25,15 +26,15 @@ class _LoginState extends State<Login> {
       prefixIcon: Icon(icon, color: clrOrange),
       suffixIcon: suffixIcon,
       filled: true,
-      fillColor: Colors.grey.shade50,
+      fillColor: Theme.of(context).inputDecorationTheme.fillColor,
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: BorderSide(color: Colors.grey.shade200),
+        borderSide: BorderSide(color: context.cardBorder),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: BorderSide(color: Colors.grey.shade200),
+        borderSide: BorderSide(color: context.cardBorder),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
@@ -45,16 +46,16 @@ class _LoginState extends State<Login> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: clrWhite,
+      backgroundColor: context.pageBackground,
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              clrOrange.withValues(alpha: 0.08),
-              Colors.white,
-              Colors.white,
+              clrOrange.withValues(alpha: context.isDarkMode ? 0.12 : 0.08),
+              context.pageBackground,
+              context.pageBackground,
             ],
           ),
         ),
@@ -109,7 +110,7 @@ class _LoginState extends State<Login> {
                           child: Text(
                             "Masuk untuk melanjutkan ke dashboard",
                             style: Theme.of(context).textTheme.bodyMedium
-                                ?.copyWith(color: Colors.grey.shade600),
+                                ?.copyWith(color: context.textSecondary),
                           ),
                         ),
                       ),
@@ -122,12 +123,14 @@ class _LoginState extends State<Login> {
                             width: double.infinity,
                             padding: const EdgeInsets.all(20),
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: context.cardSurface,
                               borderRadius: BorderRadius.circular(24),
-                              border: Border.all(color: Colors.grey.shade200),
+                              border: Border.all(color: context.cardBorder),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.05),
+                                  color: Colors.black.withValues(
+                                    alpha: context.isDarkMode ? 0.28 : 0.05,
+                                  ),
                                   blurRadius: 18,
                                   offset: const Offset(0, 10),
                                 ),
@@ -169,6 +172,7 @@ class _LoginState extends State<Login> {
                                   controller: username,
                                   textInputAction: TextInputAction.next,
                                   decoration: _inputDecoration(
+                                    context,
                                     label: 'Username',
                                     icon: Icons.person_outline,
                                   ),
@@ -182,6 +186,7 @@ class _LoginState extends State<Login> {
                                   controller: password,
                                   obscureText: _obscurePassword,
                                   decoration: _inputDecoration(
+                                    context,
                                     label: 'Password',
                                     icon: Icons.lock_outline,
                                     suffixIcon: IconButton(

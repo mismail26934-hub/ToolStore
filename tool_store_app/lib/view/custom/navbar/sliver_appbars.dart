@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tool_store_app/theme/app_theme.dart';
 import 'package:tool_store_app/view/var/var.dart';
 
 class SliverAppbars extends StatefulWidget {
@@ -9,12 +10,10 @@ class SliverAppbars extends StatefulWidget {
     required this.iconTailing,
     required this.onPressLeading,
     required this.iconLeading,
-    required this.textColor,
   });
 
   final String title;
   final void Function()? onPressTailing, onPressLeading;
-  final Color textColor;
   final Icon iconTailing, iconLeading;
 
   @override
@@ -22,6 +21,8 @@ class SliverAppbars extends StatefulWidget {
 }
 
 class _SliverAppbarsState extends State<SliverAppbars> {
+  static const _buttonRadius = 16.0;
+
   @override
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.sizeOf(context).width < mobileWidth;
@@ -40,46 +41,45 @@ class _SliverAppbarsState extends State<SliverAppbars> {
       pinned: true,
       stretch: true,
       elevation: 0,
-      backgroundColor: clrWhite,
-      foregroundColor: widget.textColor,
-      shadowColor: Colors.black12,
+      backgroundColor: clrOrange,
+      foregroundColor: Colors.white,
+      shadowColor: Colors.transparent,
       surfaceTintColor: Colors.transparent,
+      shape: const RoundedRectangleBorder(
+        borderRadius: AppTheme.dashboardHeaderBottomRadius,
+      ),
       leadingWidth: 72,
       leading: Padding(
         padding: const EdgeInsets.only(left: 16, top: 5, bottom: 5),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: clrOrange.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: clrOrange.withValues(alpha: 0.18)),
-          ),
-          child: IconButton(
-            onPressed: widget.onPressLeading,
-            icon: widget.iconLeading,
-            color: clrOrange,
-            tooltip: MaterialLocalizations.of(context).openAppDrawerTooltip,
+        child: Material(
+          color: Colors.white.withValues(alpha: 0.18),
+          borderRadius: BorderRadius.circular(_buttonRadius),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(_buttonRadius),
+            onTap: widget.onPressLeading,
+            child: IconButton(
+              onPressed: widget.onPressLeading,
+              icon: widget.iconLeading,
+              color: Colors.white,
+              tooltip: MaterialLocalizations.of(context).openAppDrawerTooltip,
+            ),
           ),
         ),
       ),
       actions: [
         Padding(
           padding: const EdgeInsets.only(right: 16, top: 10, bottom: 10),
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: clrOrange,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: clrOrange.withValues(alpha: 0.22),
-                  blurRadius: 18,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            child: IconButton(
-              onPressed: widget.onPressTailing,
-              icon: widget.iconTailing,
-              color: clrWhite,
+          child: Material(
+            color: Colors.white.withValues(alpha: 0.16),
+            borderRadius: BorderRadius.circular(_buttonRadius),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(_buttonRadius),
+              onTap: widget.onPressTailing,
+              child: IconButton(
+                onPressed: widget.onPressTailing,
+                icon: widget.iconTailing,
+                color: Colors.white,
+              ),
             ),
           ),
         ),
@@ -90,49 +90,18 @@ class _SliverAppbarsState extends State<SliverAppbars> {
         overflow: TextOverflow.ellipsis,
         textAlign: TextAlign.center,
         style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-          color: clrOrange,
-          fontWeight: FontWeight.w700,
+          color: Colors.white,
+          fontWeight: FontWeight.w800,
           letterSpacing: 0.2,
         ),
       ),
       flexibleSpace: FlexibleSpaceBar(
         stretchModes: const [StretchMode.fadeTitle, StretchMode.blurBackground],
-        background: LayoutBuilder(
-          builder: (context, constraints) {
-            final range = (expandedHeight - collapsedHeight).abs();
-            final collapseProgress =
-                ((constraints.biggest.height - collapsedHeight) /
-                        (range == 0 ? 1 : range))
-                    .clamp(0.0, 1.0);
-
-            return Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    clrOrange.withValues(
-                      alpha: 0.08 + (0.06 * collapseProgress),
-                    ),
-                    clrOrange.withValues(
-                      alpha: 0.03 + (0.02 * collapseProgress),
-                    ),
-                    clrOrange.withValues(
-                      alpha: 0.08 + (0.06 * collapseProgress),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        ),
-      ),
-      bottom: PreferredSize(
-        preferredSize: const Size.fromHeight(1),
-        child: Container(
-          height: 1,
-          margin: const EdgeInsets.symmetric(horizontal: 16),
-          color: Colors.grey.shade200,
+        background: DecoratedBox(
+          decoration: const BoxDecoration(
+            gradient: AppTheme.dashboardHeaderGradient,
+            borderRadius: AppTheme.dashboardHeaderBottomRadius,
+          ),
         ),
       ),
     );

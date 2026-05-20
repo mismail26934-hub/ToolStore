@@ -4,6 +4,7 @@ import 'package:tool_store_app/controller/cont_crud/redux/state.dart';
 import 'package:tool_store_app/model/post_get_data.dart';
 import 'package:tool_store_app/view/custom/form/text_form_field.dart';
 import 'package:tool_store_app/view/custom/show_dialog/show_dialog.dart';
+import 'package:tool_store_app/theme/app_theme.dart';
 import 'package:tool_store_app/view/var/var.dart';
 
 class ToolFormMultipleInput extends StatefulWidget {
@@ -41,12 +42,12 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
       margin: const EdgeInsets.only(bottom: 14),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.cardSurface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: context.cardBorder),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
+            color: context.cardShadow,
             blurRadius: 14,
             offset: const Offset(0, 8),
           ),
@@ -284,14 +285,14 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
       labelText: label,
       labelStyle: Theme.of(context).textTheme.labelMedium,
       filled: true,
-      fillColor: Colors.white,
+      fillColor: context.inputFill,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: BorderSide(color: Colors.grey.shade300),
+        borderSide: BorderSide(color: context.cardBorder),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: BorderSide(color: Colors.grey.shade300),
+        borderSide: BorderSide(color: context.cardBorder),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
@@ -304,12 +305,12 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F8FA),
+      backgroundColor: context.pageBackground,
       appBar: AppBar(
         elevation: 0,
         centerTitle: false,
         surfaceTintColor: Colors.transparent,
-        backgroundColor: clrWhite,
+        backgroundColor: context.appBarSurface,
         foregroundColor: clrOrange,
         toolbarHeight: 84,
         titleSpacing: 18,
@@ -367,7 +368,7 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
               stops: const [0.0, 0.55, 1.0],
             ),
             border: Border(
-              bottom: BorderSide(color: Colors.grey.shade200, width: 1),
+              bottom: BorderSide(color: context.cardBorder, width: 1),
             ),
           ),
         ),
@@ -392,7 +393,7 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
                   tooltip: "Add item row",
                   onPressed: _addRow,
                   icon: const Icon(Icons.add_rounded),
-                  color: clrWhite,
+                  color: context.cardSurface,
                 ),
               ),
             ),
@@ -402,7 +403,7 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
           child: Container(
             height: 1,
             margin: const EdgeInsets.symmetric(horizontal: 16),
-            color: Colors.grey.shade200,
+            color: context.cardBorder,
           ),
         ),
       ),

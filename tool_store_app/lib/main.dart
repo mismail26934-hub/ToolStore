@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_redux/flutter_redux.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter/services.dart';
 import 'package:tool_store_app/controller/cont_crud/redux/state.dart';
 import 'package:tool_store_app/controller/cont_crud/redux/store.dart';
 import 'package:tool_store_app/model/post_get_data.dart';
+import 'package:tool_store_app/theme/app_theme.dart';
+import 'package:tool_store_app/theme/theme_controller.dart';
 import 'package:tool_store_app/view/custom/mixin/mixin_pref.dart';
 import 'package:tool_store_app/view/custom/web_custom/web_custom_berhaviour.dart';
 import 'package:tool_store_app/view/menu/splash_login/splash.dart';
 import 'package:tool_store_app/view/var/var.dart';
-import 'package:flutter/services.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await themeController.load();
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
@@ -143,47 +145,37 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> with MixinPref {
   @override
+  void initState() {
+    super.initState();
+    themeController.load();
+    themeController.addListener(_onThemeChanged);
+  }
+
+  @override
+  void dispose() {
+    themeController.removeListener(_onThemeChanged);
+    super.dispose();
+  }
+
+  void _onThemeChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
   Widget build(BuildContext context) {
     return StoreProvider<AppState>(
       store: store,
       child: MaterialApp(
-        color: clrWhite,
+        color: themeController.isDarkMode ? const Color(0xFF0F1117) : clrWhite,
         scrollBehavior: WebCustomScrollBehavior(),
         debugShowCheckedModeBanner: false,
+        theme: AppTheme.light,
+        darkTheme: AppTheme.dark,
+        themeMode: themeController.themeMode,
         home: SplashScreen(),
-        theme: ThemeData(
-          appBarTheme: AppBarTheme(
-            backgroundColor: clrOrange,
-            foregroundColor: Colors.black,
-          ),
-          drawerTheme: DrawerThemeData(backgroundColor: clrWhite),
-          scaffoldBackgroundColor: clrWhite,
-          useMaterial3: true,
-          dialogTheme: DialogThemeData(backgroundColor: clrWhite),
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: clrWhite,
-            primary: clrOrange,
-          ),
-          textTheme: TextTheme(
-            // Kita daftarkan style khusus untuk title app bar
-            titleLarge: GoogleFonts.robotoFlex(
-              fontSize: 18.0,
-              fontWeight: FontWeight.bold,
-              color: clrBlack, // Sesuaikan warna default
-            ),
-            titleMedium: GoogleFonts.robotoFlex(
-              fontSize: 16.0,
-              fontWeight: FontWeight.bold,
-              color: clrBlack, // Sesuaikan warna default
-            ),
-            titleSmall: GoogleFonts.robotoFlex(
-              fontSize: 14.0,
-              fontWeight: FontWeight.bold,
-              color: clrBlack, // Sesuaikan warna default
-            ),
-          ),
-        ),
       ),
     );
   }
 }
+
+final themeController = ThemeController.instance;

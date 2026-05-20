@@ -9,6 +9,8 @@ import 'package:tool_store_app/view/custom/mixin/mixin_pref.dart';
 import 'package:tool_store_app/view/custom/navbar/sliver_appbars.dart';
 import 'package:tool_store_app/view/custom/routes/page_routes.dart';
 import 'package:tool_store_app/view/custom/navbar/sliver_fill_remaining.dart';
+import 'package:tool_store_app/theme/app_theme.dart';
+import 'package:tool_store_app/theme/theme_controller.dart';
 import 'package:tool_store_app/view/menu/drawer/drawer.dart';
 import 'package:tool_store_app/view/var/var.dart';
 
@@ -56,7 +58,7 @@ class _UserDataState extends State<UserData> with MixinPref {
         ),
       );
       final prefs = await SharedPreferences.getInstance();
-      await prefs.clear();
+      await ThemeController.preserveOnPrefsClear(prefs);
       if (!mounted) return;
       await PageRoutes.routeLoginFast(context);
     });
@@ -204,14 +206,17 @@ class _UserDataState extends State<UserData> with MixinPref {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
         gradient: LinearGradient(
-          colors: [Colors.white, statusColor.withValues(alpha: 0.04)],
+          colors: [
+            context.cardSurface,
+            statusColor.withValues(alpha: context.isDarkMode ? 0.12 : 0.04),
+          ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: context.cardBorder),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: context.cardShadow,
             blurRadius: 14,
             offset: const Offset(0, 8),
           ),
@@ -318,21 +323,21 @@ class _UserDataState extends State<UserData> with MixinPref {
               textInputAction: TextInputAction.search,
               decoration: InputDecoration(
                 hintText: 'Cari data user...',
-                hintStyle: TextStyle(color: Colors.grey.shade500),
+                hintStyle: TextStyle(color: context.iconMuted),
                 prefixIcon: Icon(Icons.search, color: clrOrange),
                 filled: true,
-                fillColor: Colors.orange.shade50,
+                fillColor: context.searchAccentFill,
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 12,
                   vertical: 12,
                 ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.orange.shade200),
+                  borderSide: BorderSide(color: context.searchAccentBorder),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.orange.shade200),
+                  borderSide: BorderSide(color: context.searchAccentBorder),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -345,9 +350,9 @@ class _UserDataState extends State<UserData> with MixinPref {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10),
             decoration: BoxDecoration(
-              color: Colors.orange.shade50,
+              color: context.searchAccentFill,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.orange.shade200),
+              border: Border.all(color: context.searchAccentBorder),
             ),
             child: DropdownButton<String>(
               value: _searchField,
@@ -400,7 +405,7 @@ class _UserDataState extends State<UserData> with MixinPref {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.search_off, size: 52, color: Colors.grey.shade500),
+            Icon(Icons.search_off, size: 52, color: context.iconMuted),
             const SizedBox(height: 12),
             Text(
               '$_searchQuery '
@@ -423,7 +428,7 @@ class _UserDataState extends State<UserData> with MixinPref {
       return SafeArea(
         bottom: true,
         child: Scaffold(
-          backgroundColor: clrWhite,
+          backgroundColor: context.pageBackground,
           body: Center(child: CircularProgressIndicator(color: clrOrange)),
         ),
       );
@@ -432,7 +437,7 @@ class _UserDataState extends State<UserData> with MixinPref {
       return SafeArea(
         bottom: true,
         child: Scaffold(
-          backgroundColor: clrWhite,
+          backgroundColor: context.pageBackground,
           body: const SizedBox.shrink(),
         ),
       );
@@ -442,7 +447,7 @@ class _UserDataState extends State<UserData> with MixinPref {
       bottom: true,
       child: Scaffold(
         key: _scaffoldKey,
-        backgroundColor: clrWhite,
+        backgroundColor: context.pageBackground,
         drawer: DrawerMenu(title: name),
         body: RefreshIndicator(
           onRefresh: () async {
@@ -471,7 +476,6 @@ class _UserDataState extends State<UserData> with MixinPref {
                   postContUser("", "", "", "", "", "", "", "", "", context);
                 },
                 onPressLeading: () => _scaffoldKey.currentState?.openDrawer(),
-                textColor: Colors.black,
                 iconTailing: Icon(Icons.add),
                 iconLeading: Icon(Icons.menu),
               ),
@@ -508,7 +512,7 @@ class _UserDataState extends State<UserData> with MixinPref {
                         SliverPersistentHeader(
                           pinned: true,
                           delegate: _PinnedSearchHeaderDelegate(
-                            backgroundColor: clrWhite,
+                            backgroundColor: context.pageBackground,
                             child: _buildSearchBar(),
                           ),
                         ),
@@ -524,7 +528,7 @@ class _UserDataState extends State<UserData> with MixinPref {
                       SliverPersistentHeader(
                         pinned: true,
                         delegate: _PinnedSearchHeaderDelegate(
-                          backgroundColor: clrWhite,
+                          backgroundColor: context.pageBackground,
                           child: _buildSearchBar(),
                         ),
                       ),

@@ -10,6 +10,7 @@ import 'package:tool_store_app/model/post_get_data.dart';
 import 'package:tool_store_app/view/custom/form/text_form_field.dart';
 import 'package:tool_store_app/view/custom/routes/page_routes.dart';
 import 'package:tool_store_app/view/custom/show_dialog/show_dialog.dart';
+import 'package:tool_store_app/theme/app_theme.dart';
 import 'package:tool_store_app/view/var/var.dart';
 
 String _userPickLabel(PostList u) {
@@ -87,7 +88,7 @@ class _ToolUserPickerDialogState extends State<_ToolUserPickerDialog> {
         width: min(MediaQuery.sizeOf(context).width - 40, 420),
         height: h,
         decoration: BoxDecoration(
-          color: const Color(0xFFF7F8FA),
+          color: context.pageBackground,
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
@@ -104,8 +105,8 @@ class _ToolUserPickerDialogState extends State<_ToolUserPickerDialog> {
             Container(
               padding: const EdgeInsets.fromLTRB(18, 16, 8, 16),
               decoration: BoxDecoration(
-                color: Colors.white,
-                border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
+                color: context.cardSurface,
+                border: Border(bottom: BorderSide(color: context.cardBorder)),
               ),
               child: Row(
                 children: [
@@ -137,7 +138,7 @@ class _ToolUserPickerDialogState extends State<_ToolUserPickerDialog> {
                         Text(
                           'Cari lalu ketuk salah satu nama',
                           style: theme.textTheme.bodySmall?.copyWith(
-                            color: Colors.grey.shade600,
+                            color: context.textSecondary,
                           ),
                         ),
                       ],
@@ -146,8 +147,8 @@ class _ToolUserPickerDialogState extends State<_ToolUserPickerDialog> {
                   IconButton(
                     onPressed: () => Navigator.pop(context),
                     style: IconButton.styleFrom(
-                      backgroundColor: Colors.grey.shade100,
-                      foregroundColor: Colors.grey.shade700,
+                      backgroundColor: context.chipNeutralBg,
+                      foregroundColor: context.chipNeutralFg,
                     ),
                     icon: const Icon(Icons.close_rounded, size: 22),
                   ),
@@ -164,18 +165,18 @@ class _ToolUserPickerDialogState extends State<_ToolUserPickerDialog> {
                   hintText: 'Nama atau username…',
                   prefixIcon: Icon(Icons.search_rounded, color: clrOrange),
                   filled: true,
-                  fillColor: Colors.white,
+                  fillColor: context.inputFill,
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 14,
                     vertical: 14,
                   ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide(color: Colors.grey.shade300),
+                    borderSide: BorderSide(color: context.cardBorder),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide(color: Colors.grey.shade300),
+                    borderSide: BorderSide(color: context.cardBorder),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16),
@@ -204,7 +205,7 @@ class _ToolUserPickerDialogState extends State<_ToolUserPickerDialog> {
                             Icon(
                               Icons.person_search_rounded,
                               size: 48,
-                              color: Colors.grey.shade400,
+                              color: context.iconMuted,
                             ),
                             const SizedBox(height: 12),
                             Text(
@@ -213,7 +214,7 @@ class _ToolUserPickerDialogState extends State<_ToolUserPickerDialog> {
                                   : 'Tidak ada hasil untuk pencarian ini',
                               textAlign: TextAlign.center,
                               style: theme.textTheme.bodyMedium?.copyWith(
-                                color: Colors.grey.shade600,
+                                color: context.textSecondary,
                               ),
                             ),
                           ],
@@ -231,7 +232,7 @@ class _ToolUserPickerDialogState extends State<_ToolUserPickerDialog> {
                         final showUserLine = un.isNotEmpty &&
                             un.toLowerCase() != title.toLowerCase();
                         return Material(
-                          color: Colors.white,
+                          color: context.cardSurface,
                           borderRadius: BorderRadius.circular(16),
                           elevation: 0,
                           child: InkWell(
@@ -240,7 +241,7 @@ class _ToolUserPickerDialogState extends State<_ToolUserPickerDialog> {
                             child: Container(
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(16),
-                                border: Border.all(color: Colors.grey.shade200),
+                                border: Border.all(color: context.cardBorder),
                               ),
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 14,
@@ -283,7 +284,7 @@ class _ToolUserPickerDialogState extends State<_ToolUserPickerDialog> {
                                             '@$un',
                                             style: theme.textTheme.bodySmall
                                                 ?.copyWith(
-                                                  color: Colors.grey.shade500,
+                                                  color: context.iconMuted,
                                                   fontStyle: FontStyle.italic,
                                                 ),
                                           ),
@@ -293,7 +294,7 @@ class _ToolUserPickerDialogState extends State<_ToolUserPickerDialog> {
                                   ),
                                   Icon(
                                     Icons.chevron_right_rounded,
-                                    color: Colors.grey.shade400,
+                                    color: context.iconMuted,
                                   ),
                                 ],
                               ),
@@ -438,14 +439,14 @@ class ToolFormInputState extends State<ToolFormInput> {
       labelText: label,
       labelStyle: Theme.of(context).textTheme.labelMedium,
       filled: true,
-      fillColor: Colors.white,
+      fillColor: context.inputFill,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: BorderSide(color: Colors.grey.shade300),
+        borderSide: BorderSide(color: context.cardBorder),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: BorderSide(color: Colors.grey.shade300),
+        borderSide: BorderSide(color: context.cardBorder),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
@@ -558,7 +559,7 @@ class ToolFormInputState extends State<ToolFormInput> {
                       child: Text(
                         hasValue ? controller.text : placeholder,
                         style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                          color: hasValue ? null : Colors.grey.shade500,
+                          color: hasValue ? null : context.iconMuted,
                           fontWeight: hasValue
                               ? FontWeight.w600
                               : FontWeight.w400,
@@ -585,9 +586,9 @@ class ToolFormInputState extends State<ToolFormInput> {
       margin: const EdgeInsets.only(bottom: 14),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.cardSurface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: context.cardBorder),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
@@ -641,7 +642,7 @@ class ToolFormInputState extends State<ToolFormInput> {
             onPressed: () => selectDate(context, controller, () {}),
             style: OutlinedButton.styleFrom(
               padding: EdgeInsets.zero,
-              side: BorderSide(color: Colors.grey.shade300),
+              side: BorderSide(color: context.cardBorder),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -705,12 +706,12 @@ class ToolFormInputState extends State<ToolFormInput> {
         : null;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F8FA),
+      backgroundColor: context.pageBackground,
       appBar: AppBar(
         elevation: 0,
         centerTitle: false,
         surfaceTintColor: Colors.transparent,
-        backgroundColor: clrWhite,
+        backgroundColor: context.appBarSurface,
         foregroundColor: clrOrange,
         toolbarHeight: 84,
         titleSpacing: 18,
@@ -768,7 +769,7 @@ class ToolFormInputState extends State<ToolFormInput> {
               stops: const [0.0, 0.55, 1.0],
             ),
             border: Border(
-              bottom: BorderSide(color: Colors.grey.shade200, width: 1),
+              bottom: BorderSide(color: context.cardBorder, width: 1),
             ),
           ),
         ),
@@ -803,7 +804,7 @@ class ToolFormInputState extends State<ToolFormInput> {
           child: Container(
             height: 1,
             margin: const EdgeInsets.symmetric(horizontal: 16),
-            color: Colors.grey.shade200,
+            color: context.cardBorder,
           ),
         ),
       ),

@@ -12,6 +12,7 @@ import 'package:tool_store_app/view/custom/mixin/mixin_pref.dart';
 import 'package:tool_store_app/view/custom/navbar/sliver_appbars.dart';
 import 'package:tool_store_app/view/custom/navbar/sliver_fill_remaining.dart';
 import 'package:tool_store_app/view/menu/drawer/drawer.dart';
+import 'package:tool_store_app/theme/app_theme.dart';
 import 'package:tool_store_app/view/var/var.dart';
 import 'package:intl/intl.dart';
 import 'package:redux/redux.dart';
@@ -63,8 +64,10 @@ class _ToolDataState extends State<ToolData> with MixinPref {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final Set<String> _expandedForms = <String>{};
   final TextEditingController _searchController = TextEditingController();
+  static const int _pageSize = 20;
   String _searchQuery = '';
   String _searchField = 'all';
+  int _visibleFormsCount = _pageSize;
 
   String get _pageTitle {
     final customTitle = widget.title?.trim();
@@ -90,6 +93,8 @@ class _ToolDataState extends State<ToolData> with MixinPref {
     'serviceman': 'Serviceman',
     'status': 'Status',
     'idForm': 'Category',
+    'pnGroup': 'PN Group',
+    'pnDesc': 'Description',
   };
 
   @override
@@ -189,6 +194,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
   void _onSearchChanged(String value) {
     setState(() {
       _searchQuery = value.trim();
+      _visibleFormsCount = _pageSize;
     });
   }
 
@@ -197,6 +203,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
     setState(() {
       _searchQuery = '';
       _searchField = 'all';
+      _visibleFormsCount = _pageSize;
     });
   }
 
@@ -209,6 +216,16 @@ class _ToolDataState extends State<ToolData> with MixinPref {
     setState(() {
       _searchQuery = no;
       _searchField = 'formNo';
+      _visibleFormsCount = _pageSize;
+    });
+  }
+
+  void _showMoreForms(int total) {
+    setState(() {
+      _visibleFormsCount = max(_visibleFormsCount + _pageSize, _pageSize);
+      if (_visibleFormsCount > total) {
+        _visibleFormsCount = total;
+      }
     });
   }
 
@@ -242,6 +259,30 @@ class _ToolDataState extends State<ToolData> with MixinPref {
     return false;
   }
 
+  /// True when any tool line for this form has [pn_group] matching [query].
+  bool _formMatchesPnGroupSearch(PostList form, String query) {
+    final q = query.trim().toLowerCase();
+    if (q.isEmpty) return false;
+    final idForm = form.idForm.trim();
+    if (idForm.isEmpty) return false;
+    String norm(String v) => v.toLowerCase();
+    return store.state.formsDetailState.formsDetail.any(
+      (t) => t.idForm.trim() == idForm && norm(t.pnGroup).contains(q),
+    );
+  }
+
+  /// True when any tool line for this form has [pn_desc] matching [query].
+  bool _formMatchesPnDescSearch(PostList form, String query) {
+    final q = query.trim().toLowerCase();
+    if (q.isEmpty) return false;
+    final idForm = form.idForm.trim();
+    if (idForm.isEmpty) return false;
+    String norm(String v) => v.toLowerCase();
+    return store.state.formsDetailState.formsDetail.any(
+      (t) => t.idForm.trim() == idForm && norm(t.pnDesc).contains(q),
+    );
+  }
+
   bool _matchesSearch(PostList form) {
     if (_searchQuery.isEmpty) return true;
     final query = _searchQuery.toLowerCase();
@@ -257,6 +298,10 @@ class _ToolDataState extends State<ToolData> with MixinPref {
         return normalize(form.formServComment).contains(query);
       case 'idForm':
         return normalize(form.idForm).contains(query);
+      case 'pnGroup':
+        return _formMatchesPnGroupSearch(form, query);
+      case 'pnDesc':
+        return _formMatchesPnDescSearch(form, query);
       case 'all':
       default:
         final candidates = <String>[
@@ -266,7 +311,9 @@ class _ToolDataState extends State<ToolData> with MixinPref {
           form.idForm,
         ];
         return candidates.any((value) => normalize(value).contains(query)) ||
-            _formMatchesOrderDocsSearch(form, query);
+            _formMatchesOrderDocsSearch(form, query) ||
+            _formMatchesPnGroupSearch(form, query) ||
+            _formMatchesPnDescSearch(form, query);
     }
   }
 
@@ -388,6 +435,33 @@ class _ToolDataState extends State<ToolData> with MixinPref {
     return currentUserId == formSuperiorId;
   }
 
+  bool get _canEditDeletePurchaseOrder {
+    final currentLevel = level.trim().toUpperCase();
+    return currentLevel == 'SUPERADMIN' || currentLevel == 'TOOL_KEEPER';
+  }
+
+  bool get _canManageSalesOrderPr {
+    final currentLevel = level.trim().toUpperCase();
+    return currentLevel == 'SUPERADMIN' ||
+        currentLevel == 'COUNTER' ||
+        currentLevel == 'GA';
+  }
+
+  bool get _canManageRcvWhDate {
+    final currentLevel = level.trim().toUpperCase();
+    return currentLevel == 'SUPERADMIN' || currentLevel == 'WH';
+  }
+
+  bool get _canManageRcvToolDate {
+    final currentLevel = level.trim().toUpperCase();
+    return currentLevel == 'SUPERADMIN' || currentLevel == 'TOOL_KEEPER';
+  }
+
+  bool get _canAddToolToForm {
+    final currentLevel = level.trim().toUpperCase();
+    return currentLevel == 'SUPERADMIN' || currentLevel == 'TOOL_KEEPER';
+  }
+
   Widget _buildInfoTile({
     required IconData icon,
     required String label,
@@ -404,9 +478,9 @@ class _ToolDataState extends State<ToolData> with MixinPref {
     return Container(
       padding: tilePadding,
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
+        color: context.mutedSurface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: context.cardBorder),
       ),
       child: Row(
         children: [
@@ -431,7 +505,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                         text: label,
                         style: Theme.of(context).textTheme.labelMedium
                             ?.copyWith(
-                              color: Colors.grey.shade700,
+                              color: context.textSecondary,
                               fontWeight: FontWeight.w600,
                             ),
                       ),
@@ -440,7 +514,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                           text: ' - ',
                           style: Theme.of(context).textTheme.labelMedium
                               ?.copyWith(
-                                color: Colors.grey.shade600,
+                                color: context.textSecondary,
                                 fontWeight: FontWeight.w600,
                               ),
                         ),
@@ -452,7 +526,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                               child: Icon(
                                 statusIcon,
                                 size: 13,
-                                color: statusColor ?? Colors.grey.shade700,
+                                color: statusColor ?? context.textSecondary,
                               ),
                             ),
                           ),
@@ -460,7 +534,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                           text: statusText,
                           style: Theme.of(context).textTheme.labelSmall
                               ?.copyWith(
-                                color: statusColor ?? Colors.grey.shade700,
+                                color: statusColor ?? context.textSecondary,
                                 fontWeight: FontWeight.w700,
                               ),
                         ),
@@ -635,7 +709,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
     required double trackHeight,
   }) {
     final activeColor = clrOrange;
-    final connectorMuted = Colors.grey.shade300;
+    final connectorMuted = context.connectorMuted;
     final capR = trackHeight / 2;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -679,9 +753,9 @@ class _ToolDataState extends State<ToolData> with MixinPref {
     final panelBg = clrOrange.withValues(alpha: 0.08);
     final activeColor = clrOrange;
     final errorColor = Colors.red.shade700;
-    final inactiveCardBg = Colors.grey.shade50;
-    final inactiveTitle = Colors.grey.shade900;
-    final connectorMuted = Colors.grey.shade300;
+    final inactiveCardBg = context.mutedSurface;
+    final inactiveTitle = context.inactiveTitle;
+    final connectorMuted = context.connectorMuted;
     final isMobile = MediaQuery.sizeOf(context).width < mobileWidth;
     final orangeSteps = vm.orangeCompleted.clamp(0, _orderTimelineStepCount);
     final trackOrangeThrough = (vm.redStepIndex ?? vm.orangeCompleted).clamp(
@@ -709,9 +783,9 @@ class _ToolDataState extends State<ToolData> with MixinPref {
         height: _timelineNodeDiameter,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: (isOrangeDone || isRed) ? accent : Colors.white,
+          color: (isOrangeDone || isRed) ? accent : context.cardSurface,
           border: Border.all(
-            color: (isOrangeDone || isRed) ? accent : Colors.grey.shade300,
+            color: (isOrangeDone || isRed) ? accent : context.connectorMuted,
             width: 2,
           ),
           boxShadow: (isOrangeDone || isRed)
@@ -747,7 +821,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
             shape: BoxShape.circle,
             color: (isOrangeDone || isRed) ? accent : inactiveCardBg,
             border: Border.all(
-              color: (isOrangeDone || isRed) ? accent : Colors.grey.shade200,
+              color: (isOrangeDone || isRed) ? accent : context.cardBorder,
             ),
           ),
           child: Text(
@@ -766,7 +840,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
           color: (isOrangeDone || isRed) ? accent : inactiveCardBg,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: (isOrangeDone || isRed) ? accent : Colors.grey.shade200,
+            color: (isOrangeDone || isRed) ? accent : context.cardBorder,
           ),
         ),
         child: Column(
@@ -793,7 +867,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                 height: 1.2,
                 color: (isOrangeDone || isRed)
                     ? Colors.white.withValues(alpha: 0.9)
-                    : Colors.black.withValues(alpha: 0.72),
+                    : context.textSecondary,
               ),
             ),
           ],
@@ -947,14 +1021,14 @@ class _ToolDataState extends State<ToolData> with MixinPref {
             message,
             style: Theme.of(
               confirmContext,
-            ).textTheme.bodyMedium?.copyWith(color: Colors.grey.shade800),
+            ).textTheme.bodyMedium?.copyWith(color: context.bodyMuted),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(confirmContext, false),
               child: Text(
                 'Cancel',
-                style: TextStyle(color: Colors.grey.shade800),
+                style: TextStyle(color: context.bodyMuted),
               ),
             ),
             ElevatedButton(
@@ -1998,6 +2072,19 @@ class _ToolDataState extends State<ToolData> with MixinPref {
   }
 
   Future<void> _showUpdatePurchaseOrderDialog(PostList itemPO) async {
+    if (!_canEditDeletePurchaseOrder) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+            'Akses ditolak. Edit PO hanya untuk SUPERADMIN dan TOOL_KEEPER.',
+            style: TextStyle(color: Colors.white),
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
     idPoCont.text = itemPO.idPo.trim();
     poNoCont.text = itemPO.poNo.trim();
     dateUpdatePoCont.text = itemPO.dateUpdatePo.trim();
@@ -2021,7 +2108,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                   Text(
                     'Form detail: ${itemPO.idFormDetail}',
                     style: Theme.of(dialogContext).textTheme.labelMedium
-                        ?.copyWith(color: Colors.grey.shade700),
+                        ?.copyWith(color: context.textSecondary),
                   ),
                   const SizedBox(height: 12),
                   TextFormFields(
@@ -2044,7 +2131,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
               onPressed: () => Navigator.pop(dialogContext),
               child: Text(
                 'Cancel',
-                style: TextStyle(color: Colors.grey.shade800),
+                style: TextStyle(color: context.bodyMuted),
               ),
             ),
             TextButton(
@@ -2312,6 +2399,19 @@ class _ToolDataState extends State<ToolData> with MixinPref {
     PostList forms,
     String idFormDetail,
   ) async {
+    if (!_canEditDeletePurchaseOrder) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+            'Akses ditolak. Tambah PO hanya untuk SUPERADMIN dan TOOL_KEEPER.',
+            style: TextStyle(color: Colors.white),
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
     final addPoNoCont = TextEditingController();
     final formKey = GlobalKey<FormState>();
 
@@ -2332,7 +2432,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                     Text(
                       'Form detail: $idFormDetail',
                       style: Theme.of(dialogContext).textTheme.labelMedium
-                          ?.copyWith(color: Colors.grey.shade700),
+                          ?.copyWith(color: context.textSecondary),
                     ),
                     const SizedBox(height: 12),
                     TextFormFields(
@@ -2355,7 +2455,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                 onPressed: () => Navigator.pop(dialogContext),
                 child: Text(
                   'Cancel',
-                  style: TextStyle(color: Colors.grey.shade800),
+                  style: TextStyle(color: context.bodyMuted),
                 ),
               ),
               TextButton(
@@ -2458,6 +2558,19 @@ class _ToolDataState extends State<ToolData> with MixinPref {
   }
 
   Future<void> _showDeletePurchaseOrderConfirmDialog(PostList itemPO) async {
+    if (!_canEditDeletePurchaseOrder) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+            'Akses ditolak. Hapus PO hanya untuk SUPERADMIN dan TOOL_KEEPER.',
+            style: TextStyle(color: Colors.white),
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
     if (!mounted) return;
     final confirmed = await showDialog<bool>(
       context: context,
@@ -2473,7 +2586,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
               onPressed: () => Navigator.pop(dialogContext, false),
               child: Text(
                 'Cancel',
-                style: TextStyle(color: Colors.grey.shade800),
+                style: TextStyle(color: context.bodyMuted),
               ),
             ),
             TextButton(
@@ -2562,6 +2675,19 @@ class _ToolDataState extends State<ToolData> with MixinPref {
   }
 
   Future<void> _showUpdateSalesOrderDialog(PostList itemSO) async {
+    if (!_canManageSalesOrderPr) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+            'Akses ditolak. SO/PR hanya untuk SUPERADMIN, COUNTER, dan GA.',
+            style: TextStyle(color: Colors.white),
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
     idSoCont.text = itemSO.idSo.trim();
     soCont.text = itemSO.so.trim();
     etaCont.text = itemSO.eta.trim();
@@ -2586,7 +2712,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                   Text(
                     'Form detail: ${itemSO.idFormDetail}',
                     style: Theme.of(dialogContext).textTheme.labelMedium
-                        ?.copyWith(color: Colors.grey.shade700),
+                        ?.copyWith(color: context.textSecondary),
                   ),
                   const SizedBox(height: 12),
                   TextFormFields(
@@ -2630,7 +2756,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
               onPressed: () => Navigator.pop(dialogContext),
               child: Text(
                 'Cancel',
-                style: TextStyle(color: Colors.grey.shade800),
+                style: TextStyle(color: context.bodyMuted),
               ),
             ),
             TextButton(
@@ -2739,6 +2865,19 @@ class _ToolDataState extends State<ToolData> with MixinPref {
     PostList forms,
     String idFormDetail,
   ) async {
+    if (!_canManageSalesOrderPr) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+            'Akses ditolak. Tambah SO/PR hanya untuk SUPERADMIN, COUNTER, dan GA.',
+            style: TextStyle(color: Colors.white),
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
     final addSoCont = TextEditingController();
     final addEtaCont = TextEditingController();
     final addNoteSoCont = TextEditingController();
@@ -2761,7 +2900,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                     Text(
                       'Form detail: $idFormDetail',
                       style: Theme.of(dialogContext).textTheme.labelMedium
-                          ?.copyWith(color: Colors.grey.shade700),
+                          ?.copyWith(color: context.textSecondary),
                     ),
                     const SizedBox(height: 12),
                     TextFormFields(
@@ -2805,7 +2944,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                 onPressed: () => Navigator.pop(dialogContext),
                 child: Text(
                   'Cancel',
-                  style: TextStyle(color: Colors.grey.shade800),
+                  style: TextStyle(color: context.bodyMuted),
                 ),
               ),
               TextButton(
@@ -2911,6 +3050,19 @@ class _ToolDataState extends State<ToolData> with MixinPref {
   }
 
   Future<void> _showDeleteSalesOrderConfirmDialog(PostList itemSO) async {
+    if (!_canManageSalesOrderPr) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+            'Akses ditolak. Hapus SO/PR hanya untuk SUPERADMIN, COUNTER, dan GA.',
+            style: TextStyle(color: Colors.white),
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
     if (!mounted) return;
     final confirmed = await showDialog<bool>(
       context: context,
@@ -2926,7 +3078,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
               onPressed: () => Navigator.pop(dialogContext, false),
               child: Text(
                 'Cancel',
-                style: TextStyle(color: Colors.grey.shade800),
+                style: TextStyle(color: context.bodyMuted),
               ),
             ),
             TextButton(
@@ -3019,6 +3171,19 @@ class _ToolDataState extends State<ToolData> with MixinPref {
   }
 
   Future<void> _showUpdateRcvWhDialog(PostList item) async {
+    if (!_canManageRcvWhDate) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Akses ditolak. Mengubah tanggal WH received hanya untuk SUPERADMIN dan WH.',
+            style: TextStyle(color: Colors.white),
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
     final dateCont = TextEditingController(text: item.rcvWhDate.trim());
     final formKey = GlobalKey<FormState>();
     final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
@@ -3039,7 +3204,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                     Text(
                       'Form detail: ${item.idFormDetail}',
                       style: Theme.of(dialogContext).textTheme.labelMedium
-                          ?.copyWith(color: Colors.grey.shade700),
+                          ?.copyWith(color: context.textSecondary),
                     ),
                     const SizedBox(height: 12),
                     TextFormFields(
@@ -3066,7 +3231,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                 onPressed: () => Navigator.pop(dialogContext),
                 child: Text(
                   'Cancel',
-                  style: TextStyle(color: Colors.grey.shade800),
+                  style: TextStyle(color: context.bodyMuted),
                 ),
               ),
               TextButton(
@@ -3163,6 +3328,19 @@ class _ToolDataState extends State<ToolData> with MixinPref {
   }
 
   Future<void> _showAddRcvWhDialog(PostList forms, String idFormDetail) async {
+    if (!_canManageRcvWhDate) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Akses ditolak. Menambah tanggal WH received hanya untuk SUPERADMIN dan WH.',
+            style: TextStyle(color: Colors.white),
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
     final dateCont = TextEditingController();
     final formKey = GlobalKey<FormState>();
     final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
@@ -3183,7 +3361,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                     Text(
                       'Form detail: $idFormDetail',
                       style: Theme.of(dialogContext).textTheme.labelMedium
-                          ?.copyWith(color: Colors.grey.shade700),
+                          ?.copyWith(color: context.textSecondary),
                     ),
                     const SizedBox(height: 12),
                     TextFormFields(
@@ -3210,7 +3388,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                 onPressed: () => Navigator.pop(dialogContext),
                 child: Text(
                   'Cancel',
-                  style: TextStyle(color: Colors.grey.shade800),
+                  style: TextStyle(color: context.bodyMuted),
                 ),
               ),
               TextButton(
@@ -3308,6 +3486,19 @@ class _ToolDataState extends State<ToolData> with MixinPref {
   }
 
   Future<void> _showDeleteRcvWhConfirmDialog(PostList item) async {
+    if (!_canManageRcvWhDate) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Akses ditolak. Menghapus tanggal WH received hanya untuk SUPERADMIN dan WH.',
+            style: TextStyle(color: Colors.white),
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
     if (!mounted) return;
     final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
     final confirmed = await showDialog<bool>(
@@ -3324,7 +3515,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
               onPressed: () => Navigator.pop(dialogContext, false),
               child: Text(
                 'Cancel',
-                style: TextStyle(color: Colors.grey.shade800),
+                style: TextStyle(color: context.bodyMuted),
               ),
             ),
             TextButton(
@@ -3408,6 +3599,19 @@ class _ToolDataState extends State<ToolData> with MixinPref {
   }
 
   Future<void> _showUpdateRcvToolDialog(PostList item) async {
+    if (!_canManageRcvToolDate) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Akses ditolak. Mengubah tanggal Tool Room received hanya untuk SUPERADMIN dan TOOL_KEEPER.',
+            style: TextStyle(color: Colors.white),
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
     final dateCont = TextEditingController(text: item.rcvToolDate.trim());
     final formKey = GlobalKey<FormState>();
     final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
@@ -3428,7 +3632,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                     Text(
                       'Form detail: ${item.idFormDetail}',
                       style: Theme.of(dialogContext).textTheme.labelMedium
-                          ?.copyWith(color: Colors.grey.shade700),
+                          ?.copyWith(color: context.textSecondary),
                     ),
                     const SizedBox(height: 12),
                     TextFormFields(
@@ -3455,7 +3659,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                 onPressed: () => Navigator.pop(dialogContext),
                 child: Text(
                   'Cancel',
-                  style: TextStyle(color: Colors.grey.shade800),
+                  style: TextStyle(color: context.bodyMuted),
                 ),
               ),
               TextButton(
@@ -3559,6 +3763,19 @@ class _ToolDataState extends State<ToolData> with MixinPref {
     PostList forms,
     String idFormDetail,
   ) async {
+    if (!_canManageRcvToolDate) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Akses ditolak. Menambah tanggal Tool Room received hanya untuk SUPERADMIN dan TOOL_KEEPER.',
+            style: TextStyle(color: Colors.white),
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
     final dateCont = TextEditingController();
     final formKey = GlobalKey<FormState>();
     final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
@@ -3579,7 +3796,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                     Text(
                       'Form detail: $idFormDetail',
                       style: Theme.of(dialogContext).textTheme.labelMedium
-                          ?.copyWith(color: Colors.grey.shade700),
+                          ?.copyWith(color: context.textSecondary),
                     ),
                     const SizedBox(height: 12),
                     TextFormFields(
@@ -3606,7 +3823,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                 onPressed: () => Navigator.pop(dialogContext),
                 child: Text(
                   'Cancel',
-                  style: TextStyle(color: Colors.grey.shade800),
+                  style: TextStyle(color: context.bodyMuted),
                 ),
               ),
               TextButton(
@@ -3704,6 +3921,19 @@ class _ToolDataState extends State<ToolData> with MixinPref {
   }
 
   Future<void> _showDeleteRcvToolConfirmDialog(PostList item) async {
+    if (!_canManageRcvToolDate) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Akses ditolak. Menghapus tanggal Tool Room received hanya untuk SUPERADMIN dan TOOL_KEEPER.',
+            style: TextStyle(color: Colors.white),
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
     if (!mounted) return;
     final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
     final confirmed = await showDialog<bool>(
@@ -3720,7 +3950,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
               onPressed: () => Navigator.pop(dialogContext, false),
               child: Text(
                 'Cancel',
-                style: TextStyle(color: Colors.grey.shade800),
+                style: TextStyle(color: context.bodyMuted),
               ),
             ),
             TextButton(
@@ -3894,10 +4124,11 @@ class _ToolDataState extends State<ToolData> with MixinPref {
               ],
             ),
           ),
-          _buildEditDeleteActions(
-            onEdit: () => _showUpdatePurchaseOrderDialog(itemPO),
-            onDelete: () => _showDeletePurchaseOrderConfirmDialog(itemPO),
-          ),
+          if (_canEditDeletePurchaseOrder)
+            _buildEditDeleteActions(
+              onEdit: () => _showUpdatePurchaseOrderDialog(itemPO),
+              onDelete: () => _showDeletePurchaseOrderConfirmDialog(itemPO),
+            ),
         ],
       ),
     );
@@ -3944,10 +4175,11 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                   ],
                 ),
               ),
-              _buildEditDeleteActions(
-                onEdit: () => _showUpdateSalesOrderDialog(itemSO),
-                onDelete: () => _showDeleteSalesOrderConfirmDialog(itemSO),
-              ),
+              if (_canManageSalesOrderPr)
+                _buildEditDeleteActions(
+                  onEdit: () => _showUpdateSalesOrderDialog(itemSO),
+                  onDelete: () => _showDeleteSalesOrderConfirmDialog(itemSO),
+                ),
             ],
           ),
           const SizedBox(height: 12),
@@ -3996,10 +4228,11 @@ class _ToolDataState extends State<ToolData> with MixinPref {
               ],
             ),
           ),
-          _buildEditDeleteActions(
-            onEdit: () => _showUpdateRcvWhDialog(itemRcvWh),
-            onDelete: () => _showDeleteRcvWhConfirmDialog(itemRcvWh),
-          ),
+          if (_canManageRcvWhDate)
+            _buildEditDeleteActions(
+              onEdit: () => _showUpdateRcvWhDialog(itemRcvWh),
+              onDelete: () => _showDeleteRcvWhConfirmDialog(itemRcvWh),
+            ),
         ],
       ),
     );
@@ -4043,10 +4276,11 @@ class _ToolDataState extends State<ToolData> with MixinPref {
               ],
             ),
           ),
-          _buildEditDeleteActions(
-            onEdit: () => _showUpdateRcvToolDialog(itemRcvTool),
-            onDelete: () => _showDeleteRcvToolConfirmDialog(itemRcvTool),
-          ),
+          if (_canManageRcvToolDate)
+            _buildEditDeleteActions(
+              onEdit: () => _showUpdateRcvToolDialog(itemRcvTool),
+              onDelete: () => _showDeleteRcvToolConfirmDialog(itemRcvTool),
+            ),
         ],
       ),
     );
@@ -4057,12 +4291,12 @@ class _ToolDataState extends State<ToolData> with MixinPref {
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.cardSurface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: context.cardBorder),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
+            color: context.cardShadow,
             blurRadius: 14,
             offset: const Offset(0, 8),
           ),
@@ -4168,15 +4402,19 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                     _buildSectionHeader(
                       'Purchase Order',
                       icon: Icons.receipt,
-                      trailing: TextButton.icon(
-                        onPressed: () => _showAddPurchaseOrderDialog(
-                          forms,
-                          itemTool.idFormDetail,
-                        ),
-                        icon: const Icon(Icons.add, size: 18),
-                        label: const Text('Add'),
-                        style: TextButton.styleFrom(foregroundColor: clrOrange),
-                      ),
+                      trailing: _canEditDeletePurchaseOrder
+                          ? TextButton.icon(
+                              onPressed: () => _showAddPurchaseOrderDialog(
+                                forms,
+                                itemTool.idFormDetail,
+                              ),
+                              icon: const Icon(Icons.add, size: 18),
+                              label: const Text('Add'),
+                              style: TextButton.styleFrom(
+                                foregroundColor: clrOrange,
+                              ),
+                            )
+                          : null,
                     ),
                     if (filteredListPO.isEmpty)
                       Padding(
@@ -4184,7 +4422,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                         child: Text(
                           '',
                           style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(color: Colors.grey.shade600),
+                              ?.copyWith(color: context.textSecondary),
                         ),
                       )
                     else
@@ -4212,15 +4450,19 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                     _buildSectionHeader(
                       'Sales Order / Purchase Request (SO/PR)',
                       icon: Icons.route,
-                      trailing: TextButton.icon(
-                        onPressed: () => _showAddSalesOrderDialog(
-                          forms,
-                          itemTool.idFormDetail,
-                        ),
-                        icon: const Icon(Icons.add, size: 18),
-                        label: const Text('Add'),
-                        style: TextButton.styleFrom(foregroundColor: clrOrange),
-                      ),
+                      trailing: _canManageSalesOrderPr
+                          ? TextButton.icon(
+                              onPressed: () => _showAddSalesOrderDialog(
+                                forms,
+                                itemTool.idFormDetail,
+                              ),
+                              icon: const Icon(Icons.add, size: 18),
+                              label: const Text('Add'),
+                              style: TextButton.styleFrom(
+                                foregroundColor: clrOrange,
+                              ),
+                            )
+                          : null,
                     ),
                     if (filteredListSO.isEmpty)
                       Padding(
@@ -4228,7 +4470,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                         child: Text(
                           '',
                           style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(color: Colors.grey.shade600),
+                              ?.copyWith(color: context.textSecondary),
                         ),
                       )
                     else
@@ -4258,13 +4500,19 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                     _buildSectionHeader(
                       'Date WH Received ',
                       icon: Icons.warehouse,
-                      trailing: TextButton.icon(
-                        onPressed: () =>
-                            _showAddRcvWhDialog(forms, itemTool.idFormDetail),
-                        icon: const Icon(Icons.add, size: 18),
-                        label: const Text('Add'),
-                        style: TextButton.styleFrom(foregroundColor: clrOrange),
-                      ),
+                      trailing: _canManageRcvWhDate
+                          ? TextButton.icon(
+                              onPressed: () => _showAddRcvWhDialog(
+                                forms,
+                                itemTool.idFormDetail,
+                              ),
+                              icon: const Icon(Icons.add, size: 18),
+                              label: const Text('Add'),
+                              style: TextButton.styleFrom(
+                                foregroundColor: clrOrange,
+                              ),
+                            )
+                          : null,
                     ),
                     if (filteredListRcvWh.isEmpty)
                       Padding(
@@ -4272,7 +4520,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                         child: Text(
                           '',
                           style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(color: Colors.grey.shade600),
+                              ?.copyWith(color: context.textSecondary),
                         ),
                       )
                     else
@@ -4301,13 +4549,19 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                     _buildSectionHeader(
                       'Date Tool Room Received ',
                       icon: Icons.storage,
-                      trailing: TextButton.icon(
-                        onPressed: () =>
-                            _showAddRcvToolDialog(forms, itemTool.idFormDetail),
-                        icon: const Icon(Icons.add, size: 18),
-                        label: const Text('Add'),
-                        style: TextButton.styleFrom(foregroundColor: clrOrange),
-                      ),
+                      trailing: _canManageRcvToolDate
+                          ? TextButton.icon(
+                              onPressed: () => _showAddRcvToolDialog(
+                                forms,
+                                itemTool.idFormDetail,
+                              ),
+                              icon: const Icon(Icons.add, size: 18),
+                              label: const Text('Add'),
+                              style: TextButton.styleFrom(
+                                foregroundColor: clrOrange,
+                              ),
+                            )
+                          : null,
                     ),
                     if (filteredListRcvTool.isEmpty)
                       Padding(
@@ -4315,7 +4569,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                         child: Text(
                           '',
                           style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(color: Colors.grey.shade600),
+                              ?.copyWith(color: context.textSecondary),
                         ),
                       )
                     else
@@ -4339,13 +4593,16 @@ class _ToolDataState extends State<ToolData> with MixinPref {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
         gradient: LinearGradient(
-          colors: [Colors.white, statusColor.withValues(alpha: 0.04)],
+          colors: [
+            context.cardSurface,
+            statusColor.withValues(alpha: context.isDarkMode ? 0.12 : 0.04),
+          ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: context.cardShadow,
             blurRadius: 18,
             offset: const Offset(0, 10),
           ),
@@ -4458,7 +4715,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.04),
+                          color: context.cardShadow,
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
@@ -4618,7 +4875,9 @@ class _ToolDataState extends State<ToolData> with MixinPref {
               _buildSectionHeader(
                 'Tool List',
                 icon: Icons.handyman_outlined,
-                trailing: _buildAddToolHeaderAction(forms),
+                trailing: _canAddToolToForm
+                    ? _buildAddToolHeaderAction(forms)
+                    : null,
               ),
               StoreConnector<AppState, List<PostList>>(
                 converter: (store) {
@@ -4633,16 +4892,16 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                       width: double.infinity,
                       padding: const EdgeInsets.all(18),
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade50,
+                        color: context.mutedSurface,
                         borderRadius: BorderRadius.circular(18),
-                        border: Border.all(color: Colors.grey.shade200),
+                        border: Border.all(color: context.cardBorder),
                       ),
                       child: Column(
                         children: [
                           Icon(
                             Icons.inventory_2_outlined,
                             size: 34,
-                            color: Colors.grey.shade500,
+                            color: context.iconMuted,
                           ),
                           const SizedBox(height: 10),
                           Text(
@@ -4680,9 +4939,9 @@ class _ToolDataState extends State<ToolData> with MixinPref {
           Expanded(
             child: Container(
               decoration: BoxDecoration(
-                color: clrOrange.withValues(alpha: 0.06),
+                color: context.searchAccentFill,
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: clrOrange.withValues(alpha: 0.22)),
+                border: Border.all(color: context.searchAccentBorder),
               ),
               child: TextField(
                 controller: _searchController,
@@ -4721,9 +4980,9 @@ class _ToolDataState extends State<ToolData> with MixinPref {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
             decoration: BoxDecoration(
-              color: clrOrange.withValues(alpha: 0.08),
+              color: context.searchAccentFill,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: clrOrange.withValues(alpha: 0.22)),
+              border: Border.all(color: context.searchAccentBorder),
             ),
             child: DropdownButton<String>(
               value: _searchField,
@@ -4745,6 +5004,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                 if (value == null) return;
                 setState(() {
                   _searchField = value;
+                  _visibleFormsCount = _pageSize;
                 });
               },
             ),
@@ -4802,7 +5062,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
       bottom: true,
       child: Scaffold(
         key: _scaffoldKey,
-        backgroundColor: clrWhite,
+        backgroundColor: context.pageBackground,
         drawer: DrawerMenu(title: name),
         body: RefreshIndicator(
           onRefresh: _refreshData,
@@ -4835,7 +5095,6 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                   );
                 },
                 onPressLeading: () => _scaffoldKey.currentState?.openDrawer(),
-                textColor: Colors.black,
                 iconTailing: Icon(Icons.add),
                 iconLeading: Icon(Icons.menu),
               ),
@@ -4846,6 +5105,13 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                       .where(_matchesMilestoneFilter)
                       .where(_matchesSearch)
                       .toList();
+                  final visibleCount = filteredForms.length < _visibleFormsCount
+                      ? filteredForms.length
+                      : _visibleFormsCount;
+                  final visibleForms = filteredForms
+                      .take(visibleCount)
+                      .toList();
+                  final hasMoreForms = filteredForms.length > visibleCount;
                   if (state.isLoadingTool) {
                     return SliverFillRemaiings(
                       errors: "Loading",
@@ -4870,7 +5136,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                         SliverPersistentHeader(
                           pinned: true,
                           delegate: _PinnedSearchHeaderDelegate(
-                            backgroundColor: clrWhite,
+                            backgroundColor: context.pageBackground,
                             child: _buildSearchBar(),
                           ),
                         ),
@@ -4886,16 +5152,41 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                       SliverPersistentHeader(
                         pinned: true,
                         delegate: _PinnedSearchHeaderDelegate(
-                          backgroundColor: clrWhite,
+                          backgroundColor: context.pageBackground,
                           child: _buildSearchBar(),
                         ),
                       ),
                       SliverList(
                         delegate: SliverChildBuilderDelegate((context, index) {
-                          final forms = filteredForms[index];
+                          final forms = visibleForms[index];
                           return _buildFormCard(forms, index);
-                        }, childCount: filteredForms.length),
+                        }, childCount: visibleForms.length),
                       ),
+                      if (hasMoreForms)
+                        SliverToBoxAdapter(
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
+                            child: Column(
+                              children: [
+                                Text(
+                                  'Showing $visibleCount of ${filteredForms.length} items',
+                                  style: Theme.of(context).textTheme.bodySmall
+                                      ?.copyWith(color: context.textSecondary),
+                                ),
+                                const SizedBox(height: 8),
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: OutlinedButton.icon(
+                                    onPressed: () =>
+                                        _showMoreForms(filteredForms.length),
+                                    icon: const Icon(Icons.expand_more),
+                                    label: const Text('Load 20 more'),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                     ],
                   );
                 },

@@ -9,6 +9,7 @@ import 'package:tool_store_app/controller/cont_crud/redux/store.dart';
 import 'package:tool_store_app/model/post_get_data.dart';
 import 'package:tool_store_app/view/custom/routes/page_routes.dart';
 import 'package:tool_store_app/view/custom/show_dialog/show_dialog.dart';
+import 'package:tool_store_app/theme/app_theme.dart';
 import 'package:tool_store_app/view/var/var.dart';
 
 String _labelSuperiorPick(PostList s) {
@@ -81,7 +82,7 @@ class _SuperiorPickerDialogState extends State<_SuperiorPickerDialog> {
         width: min(MediaQuery.sizeOf(context).width - 40, 420),
         height: h,
         decoration: BoxDecoration(
-          color: const Color(0xFFF7F8FA),
+          color: context.pageBackground,
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
@@ -98,8 +99,8 @@ class _SuperiorPickerDialogState extends State<_SuperiorPickerDialog> {
             Container(
               padding: const EdgeInsets.fromLTRB(18, 16, 8, 16),
               decoration: BoxDecoration(
-                color: Colors.white,
-                border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
+                color: context.cardSurface,
+                border: Border(bottom: BorderSide(color: context.cardBorder)),
               ),
               child: Row(
                 children: [
@@ -131,7 +132,7 @@ class _SuperiorPickerDialogState extends State<_SuperiorPickerDialog> {
                         Text(
                           'Cari lalu ketuk salah satu nama',
                           style: theme.textTheme.bodySmall?.copyWith(
-                            color: Colors.grey.shade600,
+                            color: context.textSecondary,
                           ),
                         ),
                       ],
@@ -140,8 +141,8 @@ class _SuperiorPickerDialogState extends State<_SuperiorPickerDialog> {
                   IconButton(
                     onPressed: () => Navigator.pop(context),
                     style: IconButton.styleFrom(
-                      backgroundColor: Colors.grey.shade100,
-                      foregroundColor: Colors.grey.shade700,
+                      backgroundColor: context.chipNeutralBg,
+                      foregroundColor: context.chipNeutralFg,
                     ),
                     icon: const Icon(Icons.close_rounded, size: 22),
                   ),
@@ -158,18 +159,18 @@ class _SuperiorPickerDialogState extends State<_SuperiorPickerDialog> {
                   hintText: 'Nama atau username…',
                   prefixIcon: Icon(Icons.search_rounded, color: clrOrange),
                   filled: true,
-                  fillColor: Colors.white,
+                  fillColor: context.inputFill,
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 14,
                     vertical: 14,
                   ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide(color: Colors.grey.shade300),
+                    borderSide: BorderSide(color: context.cardBorder),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide(color: Colors.grey.shade300),
+                    borderSide: BorderSide(color: context.cardBorder),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16),
@@ -198,7 +199,7 @@ class _SuperiorPickerDialogState extends State<_SuperiorPickerDialog> {
                             Icon(
                               Icons.person_search_rounded,
                               size: 48,
-                              color: Colors.grey.shade400,
+                              color: context.iconMuted,
                             ),
                             const SizedBox(height: 12),
                             Text(
@@ -207,7 +208,7 @@ class _SuperiorPickerDialogState extends State<_SuperiorPickerDialog> {
                                   : 'Tidak ada hasil untuk pencarian ini',
                               textAlign: TextAlign.center,
                               style: theme.textTheme.bodyMedium?.copyWith(
-                                color: Colors.grey.shade600,
+                                color: context.textSecondary,
                               ),
                             ),
                           ],
@@ -230,7 +231,7 @@ class _SuperiorPickerDialogState extends State<_SuperiorPickerDialog> {
                             ? null
                             : '@${s.username}';
                         return Material(
-                          color: Colors.white,
+                          color: context.cardSurface,
                           borderRadius: BorderRadius.circular(16),
                           elevation: 0,
                           child: InkWell(
@@ -239,7 +240,7 @@ class _SuperiorPickerDialogState extends State<_SuperiorPickerDialog> {
                             child: Container(
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(16),
-                                border: Border.all(color: Colors.grey.shade200),
+                                border: Border.all(color: context.cardBorder),
                               ),
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 14,
@@ -282,7 +283,7 @@ class _SuperiorPickerDialogState extends State<_SuperiorPickerDialog> {
                                             sub,
                                             style: theme.textTheme.bodySmall
                                                 ?.copyWith(
-                                                  color: Colors.grey.shade700,
+                                                  color: context.textSecondary,
                                                 ),
                                           ),
                                         ],
@@ -292,7 +293,7 @@ class _SuperiorPickerDialogState extends State<_SuperiorPickerDialog> {
                                             userLine,
                                             style: theme.textTheme.bodySmall
                                                 ?.copyWith(
-                                                  color: Colors.grey.shade500,
+                                                  color: context.iconMuted,
                                                   fontStyle: FontStyle.italic,
                                                 ),
                                           ),
@@ -302,7 +303,7 @@ class _SuperiorPickerDialogState extends State<_SuperiorPickerDialog> {
                                   ),
                                   Icon(
                                     Icons.chevron_right_rounded,
-                                    color: Colors.grey.shade400,
+                                    color: context.iconMuted,
                                   ),
                                 ],
                               ),
@@ -467,14 +468,14 @@ class _UserFormInputState extends State<UserFormInput> {
       labelText: label,
       labelStyle: Theme.of(context).textTheme.labelMedium,
       filled: true,
-      fillColor: Colors.white,
+      fillColor: context.inputFill,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: BorderSide(color: Colors.grey.shade300),
+        borderSide: BorderSide(color: context.cardBorder),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: BorderSide(color: Colors.grey.shade300),
+        borderSide: BorderSide(color: context.cardBorder),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
@@ -494,12 +495,12 @@ class _UserFormInputState extends State<UserFormInput> {
       margin: const EdgeInsets.only(bottom: 14),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.cardSurface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: context.cardBorder),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
+            color: context.cardShadow,
             blurRadius: 14,
             offset: const Offset(0, 8),
           ),
@@ -592,12 +593,12 @@ class _UserFormInputState extends State<UserFormInput> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F8FA),
+      backgroundColor: context.pageBackground,
       appBar: AppBar(
         elevation: 0,
         centerTitle: false,
         surfaceTintColor: Colors.transparent,
-        backgroundColor: clrWhite,
+        backgroundColor: context.appBarSurface,
         foregroundColor: clrOrange,
         toolbarHeight: 84,
         titleSpacing: 18,
@@ -657,7 +658,7 @@ class _UserFormInputState extends State<UserFormInput> {
               stops: const [0.0, 0.55, 1.0],
             ),
             border: Border(
-              bottom: BorderSide(color: Colors.grey.shade200, width: 1),
+              bottom: BorderSide(color: context.cardBorder, width: 1),
             ),
           ),
         ),
@@ -692,7 +693,7 @@ class _UserFormInputState extends State<UserFormInput> {
           child: Container(
             height: 1,
             margin: const EdgeInsets.symmetric(horizontal: 16),
-            color: Colors.grey.shade200,
+            color: context.cardBorder,
           ),
         ),
       ),
@@ -885,7 +886,7 @@ class _UserFormInputState extends State<UserFormInput> {
                                                   ?.copyWith(
                                                     color: hasValue
                                                         ? null
-                                                        : Colors.grey.shade500,
+                                                        : context.iconMuted,
                                                     fontWeight: hasValue
                                                         ? FontWeight.w600
                                                         : FontWeight.w400,
@@ -996,14 +997,14 @@ class _UserFormInputState extends State<UserFormInput> {
       decoration: InputDecoration(
         labelText: optional ? '$label (opsional)' : label,
         filled: true,
-        fillColor: Colors.white,
+        fillColor: context.inputFill,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: Colors.grey.shade300),
+          borderSide: BorderSide(color: context.cardBorder),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: Colors.grey.shade300),
+          borderSide: BorderSide(color: context.cardBorder),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),

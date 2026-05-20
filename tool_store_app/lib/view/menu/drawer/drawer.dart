@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tool_store_app/controller/function/funct.dart';
+import 'package:tool_store_app/theme/app_theme.dart';
+import 'package:tool_store_app/theme/theme_controller.dart';
 import 'package:tool_store_app/view/custom/routes/page_routes.dart';
 import 'package:tool_store_app/view/custom/show_dialog/show_dialog.dart';
 import 'package:tool_store_app/view/var/var.dart';
@@ -50,7 +52,7 @@ class _DrawerMenuState extends State<DrawerMenu> {
       child: Text(
         label,
         style: Theme.of(context).textTheme.labelLarge?.copyWith(
-          color: Colors.grey.shade700,
+          color: context.textSecondary,
           fontWeight: FontWeight.w700,
           letterSpacing: 0.4,
         ),
@@ -63,11 +65,12 @@ class _DrawerMenuState extends State<DrawerMenu> {
       margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.cardSurface,
         borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: context.cardBorder),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Colors.black.withValues(alpha: context.isDarkMode ? 0.25 : 0.05),
             blurRadius: 18,
             offset: const Offset(0, 8),
           ),
@@ -105,7 +108,7 @@ class _DrawerMenuState extends State<DrawerMenu> {
                       ? 'Kelola request tool, user, dan dashboard dengan cepat.'
                       : 'Silakan login untuk mengakses seluruh menu aplikasi.',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Colors.grey.shade700,
+                    color: context.textSecondary,
                     height: 1.4,
                   ),
                 ),
@@ -135,9 +138,9 @@ class _DrawerMenuState extends State<DrawerMenu> {
           child: Ink(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: context.cardSurface,
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: Colors.grey.shade200),
+              border: Border.all(color: context.cardBorder),
             ),
             child: Row(
               children: [
@@ -165,14 +168,14 @@ class _DrawerMenuState extends State<DrawerMenu> {
                       Text(
                         subtitle,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.grey.shade700,
+                          color: context.textSecondary,
                           height: 1.35,
                         ),
                       ),
                     ],
                   ),
                 ),
-                Icon(Icons.chevron_right, color: Colors.grey.shade500),
+                Icon(Icons.chevron_right, color: context.textSecondary),
               ],
             ),
           ),
@@ -346,8 +349,8 @@ class _DrawerMenuState extends State<DrawerMenu> {
       },
       onPressedYes: (dialogContext) async {
         if (dialogContext.mounted) Navigator.pop(dialogContext);
-        SharedPreferences prefs = await SharedPreferences.getInstance();
-        await prefs.clear();
+        final prefs = await SharedPreferences.getInstance();
+        await ThemeController.preserveOnPrefsClear(prefs);
         if (!context.mounted) return;
         PageRoutes.routeLoginFast(context);
       },
@@ -355,6 +358,79 @@ class _DrawerMenuState extends State<DrawerMenu> {
       textYes: 'Yes',
       textColorNo: clrBlack,
       textColorYes: clrRed,
+    );
+  }
+
+  Widget _buildThemeToggle(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      child: ListenableBuilder(
+        listenable: ThemeController.instance,
+        builder: (context, _) {
+          final isDark = ThemeController.instance.isDarkMode;
+          return Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(18),
+              onTap: () => ThemeController.instance.toggle(),
+              child: Ink(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: context.cardSurface,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: context.cardBorder),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: clrOrange.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Icon(
+                        isDark
+                            ? Icons.dark_mode_outlined
+                            : Icons.light_mode_outlined,
+                        color: clrOrange,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Dark Mode',
+                            style: Theme.of(context).textTheme.titleSmall
+                                ?.copyWith(fontWeight: FontWeight.w700),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            isDark
+                                ? 'Tampilan gelap aktif. Ketuk untuk mode terang.'
+                                : 'Aktifkan tampilan gelap untuk kenyamanan malam hari.',
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: context.textSecondary,
+                                  height: 1.35,
+                                ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Switch(
+                      value: isDark,
+                      onChanged: ThemeController.instance.setDarkMode,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 
@@ -394,7 +470,7 @@ class _DrawerMenuState extends State<DrawerMenu> {
   @override
   Widget build(BuildContext context) {
     return Drawer(
-      backgroundColor: const Color(0xFFF7F8FA),
+      backgroundColor: context.pageBackground,
       child: ListView(
         padding: EdgeInsets.zero,
         children: [
@@ -501,6 +577,8 @@ class _DrawerMenuState extends State<DrawerMenu> {
           //   },
           // ),
           _buildSuperAdminUserSection(context),
+          _buildSectionTitle(context, 'Appearance'),
+          _buildThemeToggle(context),
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 12, 12, 20),
             child: Material(
@@ -562,7 +640,7 @@ class _DrawerMenuState extends State<DrawerMenu> {
                                   : 'Masuk untuk membuka seluruh fitur aplikasi.',
                               style: Theme.of(context).textTheme.bodySmall
                                   ?.copyWith(
-                                    color: Colors.grey.shade700,
+                                    color: context.textSecondary,
                                     height: 1.35,
                                   ),
                             ),
