@@ -10,6 +10,8 @@ import 'package:tool_store_app/model/post_get_data.dart';
 import 'package:tool_store_app/view/custom/routes/page_routes.dart';
 import 'package:tool_store_app/view/custom/show_dialog/show_dialog.dart';
 import 'package:tool_store_app/theme/app_theme.dart';
+import 'package:tool_store_app/view/custom/shimmer/app_shimmer.dart';
+import 'package:tool_store_app/view/custom/shimmer/skeletons.dart';
 import 'package:tool_store_app/view/var/var.dart';
 
 String _labelSuperiorPick(PostList s) {
@@ -699,7 +701,9 @@ class _UserFormInputState extends State<UserFormInput> {
         ),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const SafeArea(
+              child: AppShimmer(child: FormPageSkeleton(sectionCount: 2)),
+            )
           : SafeArea(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(16, 14, 16, 18),
@@ -795,13 +799,7 @@ class _UserFormInputState extends State<UserFormInput> {
                             builder: (context, supState) {
                               if (supState.isLoadingSuperrior &&
                                   supState.superriorS.isEmpty) {
-                                return Padding(
-                                  padding: const EdgeInsets.only(top: 4),
-                                  child: LinearProgressIndicator(
-                                    borderRadius: BorderRadius.circular(8),
-                                    color: clrOrange,
-                                  ),
-                                );
+                                return const AppShimmer(child: FieldSkeleton());
                               }
                               final hasValue = namaSuperiorFormCont.text
                                   .trim()

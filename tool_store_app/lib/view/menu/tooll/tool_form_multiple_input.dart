@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_redux/flutter_redux.dart';
+import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tool_store_app/controller/cont_crud/redux/state.dart';
 import 'package:tool_store_app/model/post_get_data.dart';
 import 'package:tool_store_app/view/custom/form/text_form_field.dart';
@@ -8,8 +10,13 @@ import 'package:tool_store_app/theme/app_theme.dart';
 import 'package:tool_store_app/view/var/var.dart';
 
 class ToolFormMultipleInput extends StatefulWidget {
-  const ToolFormMultipleInput({super.key, required this.subtitle});
+  const ToolFormMultipleInput({
+    super.key,
+    required this.subtitle,
+    this.parentIdForm = '',
+  });
   final String subtitle;
+  final String parentIdForm;
 
   @override
   State<ToolFormMultipleInput> createState() => _ToolFormMultipleInputState();
@@ -104,9 +111,47 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
     );
   }
 
+  Future<void> _seedToolDetailMeta() async {
+    final parentId = widget.parentIdForm.trim().isNotEmpty
+        ? widget.parentIdForm.trim()
+        : parentIdFormForToolDetail.trim();
+    if (parentId.isNotEmpty && parentId != '0') {
+      parentIdFormForToolDetail = parentId;
+      for (final c in idFormToolCont) {
+        if (c.text.trim().isEmpty || c.text.trim() == '0') {
+          c.text = parentId;
+        }
+      }
+    }
+
+    if (formDetailDateCont.text.trim().isEmpty) {
+      formDetailDateCont.text = DateFormat(
+        'yyyy-MM-dd HH:mm:ss',
+      ).format(DateTime.now());
+    }
+
+    var userId = formDetailUserCont.text.trim();
+    if (userId.isEmpty) {
+      userId = idUsersApp.trim();
+    }
+    if (userId.isEmpty) {
+      final prefs = await SharedPreferences.getInstance();
+      userId = (prefs.getString('idUsersApp') ?? '').trim();
+      if (userId.isNotEmpty) {
+        idUsersApp = userId;
+      }
+    }
+    if (userId.isNotEmpty) {
+      formDetailUserCont.text = userId;
+    }
+  }
+
   @override
   void initState() {
     super.initState();
+    if (widget.parentIdForm.trim().isNotEmpty) {
+      parentIdFormForToolDetail = widget.parentIdForm.trim();
+    }
     final bool hasSeededRows =
         idFormToolCont.isNotEmpty || idFormDetailCont.isNotEmpty;
     if (_isAddMode && !hasSeededRows) {
@@ -114,6 +159,7 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
     } else if (!_isAddMode && idFormDetailCont.isEmpty) {
       _addRow();
     }
+    WidgetsBinding.instance.addPostFrameCallback((_) => _seedToolDetailMeta());
   }
 
   int _resolveSubmitIndex(int fallbackIndex) {
@@ -122,9 +168,57 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
     return idx >= 0 ? idx : fallbackIndex;
   }
 
+  String _resolveParentIdForm(int index) {
+    final widgetParent = widget.parentIdForm.trim();
+    if (widgetParent.isNotEmpty && widgetParent != '0') return widgetParent;
+    final rowId = idFormToolCont[index].text.trim();
+    if (rowId.isNotEmpty && rowId != '0') return rowId;
+    if (parentIdFormForToolDetail.isNotEmpty &&
+        parentIdFormForToolDetail != '0') {
+      return parentIdFormForToolDetail;
+    }
+    final headerId = idFormCont.text.trim();
+    if (headerId.isNotEmpty && headerId != '0') return headerId;
+    return '';
+  }
+
+  Future<Map<String, String>> _resolveToolDetailMeta(int index) async {
+    final submitIndex = _resolveSubmitIndex(index);
+    final idForm = _resolveParentIdForm(submitIndex);
+    if (idForm.isEmpty) {
+      throw Exception('ID form tidak valid. Buka ulang dari daftar order.');
+    }
+
+    var formDetailDate = formDetailDateCont.text.trim();
+    if (formDetailDate.isEmpty) {
+      formDetailDate = DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now());
+    }
+
+    var formDetailUser = formDetailUserCont.text.trim();
+    if (formDetailUser.isEmpty) {
+      formDetailUser = idUsersApp.trim();
+      if (formDetailUser.isEmpty) {
+        final prefs = await SharedPreferences.getInstance();
+        formDetailUser = (prefs.getString('idUsersApp') ?? '').trim();
+      }
+    }
+    if (formDetailUser.isEmpty) {
+      throw Exception('User login tidak ditemukan. Silakan login ulang.');
+    }
+
+    return {
+      'idForm': idForm,
+      'formDetailDate': formDetailDate,
+      'formDetailUser': formDetailUser,
+    };
+  }
+
   void _addRow() {
+    final parentIdForm = parentIdFormForToolDetail.isNotEmpty
+        ? parentIdFormForToolDetail
+        : (idFormToolCont.isNotEmpty ? idFormToolCont.first.text.trim() : '');
     setState(() {
-      idFormToolCont.add(TextEditingController());
+      idFormToolCont.add(TextEditingController(text: parentIdForm));
       idFormDetailCont.add(TextEditingController());
       formCommentCont.add(TextEditingController());
       pnGroupCont.add(TextEditingController());
@@ -201,12 +295,16 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
     required String param,
   }) async {
     final submitIndex = _resolveSubmitIndex(index);
+    final meta = await _resolveToolDetailMeta(index);
+    idFormToolCont[submitIndex].text = meta['idForm']!;
+    formDetailDateCont.text = meta['formDetailDate']!;
+    formDetailUserCont.text = meta['formDetailUser']!;
     final ToolDetailFetchResult result =
         await StoreProvider.of<AppState>(context).dispatch(
           getDataToolDetail(
             param: param,
             idFormDetail: idFormDetailCont[submitIndex].text.trim(),
-            idFrom: idFormToolCont[submitIndex].text.trim(),
+            idFrom: meta['idForm']!,
             formComment: formCommentCont[submitIndex].text.trim(),
             pnGroup: pnGroupCont[submitIndex].text.trim(),
             pnDesc: pnDescCont[submitIndex].text.trim(),
@@ -217,8 +315,8 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
                 : actionNoteCont[submitIndex].text.trim().substring(0, 1),
             valType: valTypeCont[submitIndex].text.trim(),
             partValue: partValueCont[submitIndex].text.trim(),
-            formDetailDate: formDetailDateCont.text.trim(),
-            formDetailUser: formDetailUserCont.text.trim(),
+            formDetailDate: meta['formDetailDate']!,
+            formDetailUser: meta['formDetailUser']!,
           ),
         );
 

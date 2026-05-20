@@ -52,6 +52,7 @@ final password = TextEditingController();
 // Controller FORM
 String titleDataTool = 'Data Tool';
 String paramViewDataForm = 'VIEW DATA FORM';
+String paramDashboardCountForm = 'DASHBOARD COUNT FORM';
 String paramAddDataForm = 'ADD DATA FORM';
 String paramEditDataForm = 'EDIT DATA FORM';
 String paramDeleteDataForm = 'DELETED DATA FORM';
@@ -95,6 +96,8 @@ List<TextEditingController> valTypeCont = [];
 List<TextEditingController> partValueCont = [];
 final formDetailDateCont = TextEditingController();
 final formDetailUserCont = TextEditingController();
+/// Parent [id_form] when opening add/edit tool detail (survives extra rows).
+String parentIdFormForToolDetail = '';
 
 // Controller PO
 String paramViewDataPO = 'VIEW DATA PO';

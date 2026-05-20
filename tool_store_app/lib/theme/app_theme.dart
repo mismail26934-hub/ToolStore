@@ -176,4 +176,11 @@ extension ToolStoreTheme on BuildContext {
       Colors.black.withValues(alpha: isDarkMode ? 0.28 : 0.05);
 
   Color get appBarSurface => cardSurface;
+
+  /// Nested detail rows (PO, SO/PR, dates) inside tool form sections.
+  Color get detailSubCardBg => cardSurface;
+
+  Color get detailSubCardBorder => cardBorder;
+
+  Color get detailSubCardIconBg => searchAccentFill;
 }

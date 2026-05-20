@@ -1,5 +1,77 @@
 import 'package:tool_store_app/controller/api_url/post_list.dart';
 
+/// Agregat COUNT milestone dari `cont_form.php` (param DASHBOARD COUNT FORM).
+class FormDashboardCounts {
+  const FormDashboardCounts({
+    this.draft = 0,
+    this.superiorApproval = 0,
+    this.serviceAdmin = 0,
+    this.deptHead = 0,
+    this.counterGa = 0,
+    this.toolReceivedWhGa = 0,
+    this.notificationTotal = 0,
+  });
+
+  final int draft;
+  final int superiorApproval;
+  final int serviceAdmin;
+  final int deptHead;
+  final int counterGa;
+  final int toolReceivedWhGa;
+  final int notificationTotal;
+
+  static const empty = FormDashboardCounts();
+
+  factory FormDashboardCounts.fromJson(Map<String, dynamic> json) {
+    int readInt(dynamic v) {
+      if (v == null) return 0;
+      if (v is int) return v;
+      if (v is num) return v.toInt();
+      return int.tryParse(v.toString()) ?? 0;
+    }
+
+    return FormDashboardCounts(
+      draft: readInt(json['draft']),
+      superiorApproval: readInt(
+        json['superior_approval'] ?? json['superiorApproval'],
+      ),
+      serviceAdmin: readInt(
+        json['service_admin'] ?? json['serviceAdmin'],
+      ),
+      deptHead: readInt(json['dept_head'] ?? json['deptHead']),
+      counterGa: readInt(json['counter_ga'] ?? json['counterGa']),
+      toolReceivedWhGa: readInt(
+        json['tool_received_wh_ga'] ?? json['toolReceivedWhGa'],
+      ),
+      notificationTotal: readInt(
+        json['notification_total'] ?? json['notificationTotal'],
+      ),
+    );
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      other is FormDashboardCounts &&
+      other.draft == draft &&
+      other.superiorApproval == superiorApproval &&
+      other.serviceAdmin == serviceAdmin &&
+      other.deptHead == deptHead &&
+      other.counterGa == counterGa &&
+      other.toolReceivedWhGa == toolReceivedWhGa &&
+      other.notificationTotal == notificationTotal;
+
+  @override
+  int get hashCode => Object.hash(
+    draft,
+    superiorApproval,
+    serviceAdmin,
+    deptHead,
+    counterGa,
+    toolReceivedWhGa,
+    notificationTotal,
+  );
+}
+
 // USER
 class UserState {
   final List<PostList> users;
@@ -8,12 +80,16 @@ class UserState {
   final bool hasMore;
   final String? error;
 
+  /// Jumlah total user di database (filter yang sama), dari `cont_user.php` bila dikirim.
+  final int? totalUsers;
+
   UserState({
     this.users = const [],
     this.isLoading = false,
     this.isLoadingMore = false,
     this.hasMore = true,
     this.error,
+    this.totalUsers,
   });
 
   // Factory untuk state awal
@@ -25,6 +101,8 @@ class UserState {
     bool? isLoadingMore,
     bool? hasMore,
     String? error,
+    int? totalUsers,
+    bool clearTotalUsers = false,
   }) {
     return UserState(
       // Jika parameter baru (list) null, gunakan nilai yang sudah ada (this.users)
@@ -33,6 +111,7 @@ class UserState {
       isLoadingMore: isLoadingMore ?? this.isLoadingMore,
       hasMore: hasMore ?? this.hasMore,
       error: error ?? this.error,
+      totalUsers: clearTotalUsers ? null : (totalUsers ?? this.totalUsers),
     );
   }
 }
@@ -44,16 +123,31 @@ class FormsState {
   final bool hasMore;
   final String? error;
 
+  /// Jumlah total form di database, dari `cont_form.php` bila dikirim.
+  final int? totalForms;
+
+  /// COUNT per milestone dari `DASHBOARD COUNT FORM`.
+  final FormDashboardCounts? dashboardCounts;
+  final bool isLoadingDashboardCounts;
+  final String? dashboardCountsError;
+
   FormsState({
     this.forms = const [],
     this.isLoadingTool = false,
     this.isLoadingMore = false,
     this.hasMore = true,
     this.error,
+    this.totalForms,
+    this.dashboardCounts,
+    this.isLoadingDashboardCounts = false,
+    this.dashboardCountsError,
   });
 
   // Factory untuk state awal
   factory FormsState.initial() => FormsState(forms: [], isLoadingTool: false);
+
+  FormDashboardCounts get dashboardCountsOrEmpty =>
+      dashboardCounts ?? FormDashboardCounts.empty;
 
   FormsState copyWith({
     List<PostList>? forms,
@@ -61,6 +155,13 @@ class FormsState {
     bool? isLoadingMore,
     bool? hasMore,
     String? error,
+    int? totalForms,
+    bool clearTotalForms = false,
+    FormDashboardCounts? dashboardCounts,
+    bool clearDashboardCounts = false,
+    bool? isLoadingDashboardCounts,
+    String? dashboardCountsError,
+    bool clearDashboardCountsError = false,
   }) {
     return FormsState(
       // Jika parameter baru (list) null, gunakan nilai yang sudah ada (this.forms)
@@ -69,6 +170,15 @@ class FormsState {
       isLoadingMore: isLoadingMore ?? this.isLoadingMore,
       hasMore: hasMore ?? this.hasMore,
       error: error ?? this.error,
+      totalForms: clearTotalForms ? null : (totalForms ?? this.totalForms),
+      dashboardCounts: clearDashboardCounts
+          ? null
+          : (dashboardCounts ?? this.dashboardCounts),
+      isLoadingDashboardCounts:
+          isLoadingDashboardCounts ?? this.isLoadingDashboardCounts,
+      dashboardCountsError: clearDashboardCountsError
+          ? null
+          : (dashboardCountsError ?? this.dashboardCountsError),
     );
   }
 }

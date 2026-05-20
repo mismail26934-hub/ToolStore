@@ -1,4 +1,5 @@
 import 'package:tool_store_app/controller/api_url/post_list.dart';
+import 'package:tool_store_app/controller/cont_crud/redux/state.dart';
 
 // Dipanggil saat mulai loading
 class FetchUsersAction {}
@@ -10,14 +11,28 @@ class UsersLoadedAction {
   final List<PostList> users;
   final bool hasMore;
 
-  UsersLoadedAction(this.users, {this.hasMore = false});
+  /// Total rows di server (pagination), dari API bila tersedia.
+  final int? totalUsers;
+
+  UsersLoadedAction(
+    this.users, {
+    this.hasMore = false,
+    this.totalUsers,
+  });
 }
 
 class UsersAppendAction {
   final List<PostList> users;
   final bool hasMore;
 
-  UsersAppendAction(this.users, {required this.hasMore});
+  /// Total rows di server; null = pertahankan nilai state sebelumnya.
+  final int? totalUsers;
+
+  UsersAppendAction(
+    this.users, {
+    required this.hasMore,
+    this.totalUsers,
+  });
 }
 
 class UsersErrorAction {
@@ -36,20 +51,46 @@ class DatasLoadedAction {
   final List<PostList> forms;
   final bool hasMore;
 
-  DatasLoadedAction(this.forms, {this.hasMore = false});
+  /// Total rows di server (pagination), dari `cont_form.php` bila dikirim.
+  final int? totalForms;
+
+  DatasLoadedAction(
+    this.forms, {
+    this.hasMore = false,
+    this.totalForms,
+  });
 }
 
 class DatasAppendAction {
   final List<PostList> forms;
   final bool hasMore;
 
-  DatasAppendAction(this.forms, {required this.hasMore});
+  /// Total rows di server; null = pertahankan nilai state sebelumnya.
+  final int? totalForms;
+
+  DatasAppendAction(
+    this.forms, {
+    required this.hasMore,
+    this.totalForms,
+  });
 }
 
 class DatasErrorAction {
   // Dipanggil jika terjadi error
   final String errors;
   DatasErrorAction(this.errors);
+}
+
+class FetchDashboardCountsAction {}
+
+class DashboardCountsLoadedAction {
+  final FormDashboardCounts counts;
+  DashboardCountsLoadedAction(this.counts);
+}
+
+class DashboardCountsErrorAction {
+  final String errors;
+  DashboardCountsErrorAction(this.errors);
 }
 
 // TOOL DETAIL

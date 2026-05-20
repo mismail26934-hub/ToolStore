@@ -173,7 +173,7 @@ class PostList {
       status: json['status'] ?? "",
       superiorId: json['superior_id'] ?? "",
 
-      idForm: json['id_form'] ?? "",
+      idForm: (json['id_form'] ?? json['id'] ?? '').toString(),
       formNo: json['form_no'] ?? "",
       formServName: json['form_serv_name'] ?? "",
       formServComment: json['form_serv_comment'] ?? "",

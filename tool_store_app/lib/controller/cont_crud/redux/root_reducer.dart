@@ -25,6 +25,7 @@ final userReducer = combineReducers<UserState>([
       isLoadingMore: false,
       hasMore: true,
       error: null,
+      clearTotalUsers: true,
     ),
   ).call,
   TypedReducer<UserState, FetchUsersMoreAction>(
@@ -36,6 +37,8 @@ final userReducer = combineReducers<UserState>([
       isLoadingMore: false,
       users: action.users,
       hasMore: action.hasMore,
+      totalUsers: action.totalUsers,
+      clearTotalUsers: action.totalUsers == null,
     ),
   ).call,
   TypedReducer<UserState, UsersAppendAction>(
@@ -43,6 +46,7 @@ final userReducer = combineReducers<UserState>([
       isLoadingMore: false,
       users: _mergeUsers(state.users, action.users),
       hasMore: action.hasMore,
+      totalUsers: action.totalUsers ?? state.totalUsers,
     ),
   ).call,
   TypedReducer<UserState, UsersErrorAction>(
@@ -76,6 +80,7 @@ final formReducer = combineReducers<FormsState>([
       isLoadingMore: false,
       hasMore: true,
       error: null,
+      clearTotalForms: true,
     ),
   ).call,
   TypedReducer<FormsState, FetchDatasMoreAction>(
@@ -87,6 +92,8 @@ final formReducer = combineReducers<FormsState>([
       isLoadingMore: false,
       forms: action.forms,
       hasMore: action.hasMore,
+      totalForms: action.totalForms,
+      clearTotalForms: action.totalForms == null,
     ),
   ).call,
   TypedReducer<FormsState, DatasAppendAction>(
@@ -94,6 +101,7 @@ final formReducer = combineReducers<FormsState>([
       isLoadingMore: false,
       forms: _mergeForms(state.forms, action.forms),
       hasMore: action.hasMore,
+      totalForms: action.totalForms ?? state.totalForms,
     ),
   ).call,
   TypedReducer<FormsState, DatasErrorAction>(
@@ -101,6 +109,25 @@ final formReducer = combineReducers<FormsState>([
       isLoadingTool: false,
       isLoadingMore: false,
       error: action.errors,
+    ),
+  ).call,
+  TypedReducer<FormsState, FetchDashboardCountsAction>(
+    (state, action) => state.copyWith(
+      isLoadingDashboardCounts: true,
+      clearDashboardCountsError: true,
+    ),
+  ).call,
+  TypedReducer<FormsState, DashboardCountsLoadedAction>(
+    (state, action) => state.copyWith(
+      isLoadingDashboardCounts: false,
+      dashboardCounts: action.counts,
+      clearDashboardCountsError: true,
+    ),
+  ).call,
+  TypedReducer<FormsState, DashboardCountsErrorAction>(
+    (state, action) => state.copyWith(
+      isLoadingDashboardCounts: false,
+      dashboardCountsError: action.errors,
     ),
   ).call,
 ]);

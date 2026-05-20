@@ -9,6 +9,8 @@ import 'package:tool_store_app/view/custom/mixin/mixin_pref.dart';
 import 'package:tool_store_app/view/custom/navbar/sliver_appbars.dart';
 import 'package:tool_store_app/view/custom/routes/page_routes.dart';
 import 'package:tool_store_app/view/custom/navbar/sliver_fill_remaining.dart';
+import 'package:tool_store_app/view/custom/shimmer/app_shimmer.dart';
+import 'package:tool_store_app/view/custom/shimmer/skeletons.dart';
 import 'package:tool_store_app/theme/app_theme.dart';
 import 'package:tool_store_app/theme/theme_controller.dart';
 import 'package:tool_store_app/view/menu/drawer/drawer.dart';
@@ -75,10 +77,14 @@ class _UserDataState extends State<UserData> with MixinPref {
     'status': 'Status',
   };
 
+  bool get _canSubmitSearch => _searchController.text.trim().isNotEmpty;
+
   /// Memanggil [getDataUser] dengan keyword dari field (hanya saat ikon search diklik).
   void _submitSearch() {
+    final query = _searchController.text.trim();
+    if (query.isEmpty) return;
     setState(() {
-      _searchQuery = _searchController.text.trim();
+      _searchQuery = query;
     });
     _refreshUsers();
   }
@@ -177,19 +183,31 @@ class _UserDataState extends State<UserData> with MixinPref {
 
   Widget _buildUserCard(dynamic users, int index) {
     final statusColor = _statusColor(users.status);
+    final isDark = context.isDarkMode;
+    final surface = context.cardSurface;
+    final LinearGradient? orangeCardGradient = isDark
+        ? null
+        : LinearGradient(
+            colors: [
+              Color.alphaBlend(
+                clrOrange.withValues(alpha: 0.14),
+                surface,
+              ),
+              Color.alphaBlend(
+                clrOrange.withValues(alpha: 0.22),
+                surface,
+              ),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          );
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 10),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
-        gradient: LinearGradient(
-          colors: [
-            context.cardSurface,
-            statusColor.withValues(alpha: context.isDarkMode ? 0.12 : 0.04),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: isDark ? Colors.black : null,
+        gradient: orangeCardGradient,
         border: Border.all(color: context.cardBorder),
         boxShadow: [
           BoxShadow(
@@ -275,7 +293,10 @@ class _UserDataState extends State<UserData> with MixinPref {
     );
   }
 
-  Future<void> _fetchUsersPage({required int page, required bool append}) async {
+  Future<void> _fetchUsersPage({
+    required int page,
+    required bool append,
+  }) async {
     await store.dispatch(
       getDataUser(
         param: paramViewDataUser,
@@ -310,8 +331,7 @@ class _UserDataState extends State<UserData> with MixinPref {
   }
 
   Future<void> _loadMoreUsers() async {
-    if (store.state.userState.isLoadingMore ||
-        !store.state.userState.hasMore) {
+    if (store.state.userState.isLoadingMore || !store.state.userState.hasMore) {
       return;
     }
     final nextPage = _currentPage + 1;
@@ -321,6 +341,13 @@ class _UserDataState extends State<UserData> with MixinPref {
     } catch (_) {
       // Error already dispatched to Redux store.
     }
+  }
+
+  String _userLoadSummary(UserState state) {
+    final n = state.users.length;
+    final t = state.totalUsers;
+    if (t != null) return '$n of $t user(s) loaded';
+    return '$n user(s) loaded';
   }
 
   @override
@@ -345,14 +372,18 @@ class _UserDataState extends State<UserData> with MixinPref {
             child: TextField(
               controller: _searchController,
               onChanged: (_) => _onSearchTextEdited(),
+              onSubmitted: _canSubmitSearch ? (_) => _submitSearch() : null,
               textInputAction: TextInputAction.search,
               decoration: InputDecoration(
                 hintText: 'Cari data user...',
                 hintStyle: TextStyle(color: context.iconMuted),
                 prefixIcon: IconButton(
-                  icon: Icon(Icons.search, color: clrOrange),
+                  icon: Icon(
+                    Icons.search,
+                    color: _canSubmitSearch ? clrOrange : context.iconMuted,
+                  ),
                   tooltip: 'Cari',
-                  onPressed: _submitSearch,
+                  onPressed: _canSubmitSearch ? _submitSearch : null,
                 ),
                 filled: true,
                 fillColor: context.searchAccentFill,
@@ -459,7 +490,13 @@ class _UserDataState extends State<UserData> with MixinPref {
         bottom: true,
         child: Scaffold(
           backgroundColor: context.pageBackground,
-          body: Center(child: CircularProgressIndicator(color: clrOrange)),
+          body: ListView.builder(
+            padding: const EdgeInsets.only(top: 8),
+            itemCount: 6,
+            itemBuilder: (context, index) => AppShimmer(
+              child: UserRowSkeleton(key: ValueKey('user_access_$index')),
+            ),
+          ),
         ),
       );
     }
@@ -498,9 +535,10 @@ class _UserDataState extends State<UserData> with MixinPref {
                   final hasMoreUsers = state.hasMore;
                   // 1. Tampilan saat Loading
                   if (state.isLoading) {
-                    return SliverFillRemaiings(
-                      errors: "Loading",
-                      hasScrollBodys: false,
+                    return ShimmerListSliver(
+                      itemCount: 6,
+                      itemBuilder: (context, index) =>
+                          UserRowSkeleton(key: ValueKey('user_load_$index')),
                     );
                   }
                   // 2. Tampilan saat Error
@@ -550,6 +588,20 @@ class _UserDataState extends State<UserData> with MixinPref {
                           return _buildUserCard(users, index);
                         }, childCount: state.users.length),
                       ),
+                      if (state.totalUsers != null &&
+                          !hasMoreUsers &&
+                          state.users.isNotEmpty)
+                        SliverToBoxAdapter(
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
+                            child: Text(
+                              _userLoadSummary(state),
+                              textAlign: TextAlign.center,
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(color: context.textSecondary),
+                            ),
+                          ),
+                        ),
                       if (hasMoreUsers)
                         SliverToBoxAdapter(
                           child: Padding(
@@ -557,7 +609,7 @@ class _UserDataState extends State<UserData> with MixinPref {
                             child: Column(
                               children: [
                                 Text(
-                                  '${state.users.length} user(s) loaded',
+                                  _userLoadSummary(state),
                                   style: Theme.of(context).textTheme.bodySmall
                                       ?.copyWith(color: context.textSecondary),
                                 ),

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tool_store_app/controller/cont_crud/redux/action.dart';
 import 'package:tool_store_app/view/custom/routes/page_routes.dart';
 import 'package:tool_store_app/view/menu/tooll/tool_form.dart';
@@ -134,7 +136,7 @@ Future<void> selectDate(
   }
 }
 
-void postMultipleToolCont(
+Future<void> postMultipleToolCont(
   String ii,
   idFormTool,
   idFormDetail,
@@ -151,7 +153,8 @@ void postMultipleToolCont(
   /// True when opening the form to add new tool rows (API ADD) while still
   /// pre-filling parent [idFormTool] / [idFormDetail] from the list context.
   bool navigateAsAdd = false,
-}) {
+}) async {
+  parentIdFormForToolDetail = (idFormTool ?? '').toString().trim();
   idFormToolCont.clear();
   idFormDetailCont.clear();
   formCommentCont.clear();
@@ -163,7 +166,7 @@ void postMultipleToolCont(
   valTypeCont.clear();
   partValueCont.clear();
 
-  idFormToolCont.add(TextEditingController(text: idFormTool ?? ""));
+  idFormToolCont.add(TextEditingController(text: parentIdFormForToolDetail));
   idFormDetailCont.add(TextEditingController(text: idFormDetail ?? ""));
   formCommentCont.add(TextEditingController(text: formComment ?? ""));
   pnGroupCont.add(TextEditingController(text: pnGroup ?? ""));
@@ -174,9 +177,22 @@ void postMultipleToolCont(
   valTypeCont.add(TextEditingController(text: valType ?? ""));
   partValueCont.add(TextEditingController(text: partValue ?? ""));
   itemCont.text = ii.toString();
+  formDetailDateCont.text = DateFormat('yyyy-MM-dd HH:mm:ss').format(
+    DateTime.now(),
+  );
+  var detailUser = idUsersApp.trim();
+  if (detailUser.isEmpty) {
+    final prefs = await SharedPreferences.getInstance();
+    detailUser = (prefs.getString('idUsersApp') ?? '').trim();
+    if (detailUser.isNotEmpty) {
+      idUsersApp = detailUser;
+    }
+  }
+  formDetailUserCont.text = detailUser;
 
-  PageRoutes.routeUserFormDetail(
+  await PageRoutes.routeUserFormDetail(
     context,
     navigateAsAdd ? 'ADD DATA' : 'EDIT DATA',
+    parentIdForm: parentIdFormForToolDetail,
   );
 }

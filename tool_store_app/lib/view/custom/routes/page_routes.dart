@@ -73,9 +73,12 @@ class PageRoutes {
     BuildContext context, {
     String? title,
     String? formMilestoneFilter,
+    List<String> formMilestoneFilters = const <String>[],
     bool excludeFormMilestoneFilter = false,
     List<String> excludeFormMilestoneFilters = const <String>[],
     bool filterBlankFormMilestone = false,
+    String? initialSearchQuery,
+    String initialSearchField = 'all',
   }) async {
     await Future.delayed(const Duration(milliseconds: 1));
     if (!context.mounted) return;
@@ -85,9 +88,12 @@ class PageRoutes {
             ToolData(
               title: title,
               formMilestoneFilter: formMilestoneFilter,
+              formMilestoneFilters: formMilestoneFilters,
               excludeFormMilestoneFilter: excludeFormMilestoneFilter,
               excludeFormMilestoneFilters: excludeFormMilestoneFilters,
               filterBlankFormMilestone: filterBlankFormMilestone,
+              initialSearchQuery: initialSearchQuery,
+              initialSearchField: initialSearchField,
             ),
       ),
     );
@@ -130,14 +136,18 @@ class PageRoutes {
 
   static Future<void> routeUserFormDetail(
     BuildContext context,
-    subtitle,
-  ) async {
+    String subtitle, {
+    String parentIdForm = '',
+  }) async {
     await Future.delayed(const Duration(milliseconds: 1));
     // Cek apakah context masih aktif/valid di layar
     if (!context.mounted) return;
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => ToolFormMultipleInput(subtitle: subtitle),
+        builder: (_) => ToolFormMultipleInput(
+          subtitle: subtitle,
+          parentIdForm: parentIdForm,
+        ),
       ),
     );
   }

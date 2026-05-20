@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tool_store_app/controller/api_url/api.dart';
 import 'package:tool_store_app/controller/api_url/post_list.dart';
 import 'package:tool_store_app/controller/cont_crud/redux/action.dart';
+import 'package:tool_store_app/debug/agent_log.dart';
 import 'package:tool_store_app/controller/cont_crud/redux/state.dart';
 import 'package:tool_store_app/view/var/var.dart';
 
@@ -75,13 +76,32 @@ ThunkAction<AppState> getDataUser({
       dio.options.connectTimeout = const Duration(seconds: 20);
       dio.options.receiveTimeout = const Duration(seconds: 20);
       final response = await dio.post(ApiUrl.contDataUser, data: map);
-      List<PostList> listUser = parseResponse(response.data);
-      print('response.data: ${response.data}');
-      final hasMore = isView && listUser.length >= limit;
-      if (append && isView) {
-        store.dispatch(UsersAppendAction(listUser, hasMore: hasMore));
+      final parsed = parseUserListResponse(response.data);
+      final listUser = parsed.items;
+      final int? apiTotal = parsed.total;
+
+      final bool hasMore;
+      if (isView) {
+        final mergedCount = append
+            ? _mergeUsersPreview(store.state.userState.users, listUser).length
+            : listUser.length;
+        if (apiTotal != null) {
+          hasMore = mergedCount < apiTotal;
+        } else {
+          hasMore = listUser.length >= limit;
+        }
       } else {
-        store.dispatch(UsersLoadedAction(listUser, hasMore: hasMore));
+        hasMore = false;
+      }
+
+      if (append && isView) {
+        store.dispatch(
+          UsersAppendAction(listUser, hasMore: hasMore, totalUsers: apiTotal),
+        );
+      } else {
+        store.dispatch(
+          UsersLoadedAction(listUser, hasMore: hasMore, totalUsers: apiTotal),
+        );
       }
       return listUser;
     } on DioException catch (e) {
@@ -111,8 +131,55 @@ ThunkAction<AppState> getDataUser({
 /// Page size for tool form list lazy loading (matches PHP default in cont_form.php).
 const int kToolFormPageSize = 20;
 
-/// Larger fetch for dashboard milestone counts (not paginated in UI).
+/// Larger fetch for dashboard milestone counts (legacy; dashboard uses COUNT API).
 const int kToolFormDashboardFetchLimit = 1000;
+
+FormDashboardCounts parseDashboardCountsResponse(dynamic responseBody) {
+  final dynamic decoded =
+      responseBody is String ? jsonDecode(responseBody) : responseBody;
+  if (decoded is Map) {
+    return FormDashboardCounts.fromJson(
+      Map<String, dynamic>.from(decoded),
+    );
+  }
+  throw FormatException(
+    'Unexpected dashboard counts response: ${decoded.runtimeType}',
+  );
+}
+
+/// COUNT milestone dashboard dari `cont_form.php` (param DASHBOARD COUNT FORM).
+ThunkAction<AppState> getDashboardFormCounts() {
+  return (Store<AppState> store) async {
+    store.dispatch(FetchDashboardCountsAction());
+    final map = FormData.fromMap({'param': paramDashboardCountForm});
+    final dio = Dio();
+    try {
+      dio.options.connectTimeout = const Duration(seconds: 20);
+      dio.options.receiveTimeout = const Duration(seconds: 20);
+      final response = await dio.post(ApiUrl.contDataTool, data: map);
+      final counts = parseDashboardCountsResponse(response.data);
+      store.dispatch(DashboardCountsLoadedAction(counts));
+      return counts;
+    } on DioException catch (e) {
+      if (e.type == DioExceptionType.connectionError ||
+          e.error is SocketException ||
+          e.type == DioExceptionType.connectionTimeout) {
+        errors = cekInternet;
+        messages = "(${e.message})";
+        store.dispatch(DashboardCountsErrorAction(errors));
+        throw Exception(cekInternet);
+      } else {
+        errors = serverDown;
+        messages = "(${e.message})";
+        store.dispatch(DashboardCountsErrorAction(errors));
+        throw Exception("Server Down ($messages)");
+      }
+    } catch (e) {
+      store.dispatch(DashboardCountsErrorAction(e.toString()));
+      throw Exception(e);
+    }
+  };
+}
 
 // DATA TOOL
 ThunkAction<AppState> getDataTool({
@@ -136,6 +203,10 @@ ThunkAction<AppState> getDataTool({
   int page = 1,
   int limit = kToolFormPageSize,
   bool append = false,
+
+  /// Server-side list filter for [paramViewDataForm] (POST `keyword` / `search_field`).
+  String viewKeyword = '',
+  String viewSearchField = 'all',
 }) {
   return (Store<AppState> store) async {
     final isView = param == paramViewDataForm;
@@ -144,7 +215,7 @@ ThunkAction<AppState> getDataTool({
     } else {
       store.dispatch(FetchDatasAction());
     }
-    var map = FormData.fromMap({
+    final body = <String, dynamic>{
       'param': param,
       'id_form': idForm,
       'form_no': formNo,
@@ -164,19 +235,78 @@ ThunkAction<AppState> getDataTool({
       'form_user_update': formUserUpdate,
       'page': page.toString(),
       'limit': limit.toString(),
-    });
+    };
+    final kw = viewKeyword.trim();
+    if (isView && kw.isNotEmpty) {
+      body['keyword'] = kw;
+      body['search_field'] = viewSearchField.trim().isEmpty
+          ? 'all'
+          : viewSearchField.trim();
+    }
+    var map = FormData.fromMap(body);
 
     var dio = Dio();
     try {
       dio.options.connectTimeout = const Duration(seconds: 20);
       dio.options.receiveTimeout = const Duration(seconds: 20);
       final response = await dio.post(ApiUrl.contDataTool, data: map);
-      List<PostList> listTool = parseResponse(response.data);
-      final hasMore = isView && listTool.length >= limit;
-      if (append && isView) {
-        store.dispatch(DatasAppendAction(listTool, hasMore: hasMore));
+      final parsed = parseFormListResponse(response.data);
+      final listTool = parsed.items;
+      final int? apiTotal = parsed.total;
+
+      // #region agent log
+      if (isView) {
+        agentDebugLog(
+          hypothesisId: 'C',
+          location: 'post_get_data.dart:getDataTool',
+          message: 'API view response',
+          data: {
+            'page': page,
+            'limit': limit,
+            'append': append,
+            'itemsCount': listTool.length,
+            'apiTotal': apiTotal,
+            'viewKeyword': viewKeyword,
+            'viewSearchField': viewSearchField,
+            'sampleMilestones': listTool
+                .take(5)
+                .map((f) => f.formMilestone.trim())
+                .toList(),
+          },
+        );
+      }
+      // #endregion
+
+      final bool hasMore;
+      if (isView) {
+        final mergedCount = append
+            ? _mergeFormsPreview(store.state.formsState.forms, listTool).length
+            : listTool.length;
+        if (apiTotal != null) {
+          hasMore = mergedCount < apiTotal;
+        } else {
+          hasMore = listTool.length >= limit;
+        }
       } else {
-        store.dispatch(DatasLoadedAction(listTool, hasMore: hasMore));
+        hasMore = false;
+      }
+
+      if (append && isView) {
+        store.dispatch(
+          DatasAppendAction(
+            listTool,
+            hasMore: hasMore,
+            totalForms: apiTotal,
+          ),
+        );
+      } else {
+        store.dispatch(
+          DatasLoadedAction(
+            listTool,
+            hasMore: hasMore,
+            totalForms: apiTotal,
+          ),
+        );
       }
       return listTool;
     } on DioException catch (e) {
@@ -207,6 +337,133 @@ ThunkAction<AppState> getDataTool({
 List<PostList> parseResponse(String responseBody) {
   final parsed = jsonDecode(responseBody).cast<Map<String, dynamic>>();
   return parsed.map<PostList>((e) => PostList.fromJson(e)).toList();
+}
+
+List<PostList> _mergeFormsPreview(List<PostList> existing, List<PostList> incoming) {
+  if (incoming.isEmpty) return existing;
+  final ids = existing.map((f) => f.idForm.trim()).toSet();
+  final merged = List<PostList>.from(existing);
+  for (final form in incoming) {
+    final id = form.idForm.trim();
+    if (id.isEmpty || !ids.contains(id)) {
+      merged.add(form);
+      if (id.isNotEmpty) ids.add(id);
+    }
+  }
+  return merged;
+}
+
+/// Hasil parse list form dari `cont_form.php`.
+class ParsedFormListResult {
+  final List<PostList> items;
+  final int? total;
+
+  const ParsedFormListResult(this.items, this.total);
+}
+
+/// Mem-parse respons [cont_form.php] baik berupa array maupun objek dengan `total`.
+ParsedFormListResult parseFormListResponse(dynamic responseBody) {
+  final dynamic decoded =
+      responseBody is String ? jsonDecode(responseBody) : responseBody;
+
+  if (decoded is List) {
+    final list = decoded
+        .map((e) => PostList.fromJson(Map<String, dynamic>.from(e as Map)))
+        .toList();
+    return ParsedFormListResult(list, null);
+  }
+
+  if (decoded is Map) {
+    final m = Map<String, dynamic>.from(decoded);
+    final total = _readTotalFromMap(m);
+    for (final key in ['data', 'rows', 'forms', 'records']) {
+      final v = m[key];
+      if (v is List) {
+        final list = <PostList>[];
+        for (final e in v) {
+          if (e is Map) {
+            list.add(PostList.fromJson(Map<String, dynamic>.from(e)));
+          }
+        }
+        return ParsedFormListResult(list, total);
+      }
+    }
+    return ParsedFormListResult([], total);
+  }
+
+  throw FormatException('Unexpected form list response: ${decoded.runtimeType}');
+}
+
+/// Hasil parse list user dari `cont_user.php`.
+///
+/// **Format lama (tetap didukung):** body JSON berupa array `[{...}, ...]`.
+///
+/// **Format disarankan (pagination + total):** objek JSON, misalnya:
+/// `{"total": 150, "data": [{...}, ...]}` — kunci array boleh salah satu dari
+/// `data`, `rows`, `users`, `records`; kunci total boleh `total`, `total_users`,
+/// `total_count`, `recordsTotal`, `count`.
+class ParsedUserListResult {
+  final List<PostList> items;
+  final int? total;
+
+  const ParsedUserListResult(this.items, this.total);
+}
+
+List<PostList> _mergeUsersPreview(List<PostList> existing, List<PostList> incoming) {
+  if (incoming.isEmpty) return existing;
+  final ids = existing.map((u) => u.idUsers.trim()).toSet();
+  final merged = List<PostList>.from(existing);
+  for (final user in incoming) {
+    final id = user.idUsers.trim();
+    if (id.isEmpty || !ids.contains(id)) {
+      merged.add(user);
+      if (id.isNotEmpty) ids.add(id);
+    }
+  }
+  return merged;
+}
+
+int? _readTotalFromMap(Map<String, dynamic> m) {
+  for (final key in ['total', 'total_users', 'total_count', 'recordsTotal', 'count']) {
+    if (!m.containsKey(key)) continue;
+    final v = m[key];
+    if (v is int) return v;
+    if (v is double) return v.toInt();
+    if (v is String) return int.tryParse(v.trim());
+  }
+  return null;
+}
+
+/// Mem-parse respons [cont_user.php] baik berupa array maupun objek dengan `total`.
+ParsedUserListResult parseUserListResponse(dynamic responseBody) {
+  final dynamic decoded = responseBody is String ? jsonDecode(responseBody) : responseBody;
+
+  if (decoded is List) {
+    final list = decoded
+        .map((e) => PostList.fromJson(Map<String, dynamic>.from(e as Map)))
+        .toList();
+    return ParsedUserListResult(list, null);
+  }
+
+  if (decoded is Map) {
+    final m = Map<String, dynamic>.from(decoded);
+    final total = _readTotalFromMap(m);
+    for (final key in ['data', 'rows', 'users', 'records']) {
+      final v = m[key];
+      if (v is List) {
+        final list = <PostList>[];
+        for (final e in v) {
+          if (e is Map) {
+            list.add(PostList.fromJson(Map<String, dynamic>.from(e)));
+          }
+        }
+        return ParsedUserListResult(list, total);
+      }
+    }
+    return ParsedUserListResult([], total);
+  }
+
+  throw FormatException('Unexpected user list response: ${decoded.runtimeType}');
 }
 
 // LOGIN
@@ -278,6 +535,8 @@ ThunkAction<AppState> getDataToolDetail({
       'param': param,
       'id_form_detail': idFormDetail,
       'id_form': idFrom,
+      'idFrom': idFrom,
+      'idForm': idFrom,
       'form_comment': formComment,
       'pn_group': pnGroup,
       'pn_desc': pnDesc,
@@ -287,7 +546,9 @@ ThunkAction<AppState> getDataToolDetail({
       'val_type': valType,
       'part_value': partValue,
       'form_detail_date': formDetailDate,
+      'formDetailDate': formDetailDate,
       'form_detail_user': formDetailUser,
+      'formDetailUser': formDetailUser,
     });
 
     var dio = Dio();

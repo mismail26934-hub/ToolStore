@@ -11,6 +11,8 @@ import 'package:tool_store_app/view/custom/form/text_form_field.dart';
 import 'package:tool_store_app/view/custom/routes/page_routes.dart';
 import 'package:tool_store_app/view/custom/show_dialog/show_dialog.dart';
 import 'package:tool_store_app/theme/app_theme.dart';
+import 'package:tool_store_app/view/custom/shimmer/app_shimmer.dart';
+import 'package:tool_store_app/view/custom/shimmer/skeletons.dart';
 import 'package:tool_store_app/view/var/var.dart';
 
 String _userPickLabel(PostList u) {
@@ -42,6 +44,22 @@ List<PostList> _filterUserPickerRows(List<PostList> list, String query) {
         u.username.toLowerCase().contains(q) ||
         u.idUsers.toLowerCase().contains(q);
   }).toList();
+}
+
+List<PostList> _filterUsersByLevel(List<PostList> list, String level) {
+  final target = level.trim().toUpperCase();
+  if (target.isEmpty) return list;
+  return list
+      .where((u) => u.level.trim().toUpperCase() == target)
+      .toList();
+}
+
+bool _currentFormHasToolListItems(AppState state) {
+  final idForm = idFormCont.text.trim();
+  if (idForm.isEmpty) return false;
+  return state.formsDetailState.formsDetail.any(
+    (item) => item.idForm.trim() == idForm,
+  );
 }
 
 class _ToolUserPickerDialog extends StatefulWidget {
@@ -344,6 +362,26 @@ class ToolFormInputState extends State<ToolFormInput> {
             status: '',
             superiorId: '',
             limit: kUserFullFetchLimit,
+          ),
+        );
+      }
+      if (idFormCont.text.trim().isNotEmpty &&
+          !store.state.formsDetailState.isLoadingToolDetail) {
+        store.dispatch(
+          getDataToolDetail(
+            param: paramViewDataTool,
+            idFormDetail: '',
+            idFrom: '',
+            formComment: '',
+            pnGroup: '',
+            pnDesc: '',
+            qty: '',
+            explan: '',
+            actionNote: '',
+            valType: '',
+            partValue: '',
+            formDetailDate: '',
+            formDetailUser: '',
           ),
         );
       }
@@ -776,28 +814,45 @@ class ToolFormInputState extends State<ToolFormInput> {
         ),
         actions: [
           if (_isEditMode)
-            Padding(
-              padding: const EdgeInsets.only(right: 14, top: 10, bottom: 10),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: clrOrange,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: clrOrange.withValues(alpha: 0.05)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: clrOrange.withValues(alpha: 0.22),
-                      blurRadius: 18,
-                      offset: const Offset(0, 8),
+            StoreConnector<AppState, bool>(
+              converter: (store) => _currentFormHasToolListItems(store.state),
+              builder: (context, hasToolListData) {
+                final canDelete = !hasToolListData;
+                return Padding(
+                  padding: const EdgeInsets.only(right: 14, top: 10, bottom: 10),
+                  child: Opacity(
+                    opacity: canDelete ? 1 : 0.45,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: canDelete
+                            ? clrOrange
+                            : clrOrange.withValues(alpha: 0.35),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: clrOrange.withValues(alpha: 0.05),
+                        ),
+                        boxShadow: canDelete
+                            ? [
+                                BoxShadow(
+                                  color: clrOrange.withValues(alpha: 0.22),
+                                  blurRadius: 18,
+                                  offset: const Offset(0, 8),
+                                ),
+                              ]
+                            : null,
+                      ),
+                      child: IconButton(
+                        tooltip: canDelete
+                            ? 'Delete data'
+                            : 'Cannot delete: tool list has data',
+                        onPressed: canDelete ? _showDeleteDialog : null,
+                        icon: const Icon(Icons.delete_outline_rounded),
+                        color: clrWhite,
+                      ),
                     ),
-                  ],
-                ),
-                child: IconButton(
-                  tooltip: "Delete data",
-                  onPressed: _showDeleteDialog,
-                  icon: const Icon(Icons.delete_outline_rounded),
-                  color: clrWhite,
-                ),
-              ),
+                  ),
+                );
+              },
             ),
         ],
         bottom: PreferredSize(
@@ -925,12 +980,19 @@ class ToolFormInputState extends State<ToolFormInput> {
                               _userPickLabel(b).toLowerCase(),
                             ),
                           );
+                        final mechanicUsers = List<PostList>.from(
+                          _filterUsersByLevel(users, 'MECHANIC'),
+                        );
+                        final toolKeeperUsers = List<PostList>.from(
+                          _filterUsersByLevel(users, 'TOOL_KEEPER'),
+                        );
                         if (userState.isLoading && users.isEmpty) {
-                          return Padding(
-                            padding: const EdgeInsets.only(top: 4, bottom: 8),
-                            child: LinearProgressIndicator(
-                              borderRadius: BorderRadius.circular(8),
-                              color: clrOrange,
+                          return const AppShimmer(
+                            child: Column(
+                              children: [
+                                FieldSkeleton(),
+                                FieldSkeleton(),
+                              ],
                             ),
                           );
                         }
@@ -946,12 +1008,14 @@ class ToolFormInputState extends State<ToolFormInput> {
                               ),
                               child: _buildToolUserPickerField(
                                 context: context,
-                                users: users,
+                                users: mechanicUsers,
                                 controller: servNameCont,
                                 label: 'Serviceman',
                                 placeholder: 'Ketuk untuk pilih serviceman',
                                 dialogTitle: 'Pilih serviceman',
-                                emptyDataMessage: 'Data user belum dimuat',
+                                emptyDataMessage: userState.isLoading
+                                    ? 'Data user belum dimuat'
+                                    : 'Tidak ada user dengan level MECHANIC',
                               ),
                             ),
                             const SizedBox(height: 10),
@@ -964,12 +1028,14 @@ class ToolFormInputState extends State<ToolFormInput> {
                               ),
                               child: _buildToolUserPickerField(
                                 context: context,
-                                users: users,
+                                users: toolKeeperUsers,
                                 controller: checkedByCont,
                                 label: 'Check By',
                                 placeholder: 'Ketuk untuk pilih check by',
                                 dialogTitle: 'Pilih check by',
-                                emptyDataMessage: 'Data user belum dimuat',
+                                emptyDataMessage: userState.isLoading
+                                    ? 'Data user belum dimuat'
+                                    : 'Tidak ada user dengan level TOOL_KEEPER',
                               ),
                             ),
                           ],

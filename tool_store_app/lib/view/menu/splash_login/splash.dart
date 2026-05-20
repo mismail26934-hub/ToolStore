@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:tool_store_app/theme/app_theme.dart';
 import 'package:tool_store_app/view/custom/mixin/mixin_pref.dart';
 import 'package:tool_store_app/view/custom/routes/page_routes.dart';
+import 'package:tool_store_app/view/custom/shimmer/app_shimmer.dart';
+import 'package:tool_store_app/view/custom/shimmer/skeletons.dart';
 import 'package:tool_store_app/view/var/var.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -60,7 +63,31 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.isDarkMode;
+    final pageBg = context.pageBackground;
+    final cardBg = context.cardSurface;
+    final titleColor = isDark ? Colors.white : const Color(0xFF1E1E1E);
+    final subtitleColor = context.textSecondary;
+    final logoGradient = isDark
+        ? LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              const Color(0xFF252836),
+              context.cardSurface,
+            ],
+          )
+        : LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Colors.white.withValues(alpha: 0.96),
+              Colors.white,
+            ],
+          );
+
     return Scaffold(
+      backgroundColor: pageBg,
       body: Stack(
         children: [
           Container(
@@ -68,11 +95,17 @@ class _SplashScreenState extends State<SplashScreen>
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [
-                  clrOrange,
-                  const Color(0xFFF7F8FA),
-                  const Color.fromARGB(255, 250, 250, 247),
-                ],
+                colors: isDark
+                    ? [
+                        clrOrange.withValues(alpha: 0.55),
+                        const Color(0xFF1A1208),
+                        pageBg,
+                      ]
+                    : [
+                        clrOrange,
+                        const Color(0xFFF7F8FA),
+                        const Color.fromARGB(255, 250, 250, 247),
+                      ],
               ),
             ),
           ),
@@ -81,7 +114,7 @@ class _SplashScreenState extends State<SplashScreen>
             right: -70,
             child: _AuraCircle(
               size: 260,
-              color: clrOrange.withValues(alpha: 0.22),
+              color: clrOrange.withValues(alpha: isDark ? 0.14 : 0.22),
             ),
           ),
           Positioned(
@@ -89,7 +122,7 @@ class _SplashScreenState extends State<SplashScreen>
             left: -90,
             child: _AuraCircle(
               size: 300,
-              color: const Color(0xFFFFB84C).withValues(alpha: 0.12),
+              color: const Color(0xFFFFB84C).withValues(alpha: isDark ? 0.08 : 0.12),
             ),
           ),
           SafeArea(
@@ -109,17 +142,15 @@ class _SplashScreenState extends State<SplashScreen>
                           height: 128,
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(36),
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [
-                                Colors.white.withValues(alpha: 0.96),
-                                Colors.white,
-                              ],
-                            ),
+                            gradient: logoGradient,
+                            border: isDark
+                                ? Border.all(color: context.cardBorder)
+                                : null,
                             boxShadow: [
                               BoxShadow(
-                                color: clrWhite.withValues(alpha: 0.45),
+                                color: isDark
+                                    ? Colors.black.withValues(alpha: 0.45)
+                                    : clrWhite.withValues(alpha: 0.45),
                                 blurRadius: 36,
                                 spreadRadius: 4,
                                 offset: const Offset(0, 12),
@@ -147,7 +178,7 @@ class _SplashScreenState extends State<SplashScreen>
                             ?.copyWith(
                               fontWeight: FontWeight.w800,
                               fontSize: 30,
-                              color: const Color(0xFF1E1E1E),
+                              color: titleColor,
                               letterSpacing: 0.5,
                               decoration: TextDecoration.none,
                             ),
@@ -164,43 +195,33 @@ class _SplashScreenState extends State<SplashScreen>
                       vertical: 16,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: cardBg,
                       borderRadius: BorderRadius.circular(18),
                       border: Border.all(
-                        color: clrOrange.withValues(alpha: 0.18),
+                        color: isDark
+                            ? context.cardBorder
+                            : clrOrange.withValues(alpha: 0.18),
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.04),
+                          color: context.cardShadow,
                           blurRadius: 16,
                           offset: const Offset(0, 8),
                         ),
                       ],
                     ),
-                    child: Row(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        SizedBox(
-                          width: 28,
-                          height: 28,
-                          child: CircularProgressIndicator(
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              const Color(0xFFFFB84C),
-                            ),
-                            strokeWidth: 3,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            "Menyiapkan data sesi dan dashboard...",
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(
-                                  color: Colors.grey.shade700.withValues(
-                                    alpha: 0.95,
-                                  ),
-                                  fontWeight: FontWeight.w500,
-                                ),
-                          ),
+                        const AppShimmer(child: SplashLoadingStripSkeleton()),
+                        const SizedBox(height: 10),
+                        Text(
+                          "Menyiapkan data sesi dan dashboard...",
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: subtitleColor,
+                                fontWeight: FontWeight.w500,
+                              ),
                         ),
                       ],
                     ),

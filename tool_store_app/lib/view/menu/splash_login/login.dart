@@ -46,19 +46,9 @@ class _LoginState extends State<Login> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: context.pageBackground,
+      backgroundColor: context.isDarkMode ? Colors.black : Colors.white,
       body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              clrOrange.withValues(alpha: context.isDarkMode ? 0.12 : 0.08),
-              context.pageBackground,
-              context.pageBackground,
-            ],
-          ),
-        ),
+        color: context.isDarkMode ? Colors.black : Colors.white,
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
@@ -96,7 +86,9 @@ class _LoginState extends State<Login> {
                             style: Theme.of(context).textTheme.headlineSmall
                                 ?.copyWith(
                                   fontWeight: FontWeight.w800,
-                                  color: Colors.black,
+                                  color: context.isDarkMode
+                                      ? Colors.white
+                                      : clrBlack,
                                   decoration: TextDecoration.none,
                                 ),
                           ),
@@ -110,7 +102,11 @@ class _LoginState extends State<Login> {
                           child: Text(
                             "Masuk untuk melanjutkan ke dashboard",
                             style: Theme.of(context).textTheme.bodyMedium
-                                ?.copyWith(color: context.textSecondary),
+                                ?.copyWith(
+                                  color: context.isDarkMode
+                                      ? Colors.white.withValues(alpha: 0.85)
+                                      : clrBlack,
+                                ),
                           ),
                         ),
                       ),

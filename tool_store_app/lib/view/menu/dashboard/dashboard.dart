@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_redux/flutter_redux.dart';
-import 'package:tool_store_app/controller/api_url/post_list.dart';
 import 'package:tool_store_app/controller/cont_crud/redux/state.dart';
 import 'package:tool_store_app/controller/cont_crud/redux/store.dart';
 import 'package:tool_store_app/model/post_get_data.dart';
 import 'package:tool_store_app/view/custom/routes/page_routes.dart';
+import 'package:tool_store_app/view/custom/tool_form_search_popup.dart';
 import 'package:tool_store_app/theme/app_theme.dart';
+import 'package:tool_store_app/view/custom/shimmer/app_shimmer.dart';
+import 'package:tool_store_app/view/custom/shimmer/skeletons.dart';
 import 'package:tool_store_app/view/menu/drawer/drawer.dart';
 import 'package:tool_store_app/view/var/var.dart';
 
@@ -13,23 +15,13 @@ const _milestoneCheckByToolStore = 'CHECK BY TOOL STORE';
 const _milestoneSuperiorApproved = 'SUPERIOR APPROVED';
 const _milestoneReviewedByServiceAdmin = 'REVIEWED BY SERVICE ADMIN';
 const _milestoneApprovedByServiceDeptHead = 'APPROVED BY SERVICE DEPT. HEAD';
-const _milestoneReceivedByWhGa = 'RECEIVED BY WH/GA';
-const _milestoneOrderProcessed = 'ORDER PROCESSED';
 
-const _trackedMilestones = <String>{
-  _milestoneCheckByToolStore,
-  _milestoneSuperiorApproved,
-  _milestoneReviewedByServiceAdmin,
-  _milestoneApprovedByServiceDeptHead,
-  _milestoneReceivedByWhGa,
-};
-
-int _calculateDashboardTotal(List<PostList> forms) {
-  return forms.where((f) {
-    final milestone = f.formMilestone.trim().toUpperCase();
-    return milestone.isEmpty || _trackedMilestones.contains(milestone);
-  }).length;
-}
+const _milestonesToolReceivedWhGaMenu = <String>[
+  'RECEIVED BY WH/GA',
+  'PARTIAL RECEIVED BY WH/GA',
+  'PARTIAL RECEIVED TOOL STORE',
+  'PARTIAL RECEIVED BY TOOL STORE',
+];
 
 class Dashboard extends StatefulWidget {
   const Dashboard({super.key});
@@ -41,30 +33,19 @@ class Dashboard extends StatefulWidget {
 class _DashboardState extends State<Dashboard> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
-  Future<void> _refreshDashboardData() async {
-    await store.dispatch(
-      getDataTool(
-        param: paramViewDataForm,
-        idForm: '',
-        formNo: '',
-        formServName: '',
-        formCheckBy: '',
-        formDateCheckBy: '',
-        formDateServName: '',
-        formServComment: '',
-        formSuperiorAprd: '',
-        formSuperiorComment: '',
-        formSadminComment: '',
-        formMilestone: '',
-        formStatusOrder: '',
-        formSheadAprd: '',
-        formSheadComment: '',
-        fromDateUpdate: '',
-        formUserUpdate: '',
-        page: 1,
-        limit: kToolFormDashboardFetchLimit,
-      ),
+  Future<void> _openToolSearch() async {
+    final result = await showToolFormSearchPopup(context);
+    if (!mounted || result == null) return;
+    await PageRoutes.routeTool(
+      context,
+      title: 'Search Results',
+      initialSearchQuery: result.query,
+      initialSearchField: result.searchField,
     );
+  }
+
+  Future<void> _refreshDashboardData() async {
+    await store.dispatch(getDashboardFormCounts());
   }
 
   @override
@@ -87,6 +68,7 @@ class _DashboardState extends State<Dashboard> {
           children: [
             _DashboardHeader(
               onMenuTap: () => _scaffoldKey.currentState?.openDrawer(),
+              onSearchTap: _openToolSearch,
             ),
             Expanded(
               child: Padding(
@@ -116,13 +98,10 @@ class _DashboardState extends State<Dashboard> {
                           StoreConnector<AppState, _ToolFormsCountVm>(
                             distinct: true,
                             converter: (store) {
-                              final forms = store.state.formsState.forms;
-                              final draftCount = forms
-                                  .where((f) => f.formMilestone.trim().isEmpty)
-                                  .length;
+                              final fs = store.state.formsState;
                               return _ToolFormsCountVm(
-                                count: draftCount,
-                                isLoading: store.state.formsState.isLoadingTool,
+                                count: fs.dashboardCountsOrEmpty.draft,
+                                isLoading: fs.isLoadingDashboardCounts,
                               );
                             },
                             builder: (context, vm) => _DashboardCard(
@@ -130,6 +109,7 @@ class _DashboardState extends State<Dashboard> {
                               subtitle: 'Request baru yang masih perlu dicek.',
                               icon: Icons.drafts_outlined,
                               value: vm.displayValue,
+                              isLoading: vm.isLoading,
                               iconColor: Colors.deepOrange,
                               onTap: vm.isLoading || vm.count == 0
                                   ? null
@@ -144,17 +124,11 @@ class _DashboardState extends State<Dashboard> {
                           StoreConnector<AppState, _ToolFormsCountVm>(
                             distinct: true,
                             converter: (store) {
-                              final forms = store.state.formsState.forms;
-                              final superiorCount = forms
-                                  .where(
-                                    (f) =>
-                                        f.formMilestone.trim().toUpperCase() ==
-                                        _milestoneCheckByToolStore,
-                                  )
-                                  .length;
+                              final fs = store.state.formsState;
                               return _ToolFormsCountVm(
-                                count: superiorCount,
-                                isLoading: store.state.formsState.isLoadingTool,
+                                count:
+                                    fs.dashboardCountsOrEmpty.superiorApproval,
+                                isLoading: fs.isLoadingDashboardCounts,
                               );
                             },
                             builder: (context, vm) => _DashboardCard(
@@ -162,6 +136,7 @@ class _DashboardState extends State<Dashboard> {
                               subtitle: 'Menunggu persetujuan atasan terkait.',
                               icon: Icons.fact_check_outlined,
                               value: vm.displayValue,
+                              isLoading: vm.isLoading,
                               iconColor: Colors.blue,
                               onTap: vm.isLoading || vm.count == 0
                                   ? null
@@ -176,17 +151,10 @@ class _DashboardState extends State<Dashboard> {
                           StoreConnector<AppState, _ToolFormsCountVm>(
                             distinct: true,
                             converter: (store) {
-                              final forms = store.state.formsState.forms;
-                              final serviceAdminCount = forms
-                                  .where(
-                                    (f) =>
-                                        f.formMilestone.trim().toUpperCase() ==
-                                        _milestoneSuperiorApproved,
-                                  )
-                                  .length;
+                              final fs = store.state.formsState;
                               return _ToolFormsCountVm(
-                                count: serviceAdminCount,
-                                isLoading: store.state.formsState.isLoadingTool,
+                                count: fs.dashboardCountsOrEmpty.serviceAdmin,
+                                isLoading: fs.isLoadingDashboardCounts,
                               );
                             },
                             builder: (context, vm) => _DashboardCard(
@@ -195,6 +163,7 @@ class _DashboardState extends State<Dashboard> {
                                   'Masuk ke proses validasi admin service.',
                               icon: Icons.playlist_add_check_circle_outlined,
                               value: vm.displayValue,
+                              isLoading: vm.isLoading,
                               iconColor: Colors.purple,
                               onTap: vm.isLoading || vm.count == 0
                                   ? null
@@ -209,17 +178,10 @@ class _DashboardState extends State<Dashboard> {
                           StoreConnector<AppState, _ToolFormsCountVm>(
                             distinct: true,
                             converter: (store) {
-                              final forms = store.state.formsState.forms;
-                              final deptHeadCount = forms
-                                  .where(
-                                    (f) =>
-                                        f.formMilestone.trim().toUpperCase() ==
-                                        _milestoneReviewedByServiceAdmin,
-                                  )
-                                  .length;
+                              final fs = store.state.formsState;
                               return _ToolFormsCountVm(
-                                count: deptHeadCount,
-                                isLoading: store.state.formsState.isLoadingTool,
+                                count: fs.dashboardCountsOrEmpty.deptHead,
+                                isLoading: fs.isLoadingDashboardCounts,
                               );
                             },
                             builder: (context, vm) => _DashboardCard(
@@ -228,6 +190,7 @@ class _DashboardState extends State<Dashboard> {
                                   'Perlu persetujuan dari kepala departemen.',
                               icon: Icons.approval_outlined,
                               value: vm.displayValue,
+                              isLoading: vm.isLoading,
                               iconColor: Colors.teal,
                               onTap: vm.isLoading || vm.count == 0
                                   ? null
@@ -242,17 +205,10 @@ class _DashboardState extends State<Dashboard> {
                           StoreConnector<AppState, _ToolFormsCountVm>(
                             distinct: true,
                             converter: (store) {
-                              final forms = store.state.formsState.forms;
-                              final counterGaCount = forms
-                                  .where(
-                                    (f) =>
-                                        f.formMilestone.trim().toUpperCase() ==
-                                        _milestoneApprovedByServiceDeptHead,
-                                  )
-                                  .length;
+                              final fs = store.state.formsState;
                               return _ToolFormsCountVm(
-                                count: counterGaCount,
-                                isLoading: store.state.formsState.isLoadingTool,
+                                count: fs.dashboardCountsOrEmpty.counterGa,
+                                isLoading: fs.isLoadingDashboardCounts,
                               );
                             },
                             builder: (context, vm) => _DashboardCard(
@@ -260,6 +216,7 @@ class _DashboardState extends State<Dashboard> {
                               subtitle: 'Menunggu Proses Counter atau GA.',
                               icon: Icons.inventory_2_outlined,
                               value: vm.displayValue,
+                              isLoading: vm.isLoading,
                               iconColor: Colors.amber.shade800,
                               onTap: vm.isLoading || vm.count == 0
                                   ? null
@@ -274,17 +231,11 @@ class _DashboardState extends State<Dashboard> {
                           StoreConnector<AppState, _ToolFormsCountVm>(
                             distinct: true,
                             converter: (store) {
-                              final forms = store.state.formsState.forms;
-                              final receivedWhCount = forms
-                                  .where(
-                                    (f) =>
-                                        f.formMilestone.trim().toUpperCase() ==
-                                        _milestoneReceivedByWhGa,
-                                  )
-                                  .length;
+                              final fs = store.state.formsState;
                               return _ToolFormsCountVm(
-                                count: receivedWhCount,
-                                isLoading: store.state.formsState.isLoadingTool,
+                                count:
+                                    fs.dashboardCountsOrEmpty.toolReceivedWhGa,
+                                isLoading: fs.isLoadingDashboardCounts,
                               );
                             },
                             builder: (context, vm) => _DashboardCard(
@@ -293,14 +244,15 @@ class _DashboardState extends State<Dashboard> {
                                   'Tool sudah tiba dan follow up ke Warehouse / GA.',
                               icon: Icons.task_alt_outlined,
                               value: vm.displayValue,
+                              isLoading: vm.isLoading,
                               iconColor: Colors.green,
                               onTap: vm.isLoading || vm.count == 0
                                   ? null
                                   : () => PageRoutes.routeTool(
                                       context,
-                                      title: 'Order Processed',
-                                      formMilestoneFilter:
-                                          _milestoneOrderProcessed,
+                                      title: 'Tool Received at Warehouse / GA',
+                                      formMilestoneFilters:
+                                          _milestonesToolReceivedWhGaMenu,
                                     ),
                             ),
                           ),
@@ -319,12 +271,16 @@ class _DashboardState extends State<Dashboard> {
 }
 
 class _DashboardHeader extends StatelessWidget {
-  const _DashboardHeader({required this.onMenuTap});
+  const _DashboardHeader({
+    required this.onMenuTap,
+    required this.onSearchTap,
+  });
 
   static const _buttonRadius = 16.0;
   static const _logoRadius = 20.0;
 
   final VoidCallback onMenuTap;
+  final VoidCallback onSearchTap;
 
   @override
   Widget build(BuildContext context) {
@@ -393,10 +349,13 @@ class _DashboardHeader extends StatelessWidget {
   Widget _buildNotificationBadge(BuildContext context) {
     return StoreConnector<AppState, _ToolFormsCountVm>(
       distinct: true,
-      converter: (store) => _ToolFormsCountVm(
-        count: _calculateDashboardTotal(store.state.formsState.forms),
-        isLoading: store.state.formsState.isLoadingTool,
-      ),
+      converter: (store) {
+        final fs = store.state.formsState;
+        return _ToolFormsCountVm(
+          count: fs.dashboardCountsOrEmpty.notificationTotal,
+          isLoading: fs.isLoadingDashboardCounts,
+        );
+      },
       builder: (context, vm) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
@@ -412,14 +371,18 @@ class _DashboardHeader extends StatelessWidget {
               size: 18,
             ),
             const SizedBox(width: 6),
-            Text(
-              vm.displayValue,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
+            vm.isLoading
+                ? AppShimmer(
+                    child: ShimmerBox(width: 28, height: 18, borderRadius: 6),
+                  )
+                : Text(
+                    vm.displayValue,
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
           ],
         ),
       ),
@@ -432,7 +395,7 @@ class _DashboardHeader extends StatelessWidget {
       borderRadius: BorderRadius.circular(_buttonRadius),
       child: InkWell(
         borderRadius: BorderRadius.circular(_buttonRadius),
-        onTap: () {},
+        onTap: onSearchTap,
         child: const Padding(
           padding: EdgeInsets.all(10),
           child: Icon(Icons.search_rounded, color: Colors.white, size: 20),
@@ -463,6 +426,7 @@ class _DashboardCard extends StatelessWidget {
     required this.subtitle,
     required this.icon,
     required this.value,
+    this.isLoading = false,
     required this.iconColor,
     required this.onTap,
   });
@@ -471,11 +435,26 @@ class _DashboardCard extends StatelessWidget {
   final String subtitle;
   final IconData icon;
   final String value;
+  final bool isLoading;
   final Color iconColor;
   final void Function()? onTap;
 
   @override
   Widget build(BuildContext context) {
+    if (isLoading) {
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          return AppShimmer(
+            child: SizedBox(
+              width: constraints.maxWidth,
+              height: constraints.maxHeight,
+              child: const DashboardCardSkeleton(),
+            ),
+          );
+        },
+      );
+    }
+
     final titleStyle = Theme.of(context).textTheme.titleSmall?.copyWith(
       fontWeight: FontWeight.w700,
       height: 1.2,
@@ -557,27 +536,28 @@ class _DashboardCard extends StatelessWidget {
                           child: Icon(icon, color: iconColor, size: 22),
                         ),
                         const Spacer(),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 9,
-                            vertical: 5,
-                          ),
-                          decoration: BoxDecoration(
-                            color: iconColor.withValues(alpha: 0.10),
-                            borderRadius: BorderRadius.circular(999),
-                            border: Border.all(
-                              color: iconColor.withValues(alpha: 0.25),
+                        if ((int.tryParse(value) ?? 0) > 0)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 9,
+                              vertical: 5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: iconColor.withValues(alpha: 0.10),
+                              borderRadius: BorderRadius.circular(999),
+                              border: Border.all(
+                                color: iconColor.withValues(alpha: 0.25),
+                              ),
+                            ),
+                            child: Text(
+                              value,
+                              style: TextStyle(
+                                color: iconColor.withValues(alpha: 0.95),
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w800,
+                              ),
                             ),
                           ),
-                          child: Text(
-                            value,
-                            style: TextStyle(
-                              color: iconColor.withValues(alpha: 0.95),
-                              fontSize: 12.5,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ),
                       ],
                     ),
                     const SizedBox(height: 8),

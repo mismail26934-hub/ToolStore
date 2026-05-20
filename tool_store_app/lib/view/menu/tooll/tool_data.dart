@@ -11,17 +11,28 @@ import 'package:tool_store_app/view/custom/form/text_form_field.dart';
 import 'package:tool_store_app/view/custom/mixin/mixin_pref.dart';
 import 'package:tool_store_app/view/custom/navbar/sliver_appbars.dart';
 import 'package:tool_store_app/view/custom/navbar/sliver_fill_remaining.dart';
+import 'package:tool_store_app/view/custom/shimmer/app_shimmer.dart';
+import 'package:tool_store_app/view/custom/shimmer/detail_section_vm.dart';
+import 'package:tool_store_app/view/custom/shimmer/skeletons.dart';
+import 'package:tool_store_app/debug/agent_log.dart';
+import 'package:tool_store_app/view/custom/tool_form_search_popup.dart';
 import 'package:tool_store_app/view/menu/drawer/drawer.dart';
 import 'package:tool_store_app/theme/app_theme.dart';
 import 'package:tool_store_app/view/var/var.dart';
 import 'package:intl/intl.dart';
 import 'package:redux/redux.dart';
 
+Widget _formCardSkeletonItem(BuildContext context, int index) =>
+    const FormCardSkeleton();
+
 /// Redux [StoreConnector] equality for order timeline rebuilds.
 class _OrderTimelineViewModel {
   const _OrderTimelineViewModel({
     required this.orangeCompleted,
     this.redStepIndex,
+    this.partialStepIndex,
+    this.partialProgress,
+    this.partialCountLabel,
   });
 
   /// Number of leading steps (0–7) shown as completed (orange) when [redStepIndex] is null.
@@ -30,14 +41,32 @@ class _OrderTimelineViewModel {
   /// When set, this step is shown in red (rejection / hold) instead of orange.
   final int? redStepIndex;
 
+  /// Step index (0–6) shown as partially complete (e.g. WH / Tool partial received).
+  final int? partialStepIndex;
+
+  /// Fill ratio 0.0–1.0 for [partialStepIndex] (lines received / total lines).
+  final double? partialProgress;
+
+  /// Optional label e.g. "2/5" for partial step subtitle.
+  final String? partialCountLabel;
+
   @override
   bool operator ==(Object other) =>
       other is _OrderTimelineViewModel &&
       other.orangeCompleted == orangeCompleted &&
-      other.redStepIndex == redStepIndex;
+      other.redStepIndex == redStepIndex &&
+      other.partialStepIndex == partialStepIndex &&
+      other.partialProgress == partialProgress &&
+      other.partialCountLabel == partialCountLabel;
 
   @override
-  int get hashCode => Object.hash(orangeCompleted, redStepIndex);
+  int get hashCode => Object.hash(
+    orangeCompleted,
+    redStepIndex,
+    partialStepIndex,
+    partialProgress,
+    partialCountLabel,
+  );
 }
 
 class ToolData extends StatefulWidget {
@@ -45,16 +74,22 @@ class ToolData extends StatefulWidget {
     super.key,
     this.title,
     this.formMilestoneFilter,
+    this.formMilestoneFilters = const <String>[],
     this.excludeFormMilestoneFilter = false,
     this.excludeFormMilestoneFilters = const <String>[],
     this.filterBlankFormMilestone = false,
+    this.initialSearchQuery,
+    this.initialSearchField = 'all',
   });
 
   final String? title;
   final String? formMilestoneFilter;
+  final List<String> formMilestoneFilters;
   final bool excludeFormMilestoneFilter;
   final List<String> excludeFormMilestoneFilters;
   final bool filterBlankFormMilestone;
+  final String? initialSearchQuery;
+  final String initialSearchField;
 
   @override
   State<ToolData> createState() => _ToolDataState();
@@ -80,26 +115,40 @@ class _ToolDataState extends State<ToolData> with MixinPref {
 
   bool get _hasMilestoneFilter => _milestoneFilterNorm.isNotEmpty;
 
+  Set<String> get _milestoneFiltersNorms => {
+    ...widget.formMilestoneFilters.map(_normFormMilestone),
+    if (_hasMilestoneFilter) _milestoneFilterNorm,
+  }..removeWhere((value) => value.isEmpty);
+
+  bool get _hasMilestoneFilters => _milestoneFiltersNorms.isNotEmpty;
+
+  /// Dashboard counts use [kToolFormDashboardFetchLimit]; list must load enough rows
+  /// before client-side milestone filter or matches show "Not Found" incorrectly.
+  int get _formsFetchLimit =>
+      _hasMilestoneFilters ? kToolFormDashboardFetchLimit : kToolFormPageSize;
+
   Set<String> get _excludeMilestoneFilterNorms => widget
       .excludeFormMilestoneFilters
       .map(_normFormMilestone)
       .where((value) => value.isNotEmpty)
       .toSet();
 
-  static const Map<String, String> _searchFieldLabels = {
-    'all': 'All',
-    'formNo': 'Form No',
-    'serviceman': 'Serviceman',
-    'status': 'Status',
-    'idForm': 'Category',
-    'pnGroup': 'PN Group',
-    'pnDesc': 'Description',
-  };
-
   @override
   void initState() {
     super.initState();
     refreshPref();
+    final initialQuery = widget.initialSearchQuery?.trim() ?? '';
+    if (initialQuery.isNotEmpty) {
+      _searchController.text = initialQuery;
+      _searchQuery = initialQuery;
+      _searchField =
+          kToolFormSearchFieldLabels.containsKey(widget.initialSearchField)
+          ? widget.initialSearchField
+          : 'all';
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _refreshData();
+    });
   }
 
   @override
@@ -120,7 +169,10 @@ class _ToolDataState extends State<ToolData> with MixinPref {
     });
   }
 
-  Future<void> _fetchFormsPage({required int page, required bool append}) async {
+  Future<void> _fetchFormsPage({
+    required int page,
+    required bool append,
+  }) async {
     await store.dispatch(
       getDataTool(
         param: paramViewDataForm,
@@ -141,16 +193,57 @@ class _ToolDataState extends State<ToolData> with MixinPref {
         fromDateUpdate: '',
         formUserUpdate: '',
         page: page,
-        limit: kToolFormPageSize,
+        limit: _formsFetchLimit,
         append: append,
+        viewKeyword: _searchQuery,
+        viewSearchField: _searchField,
       ),
     );
   }
+
+  bool get _canSubmitSearch => _searchController.text.trim().isNotEmpty;
+
+  /// Memanggil API dengan keyword dari field (saat ikon search diklik).
+  void _submitSearch() {
+    final query = _searchController.text.trim();
+    if (query.isEmpty) return;
+    setState(() {
+      _searchQuery = query;
+    });
+    _refreshData();
+  }
+
+  void _onSearchTextEdited() => setState(() {});
 
   Future<void> _refreshData() async {
     if (!mounted) return;
     setState(() => _currentPage = 1);
     await _fetchFormsPage(page: 1, append: false);
+    // #region agent log
+    final fs = store.state.formsState;
+    agentDebugLog(
+      hypothesisId: 'A',
+      location: 'tool_data.dart:_refreshData',
+      message: 'after fetch page 1',
+      data: {
+        'formsLoaded': fs.forms.length,
+        'totalForms': fs.totalForms,
+        'hasMore': fs.hasMore,
+        'error': fs.error,
+        'fetchLimit': _formsFetchLimit,
+        'searchQuery': _searchQuery,
+        'searchField': _searchField,
+        'pageTitle': _pageTitle,
+        'milestoneFilters': widget.formMilestoneFilters,
+        'milestoneFilter': widget.formMilestoneFilter,
+        'milestoneFiltersNorms': _milestoneFiltersNorms.toList(),
+        'sampleMilestones': fs.forms
+            .take(5)
+            .map((f) => f.formMilestone.trim())
+            .toList(),
+      },
+    );
+    // #endregion
     await store.dispatch(
       getDataToolDetail(
         param: paramViewDataTool,
@@ -199,18 +292,13 @@ class _ToolDataState extends State<ToolData> with MixinPref {
     controller.text = DateFormat('yyyy-MM-dd').format(picked);
   }
 
-  void _onSearchChanged(String value) {
-    setState(() {
-      _searchQuery = value.trim();
-    });
-  }
-
   void _clearSearch() {
     _searchController.clear();
     setState(() {
       _searchQuery = '';
       _searchField = 'all';
     });
+    _refreshData();
   }
 
   /// After a successful save on a form, focus the list search on that form's number.
@@ -223,6 +311,17 @@ class _ToolDataState extends State<ToolData> with MixinPref {
       _searchQuery = no;
       _searchField = 'formNo';
     });
+    _refreshData();
+  }
+
+  String _formLoadSummary(FormsState state, int visibleCount) {
+    final n = visibleCount;
+    final loaded = state.forms.length;
+    final t = state.totalForms;
+    if (t != null) {
+      return '$n shown · $loaded of $t form(s) loaded';
+    }
+    return '$n shown · $loaded form(s) loaded';
   }
 
   Future<void> _loadMoreForms() async {
@@ -239,94 +338,6 @@ class _ToolDataState extends State<ToolData> with MixinPref {
     }
   }
 
-  /// True when any SO/PR or PO row linked to this form matches [query].
-  bool _formMatchesOrderDocsSearch(PostList form, String query) {
-    final q = query.trim().toLowerCase();
-    if (q.isEmpty) return false;
-
-    final idForm = form.idForm.trim();
-    if (idForm.isEmpty) return false;
-
-    final detailIds = store.state.formsDetailState.formsDetail
-        .where((t) => t.idForm.trim() == idForm)
-        .map((t) => t.idFormDetail.trim())
-        .where((s) => s.isNotEmpty)
-        .toSet();
-    if (detailIds.isEmpty) return false;
-
-    String norm(String v) => v.toLowerCase();
-
-    for (final so in store.state.sosDetailState.sosDetail) {
-      if (!detailIds.contains(so.idFormDetail.trim())) continue;
-      if (norm(so.so).contains(q) || norm(so.noteSo).contains(q)) {
-        return true;
-      }
-    }
-    for (final po in store.state.posDetailState.posDetail) {
-      if (!detailIds.contains(po.idFormDetail.trim())) continue;
-      if (norm(po.poNo).contains(q)) return true;
-    }
-    return false;
-  }
-
-  /// True when any tool line for this form has [pn_group] matching [query].
-  bool _formMatchesPnGroupSearch(PostList form, String query) {
-    final q = query.trim().toLowerCase();
-    if (q.isEmpty) return false;
-    final idForm = form.idForm.trim();
-    if (idForm.isEmpty) return false;
-    String norm(String v) => v.toLowerCase();
-    return store.state.formsDetailState.formsDetail.any(
-      (t) => t.idForm.trim() == idForm && norm(t.pnGroup).contains(q),
-    );
-  }
-
-  /// True when any tool line for this form has [pn_desc] matching [query].
-  bool _formMatchesPnDescSearch(PostList form, String query) {
-    final q = query.trim().toLowerCase();
-    if (q.isEmpty) return false;
-    final idForm = form.idForm.trim();
-    if (idForm.isEmpty) return false;
-    String norm(String v) => v.toLowerCase();
-    return store.state.formsDetailState.formsDetail.any(
-      (t) => t.idForm.trim() == idForm && norm(t.pnDesc).contains(q),
-    );
-  }
-
-  bool _matchesSearch(PostList form) {
-    if (_searchQuery.isEmpty) return true;
-    final query = _searchQuery.toLowerCase();
-
-    String normalize(String value) => value.toLowerCase();
-
-    switch (_searchField) {
-      case 'formNo':
-        return normalize(form.formNo).contains(query);
-      case 'serviceman':
-        return normalize(form.formServName).contains(query);
-      case 'status':
-        return normalize(form.formServComment).contains(query);
-      case 'idForm':
-        return normalize(form.idForm).contains(query);
-      case 'pnGroup':
-        return _formMatchesPnGroupSearch(form, query);
-      case 'pnDesc':
-        return _formMatchesPnDescSearch(form, query);
-      case 'all':
-      default:
-        final candidates = <String>[
-          form.formNo,
-          form.formServName,
-          form.formServComment,
-          form.idForm,
-        ];
-        return candidates.any((value) => normalize(value).contains(query)) ||
-            _formMatchesOrderDocsSearch(form, query) ||
-            _formMatchesPnGroupSearch(form, query) ||
-            _formMatchesPnDescSearch(form, query);
-    }
-  }
-
   bool _matchesMilestoneFilter(PostList form) {
     if (widget.filterBlankFormMilestone) {
       final isBlank = form.formMilestone.trim().isEmpty;
@@ -339,8 +350,8 @@ class _ToolDataState extends State<ToolData> with MixinPref {
         excludeMilestoneFilterNorms.contains(currentMilestoneNorm)) {
       return false;
     }
-    if (!_hasMilestoneFilter) return true;
-    final isMatch = currentMilestoneNorm == _milestoneFilterNorm;
+    if (!_hasMilestoneFilters) return true;
+    final isMatch = _milestoneFiltersNorms.contains(currentMilestoneNorm);
     if (widget.excludeFormMilestoneFilter) return !isMatch;
     return isMatch;
   }
@@ -419,8 +430,12 @@ class _ToolDataState extends State<ToolData> with MixinPref {
               icon: Icons.rate_review_outlined,
               label: 'Service Support Review',
               backgroundColor: Colors.indigo,
-              tooltip: 'Service Support Review',
-              onPressed: () => _showServiceAdminReviewDialog(forms),
+              tooltip: _canServiceSupportReviewByMilestone(forms)
+                  ? 'Service Support Review'
+                  : 'Service Support Review Disabled',
+              onPressed: _canServiceSupportReviewByMilestone(forms)
+                  ? () => _showServiceAdminReviewDialog(forms)
+                  : null,
             )
           : null,
     );
@@ -445,10 +460,52 @@ class _ToolDataState extends State<ToolData> with MixinPref {
     return currentUserId == formSuperiorId;
   }
 
+  /// Superior Approval hanya saat milestone CHECK BY TOOL STORE.
+  bool _canSuperiorApprovalByMilestone(PostList forms) {
+    return _normFormMilestone(forms.formMilestone) == 'CHECK BY TOOL STORE';
+  }
+
+  /// Service Support Review hanya saat milestone SUPERIOR APPROVED atau HOLD BY SERVICE ADMIN.
+  bool _canServiceSupportReviewByMilestone(PostList forms) {
+    final n = _normFormMilestone(forms.formMilestone);
+    return n == 'SUPERIOR APPROVED' || n == 'HOLD BY SERVICE ADMIN';
+  }
+
+  /// Dept Head Approval hanya saat milestone REVIEWED BY SERVICE ADMIN atau REJECTED BY SERVICE DEPT. HEAD.
+  bool _canDeptHeadApprovalByMilestone(PostList forms) {
+    final n = _normFormMilestone(forms.formMilestone);
+    return n == 'REVIEWED BY SERVICE ADMIN' ||
+        n == 'REJECTED BY SERVICE DEPT HEAD';
+  }
+
   bool get _canEditDeletePurchaseOrder {
     final currentLevel = level.trim().toUpperCase();
     return currentLevel == 'SUPERADMIN' || currentLevel == 'TOOL_KEEPER';
   }
+
+  /// PO Add/Edit/Delete hanya saat belum ada data Sales Order untuk baris tool ini.
+  bool _canManagePurchaseOrderWhenSalesOrderBlank(bool salesOrderExists) {
+    return !salesOrderExists;
+  }
+
+  static const _poActionsBlockedTooltip =
+      'Purchase Order hanya dapat diubah sebelum ada Sales Order';
+
+  /// SO Add/Edit/Delete hanya saat belum ada Date WH Received untuk baris tool ini.
+  bool _canManageSalesOrderWhenWhReceivedBlank(bool whReceivedExists) {
+    return !whReceivedExists;
+  }
+
+  static const _soActionsBlockedTooltip =
+      'Sales Order hanya dapat diubah sebelum ada Date WH Received';
+
+  /// Date WH Received Add/Edit/Delete hanya saat belum ada Date Tool Room Received.
+  bool _canManageWhReceivedWhenToolRoomBlank(bool toolRoomReceivedExists) {
+    return !toolRoomReceivedExists;
+  }
+
+  static const _whReceivedActionsBlockedTooltip =
+      'Date WH Received hanya dapat diubah sebelum ada Date Tool Room Received';
 
   bool get _canManageSalesOrderPr {
     final currentLevel = level.trim().toUpperCase();
@@ -472,6 +529,87 @@ class _ToolDataState extends State<ToolData> with MixinPref {
     return currentLevel == 'SUPERADMIN' || currentLevel == 'TOOL_KEEPER';
   }
 
+  bool _formHasTools(AppState state, PostList forms) {
+    return state.formsDetailState.formsDetail.any(
+      (itemTool) => itemTool.idForm == forms.idForm,
+    );
+  }
+
+  /// Request Order hanya saat milestone kosong, DRAFT, atau CHECK BY TOOL STORE.
+  bool _canRequestOrderByMilestone(PostList forms) {
+    final n = _normFormMilestone(forms.formMilestone);
+    return n.isEmpty || n == 'DRAFT';
+  }
+
+  /// Add Tool hanya saat milestone kosong (blank) atau DRAFT.
+  bool _canAddToolByMilestone(PostList forms) {
+    final n = _normFormMilestone(forms.formMilestone);
+    return n.isEmpty || n == 'DRAFT';
+  }
+
+  void _openAddToolForm(PostList forms) {
+    postMultipleToolCont(
+      '',
+      forms.idForm,
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      context,
+      navigateAsAdd: true,
+    );
+  }
+
+  Widget _buildCheckByInfoTileTrailing(PostList forms) {
+    return StoreConnector<AppState, bool>(
+      converter: (store) => _formHasTools(store.state, forms),
+      builder: (context, hasTools) {
+        if (!hasTools && _canAddToolToForm) {
+          final canAdd = _canAddToolByMilestone(forms);
+          return _buildCommentCardTrailingAction(
+            icon: Icons.add_circle_outline,
+            label: 'Add Tool',
+            backgroundColor: Colors.orange.shade700,
+            tooltip: canAdd ? 'Add Tool' : 'Add Tool Disabled',
+            onPressed: canAdd ? () => _openAddToolForm(forms) : null,
+          );
+        }
+        if (hasTools && _canAccessRequestOrderTool) {
+          final canRequest = _canRequestOrderByMilestone(forms);
+          return _buildCommentCardTrailingAction(
+            icon: Icons.local_mall_outlined,
+            label: 'Request Order',
+            backgroundColor: Colors.deepOrange.shade600,
+            tooltip: canRequest
+                ? 'Request Order Tool'
+                : 'Request Order Disabled',
+            onPressed: canRequest
+                ? () => _showRequestOrderToolDialog(forms)
+                : null,
+          );
+        }
+        return const SizedBox.shrink();
+      },
+    );
+  }
+
+  Widget _buildToolListHeaderTrailing(PostList forms) {
+    return StoreConnector<AppState, bool>(
+      converter: (store) => _formHasTools(store.state, forms),
+      builder: (context, hasTools) {
+        if (hasTools && _canAddToolToForm) {
+          return _buildAddToolHeaderAction(forms);
+        }
+        return const SizedBox.shrink();
+      },
+    );
+  }
+
   Widget _buildInfoTile({
     required IconData icon,
     required String label,
@@ -488,7 +626,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
     return Container(
       padding: tilePadding,
       decoration: BoxDecoration(
-        color: context.mutedSurface,
+        color: context.isDarkMode ? Colors.black : context.mutedSurface,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: context.cardBorder),
       ),
@@ -625,14 +763,18 @@ class _ToolDataState extends State<ToolData> with MixinPref {
   /// Highest completed step count (0–7) from [forms.formMilestone] alone.
   static int _filledStepsFromMilestoneNorm(String n) {
     if (n.isEmpty || n == 'DRAFT') return 0;
-    if (n == 'RECEIVED TOOL STORE' ||
-        n == 'PARTIAL RECEIVED TOOL STORE' ||
-        n == 'RECEIVED BY TOOL STORE' ||
-        n == 'PARTIAL RECEIVED BY TOOL STORE') {
+    if (n == 'RECEIVED TOOL STORE' || n == 'RECEIVED BY TOOL STORE') {
       return 7;
     }
-    if (n == 'RECEIVED BY WH/GA' || n == 'PARTIAL RECEIVED BY WH/GA') {
+    if (n == 'PARTIAL RECEIVED TOOL STORE' ||
+        n == 'PARTIAL RECEIVED BY TOOL STORE') {
       return 6;
+    }
+    if (n == 'RECEIVED BY WH/GA') {
+      return 6;
+    }
+    if (n == 'PARTIAL RECEIVED BY WH/GA') {
+      return 5;
     }
     if (n == 'ORDER PROCESSED' || n == 'PROCESSING ORDER') return 5;
     if (n == 'APPROVED BY SERVICE DEPT HEAD') return 4;
@@ -679,25 +821,90 @@ class _ToolDataState extends State<ToolData> with MixinPref {
     final tools = store.state.formsDetailState.formsDetail
         .where((t) => t.idForm.trim() == forms.idForm.trim())
         .toList();
+    int? partialStepIndex;
+    double? partialProgress;
+    String? partialCountLabel;
+
     if (filled >= 5 && tools.isNotEmpty) {
       final detailIds = tools
           .map((e) => e.idFormDetail.trim())
           .where((s) => s.isNotEmpty)
           .toSet();
       if (detailIds.isNotEmpty) {
-        final hasRcvWh = store.state.rcvWhState.rcvWhs.any(
-          (r) => detailIds.contains(r.idFormDetail.trim()),
-        );
-        final hasRcvTool = store.state.rcvToolState.rcvTools.any(
-          (r) => detailIds.contains(r.idFormDetail.trim()),
-        );
-        if (hasRcvWh) filled = max(filled, 6);
-        if (hasRcvTool) filled = max(filled, 7);
+        final total = detailIds.length;
+        final rcvWhFilledIds = store.state.rcvWhState.rcvWhs
+            .map((r) => r.idFormDetail.trim())
+            .where((s) => s.isNotEmpty)
+            .toSet();
+        final rcvToolFilledIds = store.state.rcvToolState.rcvTools
+            .map((r) => r.idFormDetail.trim())
+            .where((s) => s.isNotEmpty)
+            .toSet();
+        final whCount = detailIds.where(rcvWhFilledIds.contains).length;
+        final toolCount = detailIds.where(rcvToolFilledIds.contains).length;
+        final allRcvWh = whCount == total;
+        final anyRcvWh = whCount > 0;
+        final allRcvTool = toolCount == total;
+        final anyRcvTool = toolCount > 0;
+
+        // Step 7 (index 6) Tool received / Step 6 (index 5) WH received.
+        if (allRcvTool) {
+          filled = max(filled, 7);
+        } else if (anyRcvTool) {
+          filled = max(filled, 6);
+          partialStepIndex = 6;
+          partialProgress = toolCount / total;
+          partialCountLabel = '$toolCount/$total';
+        } else if (allRcvWh) {
+          filled = max(filled, 6);
+        } else if (anyRcvWh) {
+          filled = max(filled, 5);
+          partialStepIndex = 5;
+          partialProgress = whCount / total;
+          partialCountLabel = '$whCount/$total';
+        }
       }
+    }
+
+    // Milestone mengikat step 6 (WH) dan 7 (Tool) — sama seperti logika partial WH.
+    switch (n) {
+      case 'RECEIVED TOOL STORE':
+      case 'RECEIVED BY TOOL STORE':
+        filled = _orderTimelineStepCount;
+        partialStepIndex = null;
+        partialProgress = null;
+        partialCountLabel = null;
+        break;
+      case 'PARTIAL RECEIVED TOOL STORE':
+      case 'PARTIAL RECEIVED BY TOOL STORE':
+        filled = max(filled, 6);
+        partialStepIndex = 6;
+        partialProgress = 0.5;
+        partialCountLabel ??= 'Partial';
+        break;
+      case 'RECEIVED BY WH/GA':
+        filled = max(filled, 6);
+        if (partialStepIndex == 6) {
+          partialStepIndex = null;
+          partialProgress = null;
+          partialCountLabel = null;
+        }
+        break;
+      case 'PARTIAL RECEIVED BY WH/GA':
+        filled = max(filled, 5);
+        partialStepIndex = 5;
+        partialProgress = partialProgress ?? 0.5;
+        partialCountLabel ??= 'Partial';
+        break;
+      default:
+        break;
     }
 
     return _OrderTimelineViewModel(
       orangeCompleted: filled.clamp(0, _orderTimelineStepCount),
+      partialStepIndex: partialStepIndex,
+      partialProgress: partialProgress?.clamp(0.0, 1.0),
+      partialCountLabel: partialCountLabel,
     );
   }
 
@@ -714,9 +921,106 @@ class _ToolDataState extends State<ToolData> with MixinPref {
     return _orderTimelineNextMilestoneLabels[nextIdx];
   }
 
+  bool _timelineStepIsPartial(_OrderTimelineViewModel vm, int stepIndex) {
+    if (vm.redStepIndex != null) return false;
+    final p = vm.partialProgress;
+    return vm.partialStepIndex == stepIndex && p != null && p > 0 && p < 1;
+  }
+
+  double _timelinePartialProgress(_OrderTimelineViewModel vm, int stepIndex) {
+    if (!_timelineStepIsPartial(vm, stepIndex)) return 0;
+    return vm.partialProgress!.clamp(0.0, 1.0);
+  }
+
+  Widget _buildPartialFilledCircle({
+    required double diameter,
+    required double progress,
+    required Color activeColor,
+    required Color inactiveFill,
+    required Color borderColor,
+    Widget? centerChild,
+  }) {
+    final t = progress.clamp(0.0, 1.0);
+    return SizedBox(
+      width: diameter,
+      height: diameter,
+      child: Stack(
+        alignment: Alignment.center,
+        clipBehavior: Clip.hardEdge,
+        children: [
+          SizedBox(
+            width: diameter,
+            height: diameter,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: inactiveFill,
+                border: Border.all(color: borderColor, width: 2),
+              ),
+            ),
+          ),
+          SizedBox(
+            width: diameter,
+            height: diameter,
+            child: ClipOval(
+              child: Align(
+                alignment: Alignment.centerLeft,
+                widthFactor: t,
+                child: SizedBox(
+                  width: diameter,
+                  height: diameter,
+                  child: ColoredBox(color: activeColor),
+                ),
+              ),
+            ),
+          ),
+          SizedBox(
+            width: diameter,
+            height: diameter,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: t >= 1
+                      ? activeColor
+                      : activeColor.withValues(alpha: 0.85),
+                  width: 2,
+                ),
+              ),
+            ),
+          ),
+          if (centerChild != null) centerChild,
+        ],
+      ),
+    );
+  }
+
+  /// Lingkaran penuh seragam untuk timeline mobile (sama bentuk semua step).
+  Widget _buildMobileTimelineCircle({
+    required double size,
+    required Color fill,
+    required Color borderColor,
+    required Widget child,
+    double borderWidth = 2,
+  }) {
+    return SizedBox(
+      width: size,
+      height: size,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: fill,
+          border: Border.all(color: borderColor, width: borderWidth),
+        ),
+        child: Center(child: child),
+      ),
+    );
+  }
+
   Widget _buildHorizontalTrackSegments({
     required int completed,
     required double trackHeight,
+    _OrderTimelineViewModel? partialVm,
   }) {
     final activeColor = clrOrange;
     final connectorMuted = context.connectorMuted;
@@ -728,17 +1032,60 @@ class _ToolDataState extends State<ToolData> with MixinPref {
         for (int k = 0; k < _orderTimelineStepCount - 1; k++)
           Expanded(
             flex: 2,
-            child: Container(
-              height: trackHeight,
-              decoration: BoxDecoration(
-                color: k < completed ? activeColor : connectorMuted,
-                borderRadius: BorderRadius.horizontal(
-                  left: k == 0 ? Radius.circular(capR) : Radius.zero,
-                  right: k == _orderTimelineStepCount - 2
-                      ? Radius.circular(capR)
-                      : Radius.zero,
-                ),
-              ),
+            child: Builder(
+              builder: (context) {
+                final partialStep = partialVm?.partialStepIndex;
+                final partialT = partialVm?.partialProgress;
+                final isApproachPartial =
+                    partialStep != null &&
+                    partialT != null &&
+                    partialT > 0 &&
+                    partialT < 1 &&
+                    k == partialStep - 1;
+                if (isApproachPartial) {
+                  final t = partialT.clamp(0.0, 1.0);
+                  final leftFlex = (t * 1000).round().clamp(1, 999);
+                  final rightFlex = ((1 - t) * 1000).round().clamp(1, 999);
+                  return ClipRRect(
+                    borderRadius: BorderRadius.horizontal(
+                      left: k == 0 ? Radius.circular(capR) : Radius.zero,
+                      right: k == _orderTimelineStepCount - 2
+                          ? Radius.circular(capR)
+                          : Radius.zero,
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          flex: leftFlex,
+                          child: Container(
+                            height: trackHeight,
+                            color: activeColor,
+                          ),
+                        ),
+                        Expanded(
+                          flex: rightFlex,
+                          child: Container(
+                            height: trackHeight,
+                            color: connectorMuted,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+                return Container(
+                  height: trackHeight,
+                  decoration: BoxDecoration(
+                    color: k < completed ? activeColor : connectorMuted,
+                    borderRadius: BorderRadius.horizontal(
+                      left: k == 0 ? Radius.circular(capR) : Radius.zero,
+                      right: k == _orderTimelineStepCount - 2
+                          ? Radius.circular(capR)
+                          : Radius.zero,
+                    ),
+                  ),
+                );
+              },
             ),
           ),
         const Expanded(flex: 1, child: SizedBox()),
@@ -760,7 +1107,9 @@ class _ToolDataState extends State<ToolData> with MixinPref {
       ('7. Tool Received', 'Tool room received.'),
     ];
 
-    final panelBg = clrOrange.withValues(alpha: 0.08);
+    final panelBg = context.isDarkMode
+        ? Colors.black
+        : clrOrange.withValues(alpha: 0.08);
     final activeColor = clrOrange;
     final errorColor = Colors.red.shade700;
     final inactiveCardBg = context.mutedSurface;
@@ -773,9 +1122,11 @@ class _ToolDataState extends State<ToolData> with MixinPref {
       _orderTimelineStepCount,
     );
     const trackHeight = 3.0;
-    final aboveBand = isMobile ? 56.0 : _timelineAboveBand + 18;
-    final belowBand = isMobile ? 56.0 : _timelineBelowBand + 18;
-    final connectorGap = isMobile ? 2.0 : 4.0;
+    final mobileStepSize = 36.0;
+    final mobileNodeSize = _timelineNodeDiameter;
+    final aboveBand = isMobile ? 62.0 : _timelineAboveBand + 18;
+    final belowBand = isMobile ? 62.0 : _timelineBelowBand + 18;
+    final connectorGap = isMobile ? 4.0 : 4.0;
     final panelPadding = wrapInPanel
         ? (isMobile
               ? const EdgeInsets.fromLTRB(6, 6, 6, 6)
@@ -786,11 +1137,38 @@ class _ToolDataState extends State<ToolData> with MixinPref {
 
     Widget timelineNode(int i) {
       final isRed = vm.redStepIndex == i;
-      final isOrangeDone = !isRed && i < orangeSteps;
+      final isPartial = _timelineStepIsPartial(vm, i);
+      final isOrangeDone = !isRed && !isPartial && i < orangeSteps;
       final accent = isRed ? errorColor : activeColor;
+      if (isPartial) {
+        final t = _timelinePartialProgress(vm, i);
+        if (isMobile) {
+          return _buildMobileTimelineCircle(
+            size: mobileNodeSize,
+            fill: context.cardSurface,
+            borderColor: accent,
+            child: Icon(Icons.more_horiz, size: 14, color: accent),
+          );
+        }
+        return _buildPartialFilledCircle(
+          diameter: _timelineNodeDiameter,
+          progress: t,
+          activeColor: accent,
+          inactiveFill: context.cardSurface,
+          borderColor: accent,
+          centerChild: Text(
+            '${(t * 100).round()}%',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 8,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        );
+      }
       return Container(
-        width: _timelineNodeDiameter,
-        height: _timelineNodeDiameter,
+        width: isMobile ? mobileNodeSize : _timelineNodeDiameter,
+        height: isMobile ? mobileNodeSize : _timelineNodeDiameter,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: (isOrangeDone || isRed) ? accent : context.cardSurface,
@@ -818,29 +1196,103 @@ class _ToolDataState extends State<ToolData> with MixinPref {
 
     Widget stepCard(int i) {
       final isRed = vm.redStepIndex == i;
-      final isOrangeDone = !isRed && i < orangeSteps;
+      final isPartial = _timelineStepIsPartial(vm, i);
+      final isOrangeDone = !isRed && !isPartial && i < orangeSteps;
       final title = steps[i].$1;
       final subtitle = steps[i].$2;
       final accent = isRed ? errorColor : activeColor;
+      final partialLabel = isPartial && vm.partialCountLabel != null
+          ? 'Partial (${vm.partialCountLabel})'
+          : isPartial
+          ? 'Partial'
+          : subtitle;
       if (isMobile) {
+        final stepSize = mobileStepSize;
+        Widget circle;
+        if (isPartial) {
+          circle = _buildMobileTimelineCircle(
+            size: stepSize,
+            fill: inactiveCardBg,
+            borderColor: accent,
+            child: Text(
+              '${i + 1}',
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w800,
+                color: accent,
+              ),
+            ),
+          );
+        } else {
+          circle = _buildMobileTimelineCircle(
+            size: stepSize,
+            fill: (isOrangeDone || isRed) ? accent : inactiveCardBg,
+            borderColor: (isOrangeDone || isRed) ? accent : context.cardBorder,
+            child: Text(
+              '${i + 1}',
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w800,
+                color: (isOrangeDone || isRed) ? Colors.white : inactiveTitle,
+              ),
+            ),
+          );
+        }
+        final tooltipMsg = isPartial && vm.partialCountLabel != null
+            ? '$title\n$partialLabel (${vm.partialCountLabel})'
+            : '$title\n$partialLabel';
+        return Tooltip(
+          message: tooltipMsg,
+          waitDuration: const Duration(milliseconds: 300),
+          showDuration: const Duration(seconds: 5),
+          preferBelow: i.isEven,
+          child: Center(child: circle),
+        );
+      }
+      if (isPartial) {
+        final t = _timelinePartialProgress(vm, i);
         return Container(
-          width: 42,
-          height: 42,
-          alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
           decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: (isOrangeDone || isRed) ? accent : inactiveCardBg,
-            border: Border.all(
-              color: (isOrangeDone || isRed) ? accent : context.cardBorder,
-            ),
+            color: inactiveCardBg,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: accent, width: 1.5),
           ),
-          child: Text(
-            '${i + 1}',
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w800,
-              color: (isOrangeDone || isRed) ? Colors.white : inactiveTitle,
-            ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 10,
+                  height: 1.15,
+                  color: inactiveTitle,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                partialLabel,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  fontSize: 8,
+                  height: 1.2,
+                  color: accent,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 6),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: t,
+                  minHeight: 4,
+                  backgroundColor: connectorMuted,
+                  color: accent,
+                ),
+              ),
+            ],
           ),
         );
       }
@@ -886,6 +1338,37 @@ class _ToolDataState extends State<ToolData> with MixinPref {
     }
 
     Widget verticalConnector(int i) {
+      final isPartial = _timelineStepIsPartial(vm, i);
+      if (isPartial) {
+        final t = _timelinePartialProgress(vm, i);
+        final h = _timelineVConnectorHeight;
+        final activeH = (h * t).clamp(1.0, h);
+        return SizedBox(
+          width: 2,
+          height: h,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Container(
+                width: 2,
+                height: activeH,
+                decoration: BoxDecoration(
+                  color: activeColor,
+                  borderRadius: BorderRadius.circular(1),
+                ),
+              ),
+              Container(
+                width: 2,
+                height: h - activeH,
+                decoration: BoxDecoration(
+                  color: connectorMuted,
+                  borderRadius: BorderRadius.circular(1),
+                ),
+              ),
+            ],
+          ),
+        );
+      }
       final lineActive = vm.redStepIndex != null
           ? i <= vm.redStepIndex!
           : i < orangeSteps;
@@ -899,8 +1382,9 @@ class _ToolDataState extends State<ToolData> with MixinPref {
       );
     }
 
-    final trackTop = aboveBand + _timelineNodeDiameter / 2 - trackHeight / 2;
-    final stackHeight = aboveBand + _timelineNodeDiameter + belowBand;
+    final nodeBand = isMobile ? mobileNodeSize : _timelineNodeDiameter;
+    final trackTop = aboveBand + nodeBand / 2 - trackHeight / 2;
+    final stackHeight = aboveBand + nodeBand + belowBand;
 
     final timelineBody = SizedBox(
       height: stackHeight,
@@ -915,6 +1399,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
             child: _buildHorizontalTrackSegments(
               completed: trackOrangeThrough,
               trackHeight: trackHeight,
+              partialVm: vm,
             ),
           ),
           Row(
@@ -944,7 +1429,9 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                             : const SizedBox.shrink(),
                       ),
                       SizedBox(
-                        height: _timelineNodeDiameter,
+                        height: isMobile
+                            ? mobileNodeSize
+                            : _timelineNodeDiameter,
                         child: Center(child: timelineNode(i)),
                       ),
                       SizedBox(
@@ -981,7 +1468,11 @@ class _ToolDataState extends State<ToolData> with MixinPref {
       decoration: BoxDecoration(
         color: panelBg,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: clrOrange.withValues(alpha: 0.18)),
+        border: Border.all(
+          color: context.isDarkMode
+              ? context.cardBorder
+              : clrOrange.withValues(alpha: 0.18),
+        ),
       ),
       child: timelineBody,
     );
@@ -1036,10 +1527,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(confirmContext, false),
-              child: Text(
-                'Cancel',
-                style: TextStyle(color: context.bodyMuted),
-              ),
+              child: Text('Cancel', style: TextStyle(color: context.bodyMuted)),
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(confirmContext, true),
@@ -1109,7 +1597,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
     required IconData icon,
     required String label,
     required Color backgroundColor,
-    required VoidCallback onPressed,
+    required VoidCallback? onPressed,
   }) {
     return SizedBox(
       height: 42,
@@ -1119,7 +1607,9 @@ class _ToolDataState extends State<ToolData> with MixinPref {
         label: Text(label),
         style: ElevatedButton.styleFrom(
           backgroundColor: backgroundColor,
+          disabledBackgroundColor: backgroundColor.withValues(alpha: 0.35),
           foregroundColor: Colors.white,
+          disabledForegroundColor: Colors.white.withValues(alpha: 0.7),
           elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 14),
           shape: RoundedRectangleBorder(
@@ -1131,56 +1621,30 @@ class _ToolDataState extends State<ToolData> with MixinPref {
   }
 
   Widget _buildAddToolHeaderAction(PostList forms) {
+    final canAdd = _canAddToolByMilestone(forms);
+    final tooltip = canAdd ? 'Add Tool' : 'Add Tool Disabled';
     final isMobile = MediaQuery.sizeOf(context).width < mobileWidth;
     if (isMobile) {
       return IconButton(
-        tooltip: 'Add Tool',
+        tooltip: tooltip,
         style: IconButton.styleFrom(
           backgroundColor: Colors.orange.shade700,
+          disabledBackgroundColor: Colors.orange.shade700.withValues(
+            alpha: 0.35,
+          ),
           foregroundColor: Colors.white,
+          disabledForegroundColor: Colors.white.withValues(alpha: 0.7),
           minimumSize: const Size(40, 40),
         ),
         icon: const Icon(Icons.add_circle_outline, size: 20),
-        onPressed: () {
-          postMultipleToolCont(
-            '',
-            forms.idForm,
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            '',
-            context,
-            navigateAsAdd: true,
-          );
-        },
+        onPressed: canAdd ? () => _openAddToolForm(forms) : null,
       );
     }
     return _buildActionButton(
       icon: Icons.add_circle_outline,
       label: 'Add Tool',
       backgroundColor: Colors.orange.shade700,
-      onPressed: () {
-        postMultipleToolCont(
-          '',
-          forms.idForm,
-          '',
-          '',
-          '',
-          '',
-          '',
-          '',
-          '',
-          '',
-          '',
-          context,
-          navigateAsAdd: true,
-        );
-      },
+      onPressed: canAdd ? () => _openAddToolForm(forms) : null,
     );
   }
 
@@ -1190,7 +1654,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
     required String label,
     required Color backgroundColor,
     required String tooltip,
-    required VoidCallback onPressed,
+    required VoidCallback? onPressed,
   }) {
     final isDesktop = MediaQuery.sizeOf(context).width >= mobileWidth;
     if (isDesktop) {
@@ -1209,7 +1673,9 @@ class _ToolDataState extends State<ToolData> with MixinPref {
             ),
             style: ElevatedButton.styleFrom(
               backgroundColor: backgroundColor,
+              disabledBackgroundColor: backgroundColor.withValues(alpha: 0.35),
               foregroundColor: Colors.white,
+              disabledForegroundColor: Colors.white.withValues(alpha: 0.7),
               elevation: 0,
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
               shape: RoundedRectangleBorder(
@@ -1223,8 +1689,11 @@ class _ToolDataState extends State<ToolData> with MixinPref {
     return IconButton(
       tooltip: tooltip,
       style: IconButton.styleFrom(
-        backgroundColor: backgroundColor,
+        backgroundColor: onPressed != null
+            ? backgroundColor
+            : backgroundColor.withValues(alpha: 0.35),
         foregroundColor: Colors.white,
+        disabledForegroundColor: Colors.white.withValues(alpha: 0.7),
         padding: const EdgeInsets.all(8),
         minimumSize: const Size(40, 40),
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -1234,7 +1703,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
     );
   }
 
-  Widget _buildLineItem(String label, String value) {
+  Widget _buildLineItem(String label, String value, {Color? valueColor}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
@@ -1254,13 +1723,36 @@ class _ToolDataState extends State<ToolData> with MixinPref {
           Expanded(
             child: SelectableText(
               _displayValue(value),
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w500,
+                color: valueColor,
+              ),
             ),
           ),
         ],
       ),
+    );
+  }
+
+  BoxDecoration _detailSubCardDecoration() {
+    return BoxDecoration(
+      color: context.detailSubCardBg,
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(color: context.detailSubCardBorder),
+    );
+  }
+
+  BoxDecoration _detailSubCardIconDecoration() {
+    return BoxDecoration(
+      color: context.detailSubCardIconBg,
+      borderRadius: BorderRadius.circular(12),
+    );
+  }
+
+  TextStyle? _detailSubCardTitleStyle() {
+    return Theme.of(context).textTheme.titleSmall?.copyWith(
+      fontWeight: FontWeight.w700,
+      color: context.textPrimary,
     );
   }
 
@@ -1927,6 +2419,18 @@ class _ToolDataState extends State<ToolData> with MixinPref {
 
   Future<void> _showRequestOrderToolDialog(PostList forms) async {
     if (!mounted) return;
+    if (!_canRequestOrderByMilestone(forms)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+            'Request Order hanya untuk milestone kosong, Draft, atau Check By Tool Store.',
+            style: TextStyle(color: Colors.white),
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
     await showDialog<void>(
       context: context,
       builder: (dialogContext) {
@@ -2139,10 +2643,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: Text(
-                'Cancel',
-                style: TextStyle(color: context.bodyMuted),
-              ),
+              child: Text('Cancel', style: TextStyle(color: context.bodyMuted)),
             ),
             TextButton(
               onPressed: () async {
@@ -2594,10 +3095,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, false),
-              child: Text(
-                'Cancel',
-                style: TextStyle(color: context.bodyMuted),
-              ),
+              child: Text('Cancel', style: TextStyle(color: context.bodyMuted)),
             ),
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, true),
@@ -2764,10 +3262,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: Text(
-                'Cancel',
-                style: TextStyle(color: context.bodyMuted),
-              ),
+              child: Text('Cancel', style: TextStyle(color: context.bodyMuted)),
             ),
             TextButton(
               onPressed: () async {
@@ -3086,10 +3581,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, false),
-              child: Text(
-                'Cancel',
-                style: TextStyle(color: context.bodyMuted),
-              ),
+              child: Text('Cancel', style: TextStyle(color: context.bodyMuted)),
             ),
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, true),
@@ -3523,10 +4015,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, false),
-              child: Text(
-                'Cancel',
-                style: TextStyle(color: context.bodyMuted),
-              ),
+              child: Text('Cancel', style: TextStyle(color: context.bodyMuted)),
             ),
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, true),
@@ -3958,10 +4447,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, false),
-              child: Text(
-                'Cancel',
-                style: TextStyle(color: context.bodyMuted),
-              ),
+              child: Text('Cancel', style: TextStyle(color: context.bodyMuted)),
             ),
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, true),
@@ -4049,9 +4535,16 @@ class _ToolDataState extends State<ToolData> with MixinPref {
 
   /// Edit/Delete: icon-only when width is below [mobileWidth], icon + label on desktop.
   Widget _buildEditDeleteActions({
-    required VoidCallback onEdit,
-    required VoidCallback onDelete,
+    required VoidCallback? onEdit,
+    required VoidCallback? onDelete,
+    String? disabledTooltip,
   }) {
+    final editTooltip = onEdit != null
+        ? 'Edit'
+        : (disabledTooltip ?? 'Edit tidak tersedia');
+    final deleteTooltip = onDelete != null
+        ? 'Delete'
+        : (disabledTooltip ?? 'Delete tidak tersedia');
     final compact = MediaQuery.sizeOf(context).width < mobileWidth;
     if (compact) {
       return Wrap(
@@ -4060,7 +4553,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
         alignment: WrapAlignment.end,
         children: [
           IconButton(
-            tooltip: 'Edit',
+            tooltip: editTooltip,
             visualDensity: VisualDensity.compact,
             constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
             padding: EdgeInsets.zero,
@@ -4068,7 +4561,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
             onPressed: onEdit,
           ),
           IconButton(
-            tooltip: 'Delete',
+            tooltip: deleteTooltip,
             visualDensity: VisualDensity.compact,
             constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
             padding: EdgeInsets.zero,
@@ -4099,25 +4592,18 @@ class _ToolDataState extends State<ToolData> with MixinPref {
     );
   }
 
-  Widget _buildPoCard(PostList itemPO) {
+  Widget _buildPoCard(PostList itemPO, {required bool canManageActions}) {
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.orange.shade50,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.orange.shade100),
-      ),
+      decoration: _detailSubCardDecoration(),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
             padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: Colors.orange.shade100,
-              borderRadius: BorderRadius.circular(12),
-            ),
+            decoration: _detailSubCardIconDecoration(),
             child: const Icon(Icons.receipt_long, color: Colors.deepOrange),
           ),
           const SizedBox(width: 12),
@@ -4127,33 +4613,32 @@ class _ToolDataState extends State<ToolData> with MixinPref {
               children: [
                 Text(
                   'PO : ${_displayValue(itemPO.poNo)}',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                  style: _detailSubCardTitleStyle(),
                 ),
               ],
             ),
           ),
           if (_canEditDeletePurchaseOrder)
             _buildEditDeleteActions(
-              onEdit: () => _showUpdatePurchaseOrderDialog(itemPO),
-              onDelete: () => _showDeletePurchaseOrderConfirmDialog(itemPO),
+              onEdit: canManageActions
+                  ? () => _showUpdatePurchaseOrderDialog(itemPO)
+                  : null,
+              onDelete: canManageActions
+                  ? () => _showDeletePurchaseOrderConfirmDialog(itemPO)
+                  : null,
+              disabledTooltip: _poActionsBlockedTooltip,
             ),
         ],
       ),
     );
   }
 
-  Widget _buildSoCard(PostList itemSO) {
+  Widget _buildSoCard(PostList itemSO, {required bool canManageActions}) {
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.orange.shade50,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.orange.shade100),
-      ),
+      decoration: _detailSubCardDecoration(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -4162,10 +4647,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
             children: [
               Container(
                 padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: Colors.orange.shade100,
-                  borderRadius: BorderRadius.circular(12),
-                ),
+                decoration: _detailSubCardIconDecoration(),
                 child: Icon(
                   Icons.local_shipping,
                   color: Colors.orange.shade800,
@@ -4178,47 +4660,47 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                   children: [
                     Text(
                       'SO : ${_displayValue(itemSO.so)}',
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
+                      style: _detailSubCardTitleStyle(),
                     ),
                   ],
                 ),
               ),
               if (_canManageSalesOrderPr)
                 _buildEditDeleteActions(
-                  onEdit: () => _showUpdateSalesOrderDialog(itemSO),
-                  onDelete: () => _showDeleteSalesOrderConfirmDialog(itemSO),
+                  onEdit: canManageActions
+                      ? () => _showUpdateSalesOrderDialog(itemSO)
+                      : null,
+                  onDelete: canManageActions
+                      ? () => _showDeleteSalesOrderConfirmDialog(itemSO)
+                      : null,
+                  disabledTooltip: _soActionsBlockedTooltip,
                 ),
             ],
           ),
           const SizedBox(height: 12),
-          _buildLineItem('ETA', itemSO.eta),
-          _buildLineItem('Note SO', itemSO.noteSo),
+          _buildLineItem('ETA', itemSO.eta, valueColor: context.textPrimary),
+          _buildLineItem(
+            'Note SO',
+            itemSO.noteSo,
+            valueColor: context.textPrimary,
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildRcvWhCard(PostList itemRcvWh) {
+  Widget _buildRcvWhCard(PostList itemRcvWh, {required bool canManageActions}) {
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.orange.shade50,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.orange.shade100),
-      ),
+      decoration: _detailSubCardDecoration(),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
             padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: Colors.orange.shade100,
-              borderRadius: BorderRadius.circular(12),
-            ),
+            decoration: _detailSubCardIconDecoration(),
             child: const Icon(
               Icons.date_range_outlined,
               color: Colors.deepOrange,
@@ -4231,17 +4713,20 @@ class _ToolDataState extends State<ToolData> with MixinPref {
               children: [
                 Text(
                   _displayValue(itemRcvWh.rcvWhDate),
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                  style: _detailSubCardTitleStyle(),
                 ),
               ],
             ),
           ),
           if (_canManageRcvWhDate)
             _buildEditDeleteActions(
-              onEdit: () => _showUpdateRcvWhDialog(itemRcvWh),
-              onDelete: () => _showDeleteRcvWhConfirmDialog(itemRcvWh),
+              onEdit: canManageActions
+                  ? () => _showUpdateRcvWhDialog(itemRcvWh)
+                  : null,
+              onDelete: canManageActions
+                  ? () => _showDeleteRcvWhConfirmDialog(itemRcvWh)
+                  : null,
+              disabledTooltip: _whReceivedActionsBlockedTooltip,
             ),
         ],
       ),
@@ -4253,20 +4738,13 @@ class _ToolDataState extends State<ToolData> with MixinPref {
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.orange.shade50,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.orange.shade100),
-      ),
+      decoration: _detailSubCardDecoration(),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
             padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: Colors.orange.shade100,
-              borderRadius: BorderRadius.circular(12),
-            ),
+            decoration: _detailSubCardIconDecoration(),
             child: const Icon(
               Icons.date_range_outlined,
               color: Colors.deepOrange,
@@ -4279,9 +4757,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
               children: [
                 Text(
                   _displayValue(itemRcvTool.rcvToolDate),
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                  style: _detailSubCardTitleStyle(),
                 ),
               ],
             ),
@@ -4343,23 +4819,27 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                 ),
               ),
               IconButton(
-                tooltip: 'Edit data tool',
-                onPressed: () {
-                  postMultipleToolCont(
-                    '${index + 1}',
-                    itemTool.idForm,
-                    itemTool.idFormDetail,
-                    itemTool.formComment,
-                    itemTool.pnGroup,
-                    itemTool.pnDesc,
-                    itemTool.qty,
-                    itemTool.explan,
-                    itemTool.actionNote,
-                    itemTool.valType,
-                    itemTool.partValue,
-                    context,
-                  );
-                },
+                tooltip: _canAddToolByMilestone(forms)
+                    ? 'Edit data tool'
+                    : 'Edit data tool Disabled',
+                onPressed: _canAddToolByMilestone(forms)
+                    ? () {
+                        postMultipleToolCont(
+                          '${index + 1}',
+                          itemTool.idForm,
+                          itemTool.idFormDetail,
+                          itemTool.formComment,
+                          itemTool.pnGroup,
+                          itemTool.pnDesc,
+                          itemTool.qty,
+                          itemTool.explan,
+                          itemTool.actionNote,
+                          itemTool.valType,
+                          itemTool.partValue,
+                          context,
+                        );
+                      }
+                    : null,
                 icon: const Icon(Icons.edit_outlined),
               ),
             ],
@@ -4394,16 +4874,31 @@ class _ToolDataState extends State<ToolData> with MixinPref {
           _buildLineItem('Part Desc', itemTool.pnDesc),
           _buildLineItem('Explanation', itemTool.explan),
           _buildLineItem('Action Note', itemTool.actionNote),
-          StoreConnector<AppState, List<PostList>>(
+          StoreConnector<AppState, DetailSectionVm>(
             converter: (store) {
               final allDataPO = store.state.posDetailState.posDetail;
-              return allDataPO
+              final idFormDetail = itemTool.idFormDetail.trim();
+              final items = allDataPO
                   .where(
                     (itemPO) => itemPO.idFormDetail == itemTool.idFormDetail,
                   )
                   .toList();
+              final salesOrderExists = idFormDetail.isNotEmpty &&
+                  store.state.sosDetailState.sosDetail.any(
+                    (itemSO) => itemSO.idFormDetail.trim() == idFormDetail,
+                  );
+              return DetailSectionVm(
+                items: items,
+                isLoading: store.state.posDetailState.isLoadingPO,
+                salesOrderExists: salesOrderExists,
+              );
             },
-            builder: (context, filteredListPO) {
+            builder: (context, vm) {
+              final canManagePo =
+                  _canEditDeletePurchaseOrder &&
+                  _canManagePurchaseOrderWhenSalesOrderBlank(
+                    vm.salesOrderExists,
+                  );
               return Padding(
                 padding: const EdgeInsets.only(top: 12),
                 child: Column(
@@ -4413,20 +4908,29 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                       'Purchase Order',
                       icon: Icons.receipt,
                       trailing: _canEditDeletePurchaseOrder
-                          ? TextButton.icon(
-                              onPressed: () => _showAddPurchaseOrderDialog(
-                                forms,
-                                itemTool.idFormDetail,
-                              ),
-                              icon: const Icon(Icons.add, size: 18),
-                              label: const Text('Add'),
-                              style: TextButton.styleFrom(
-                                foregroundColor: clrOrange,
+                          ? Tooltip(
+                              message: canManagePo
+                                  ? 'Add Purchase Order'
+                                  : _poActionsBlockedTooltip,
+                              child: TextButton.icon(
+                                onPressed: canManagePo
+                                    ? () => _showAddPurchaseOrderDialog(
+                                        forms,
+                                        itemTool.idFormDetail,
+                                      )
+                                    : null,
+                                icon: const Icon(Icons.add, size: 18),
+                                label: const Text('Add'),
+                                style: TextButton.styleFrom(
+                                  foregroundColor: clrOrange,
+                                ),
                               ),
                             )
                           : null,
                     ),
-                    if (filteredListPO.isEmpty)
+                    if (vm.isLoading && vm.items.isEmpty)
+                      const AppShimmer(child: DetailLinesSkeleton())
+                    else if (vm.items.isEmpty)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 4),
                         child: Text(
@@ -4436,22 +4940,41 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                         ),
                       )
                     else
-                      ...filteredListPO.map(_buildPoCard),
+                      ...vm.items.map(
+                        (itemPO) => _buildPoCard(
+                          itemPO,
+                          canManageActions: canManagePo,
+                        ),
+                      ),
                   ],
                 ),
               );
             },
           ),
-          StoreConnector<AppState, List<PostList>>(
+          StoreConnector<AppState, DetailSectionVm>(
             converter: (store) {
               final allDataSO = store.state.sosDetailState.sosDetail;
-              return allDataSO
+              final idFormDetail = itemTool.idFormDetail.trim();
+              final items = allDataSO
                   .where(
                     (itemSO) => itemSO.idFormDetail == itemTool.idFormDetail,
                   )
                   .toList();
+              final whReceivedExists = idFormDetail.isNotEmpty &&
+                  store.state.rcvWhState.rcvWhs.any(
+                    (itemRcvWh) =>
+                        itemRcvWh.idFormDetail.trim() == idFormDetail,
+                  );
+              return DetailSectionVm(
+                items: items,
+                isLoading: store.state.sosDetailState.isLoadingSO,
+                whReceivedExists: whReceivedExists,
+              );
             },
-            builder: (context, filteredListSO) {
+            builder: (context, vm) {
+              final canManageSo =
+                  _canManageSalesOrderPr &&
+                  _canManageSalesOrderWhenWhReceivedBlank(vm.whReceivedExists);
               return Padding(
                 padding: const EdgeInsets.only(top: 12),
                 child: Column(
@@ -4461,20 +4984,29 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                       'Sales Order / Purchase Request (SO/PR)',
                       icon: Icons.route,
                       trailing: _canManageSalesOrderPr
-                          ? TextButton.icon(
-                              onPressed: () => _showAddSalesOrderDialog(
-                                forms,
-                                itemTool.idFormDetail,
-                              ),
-                              icon: const Icon(Icons.add, size: 18),
-                              label: const Text('Add'),
-                              style: TextButton.styleFrom(
-                                foregroundColor: clrOrange,
+                          ? Tooltip(
+                              message: canManageSo
+                                  ? 'Add Sales Order (SO) / Purchase Request (PR)'
+                                  : _soActionsBlockedTooltip,
+                              child: TextButton.icon(
+                                onPressed: canManageSo
+                                    ? () => _showAddSalesOrderDialog(
+                                        forms,
+                                        itemTool.idFormDetail,
+                                      )
+                                    : null,
+                                icon: const Icon(Icons.add, size: 18),
+                                label: const Text('Add'),
+                                style: TextButton.styleFrom(
+                                  foregroundColor: clrOrange,
+                                ),
                               ),
                             )
                           : null,
                     ),
-                    if (filteredListSO.isEmpty)
+                    if (vm.isLoading && vm.items.isEmpty)
+                      const AppShimmer(child: DetailLinesSkeleton())
+                    else if (vm.items.isEmpty)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 4),
                         child: Text(
@@ -4484,24 +5016,45 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                         ),
                       )
                     else
-                      ...filteredListSO.map(_buildSoCard),
+                      ...vm.items.map(
+                        (itemSO) => _buildSoCard(
+                          itemSO,
+                          canManageActions: canManageSo,
+                        ),
+                      ),
                   ],
                 ),
               );
             },
           ),
 
-          StoreConnector<AppState, List<PostList>>(
+          StoreConnector<AppState, DetailSectionVm>(
             converter: (store) {
               final allDataRcvWh = store.state.rcvWhState.rcvWhs;
-              return allDataRcvWh
+              final idFormDetail = itemTool.idFormDetail.trim();
+              final items = allDataRcvWh
                   .where(
                     (itemRcvWh) =>
                         itemRcvWh.idFormDetail == itemTool.idFormDetail,
                   )
                   .toList();
+              final toolRoomReceivedExists = idFormDetail.isNotEmpty &&
+                  store.state.rcvToolState.rcvTools.any(
+                    (itemRcvTool) =>
+                        itemRcvTool.idFormDetail.trim() == idFormDetail,
+                  );
+              return DetailSectionVm(
+                items: items,
+                isLoading: store.state.rcvWhState.isLoadingrcvWh,
+                toolRoomReceivedExists: toolRoomReceivedExists,
+              );
             },
-            builder: (context, filteredListRcvWh) {
+            builder: (context, vm) {
+              final canManageWh =
+                  _canManageRcvWhDate &&
+                  _canManageWhReceivedWhenToolRoomBlank(
+                    vm.toolRoomReceivedExists,
+                  );
               return Padding(
                 padding: const EdgeInsets.only(top: 12),
                 child: Column(
@@ -4511,20 +5064,29 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                       'Date WH Received ',
                       icon: Icons.warehouse,
                       trailing: _canManageRcvWhDate
-                          ? TextButton.icon(
-                              onPressed: () => _showAddRcvWhDialog(
-                                forms,
-                                itemTool.idFormDetail,
-                              ),
-                              icon: const Icon(Icons.add, size: 18),
-                              label: const Text('Add'),
-                              style: TextButton.styleFrom(
-                                foregroundColor: clrOrange,
+                          ? Tooltip(
+                              message: canManageWh
+                                  ? 'Add Date WH Received'
+                                  : _whReceivedActionsBlockedTooltip,
+                              child: TextButton.icon(
+                                onPressed: canManageWh
+                                    ? () => _showAddRcvWhDialog(
+                                        forms,
+                                        itemTool.idFormDetail,
+                                      )
+                                    : null,
+                                icon: const Icon(Icons.add, size: 18),
+                                label: const Text('Add'),
+                                style: TextButton.styleFrom(
+                                  foregroundColor: clrOrange,
+                                ),
                               ),
                             )
                           : null,
                     ),
-                    if (filteredListRcvWh.isEmpty)
+                    if (vm.isLoading && vm.items.isEmpty)
+                      const AppShimmer(child: DetailLinesSkeleton())
+                    else if (vm.items.isEmpty)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 4),
                         child: Text(
@@ -4534,23 +5096,32 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                         ),
                       )
                     else
-                      ...filteredListRcvWh.map(_buildRcvWhCard),
+                      ...vm.items.map(
+                        (itemRcvWh) => _buildRcvWhCard(
+                          itemRcvWh,
+                          canManageActions: canManageWh,
+                        ),
+                      ),
                   ],
                 ),
               );
             },
           ),
-          StoreConnector<AppState, List<PostList>>(
+          StoreConnector<AppState, DetailSectionVm>(
             converter: (store) {
               final allDataRcvTool = store.state.rcvToolState.rcvTools;
-              return allDataRcvTool
+              final items = allDataRcvTool
                   .where(
                     (itemRcvTool) =>
                         itemRcvTool.idFormDetail == itemTool.idFormDetail,
                   )
                   .toList();
+              return DetailSectionVm(
+                items: items,
+                isLoading: store.state.rcvToolState.isLoadingrcvTool,
+              );
             },
-            builder: (context, filteredListRcvTool) {
+            builder: (context, vm) {
               return Padding(
                 padding: const EdgeInsets.only(top: 12),
                 child: Column(
@@ -4573,7 +5144,9 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                             )
                           : null,
                     ),
-                    if (filteredListRcvTool.isEmpty)
+                    if (vm.isLoading && vm.items.isEmpty)
+                      const AppShimmer(child: DetailLinesSkeleton())
+                    else if (vm.items.isEmpty)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 4),
                         child: Text(
@@ -4583,7 +5156,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                         ),
                       )
                     else
-                      ...filteredListRcvTool.map(_buildRcvToolCard),
+                      ...vm.items.map(_buildRcvToolCard),
                   ],
                 ),
               );
@@ -4602,14 +5175,17 @@ class _ToolDataState extends State<ToolData> with MixinPref {
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 10),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
-        gradient: LinearGradient(
-          colors: [
-            context.cardSurface,
-            statusColor.withValues(alpha: context.isDarkMode ? 0.12 : 0.04),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: context.isDarkMode ? Colors.black : null,
+        gradient: context.isDarkMode
+            ? null
+            : LinearGradient(
+                colors: [
+                  context.cardSurface,
+                  statusColor.withValues(alpha: 0.04),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
         boxShadow: [
           BoxShadow(
             color: context.cardShadow,
@@ -4643,12 +5219,11 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                     );
                     _searchQuery = formNo;
                     _searchField = 'formNo';
+                    _refreshData();
                   }
                 } else {
                   _expandedForms.remove(forms.idForm);
-                  _searchController.clear();
-                  _searchQuery = '';
-                  _searchField = 'all';
+                  _clearSearch();
                 }
               });
             },
@@ -4712,7 +5287,9 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                 final nextMilestone = _nextOrderTimelineMilestoneLabel(
                   timelineVm,
                 );
-                final panelBg = clrOrange.withValues(alpha: 0.08);
+                final panelBg = context.isDarkMode
+                    ? Colors.black
+                    : clrOrange.withValues(alpha: 0.08);
                 return Padding(
                   padding: const EdgeInsets.only(top: 10),
                   child: Container(
@@ -4721,7 +5298,9 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                       color: panelBg,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: clrOrange.withValues(alpha: 0.18),
+                        color: context.isDarkMode
+                            ? context.cardBorder
+                            : clrOrange.withValues(alpha: 0.18),
                       ),
                       boxShadow: [
                         BoxShadow(
@@ -4808,15 +5387,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                     icon: Icons.person_outline,
                     label: 'Check By',
                     value: forms.formCheckBy,
-                    trailing: _canAccessRequestOrderTool
-                        ? _buildCommentCardTrailingAction(
-                            icon: Icons.local_mall_outlined,
-                            label: 'Request Order',
-                            backgroundColor: Colors.deepOrange.shade600,
-                            tooltip: 'Request Order Tool',
-                            onPressed: () => _showRequestOrderToolDialog(forms),
-                          )
-                        : null,
+                    trailing: _buildCheckByInfoTileTrailing(forms),
                   ),
                   _buildInfoTile(
                     icon: Icons.comment_bank_outlined,
@@ -4842,9 +5413,12 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                             icon: Icons.task_alt_outlined,
                             label: 'Superior Approval',
                             backgroundColor: clrGreen,
-                            tooltip: 'Superior Approval',
-                            onPressed: () =>
-                                _showSupervisorValidationDialog(forms),
+                            tooltip: _canSuperiorApprovalByMilestone(forms)
+                                ? 'Superior Approval'
+                                : 'Superior Approval Disabled',
+                            onPressed: _canSuperiorApprovalByMilestone(forms)
+                                ? () => _showSupervisorValidationDialog(forms)
+                                : null,
                           )
                         : null,
                   ),
@@ -4873,9 +5447,12 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                             icon: Icons.verified_user_outlined,
                             label: 'Dept Head Approval',
                             backgroundColor: Colors.teal,
-                            tooltip: 'Dept Head Approval',
-                            onPressed: () =>
-                                _showDeptHeadValidationDialog(forms),
+                            tooltip: _canDeptHeadApprovalByMilestone(forms)
+                                ? 'Dept Head Approval'
+                                : 'Dept Head Approval Disabled',
+                            onPressed: _canDeptHeadApprovalByMilestone(forms)
+                                ? () => _showDeptHeadValidationDialog(forms)
+                                : null,
                           )
                         : null,
                   ),
@@ -4885,19 +5462,28 @@ class _ToolDataState extends State<ToolData> with MixinPref {
               _buildSectionHeader(
                 'Tool List',
                 icon: Icons.handyman_outlined,
-                trailing: _canAddToolToForm
-                    ? _buildAddToolHeaderAction(forms)
-                    : null,
+                trailing: _buildToolListHeaderTrailing(forms),
               ),
-              StoreConnector<AppState, List<PostList>>(
+              StoreConnector<AppState, DetailSectionVm>(
                 converter: (store) {
                   final allTool = store.state.formsDetailState.formsDetail;
-                  return allTool
+                  final items = allTool
                       .where((itemTool) => itemTool.idForm == forms.idForm)
                       .toList();
+                  return DetailSectionVm(
+                    items: items,
+                    isLoading: store.state.formsDetailState.isLoadingToolDetail,
+                  );
                 },
-                builder: (context, filteredList) {
-                  if (filteredList.isEmpty) {
+                builder: (context, vm) {
+                  if (vm.isLoading && vm.items.isEmpty) {
+                    return const AppShimmer(
+                      child: Column(
+                        children: [ToolItemSkeleton(), ToolItemSkeleton()],
+                      ),
+                    );
+                  }
+                  if (vm.items.isEmpty) {
                     return Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(18),
@@ -4926,9 +5512,9 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                   return ListView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    itemCount: filteredList.length,
+                    itemCount: vm.items.length,
                     itemBuilder: (context, ii) {
-                      final itemTool = filteredList[ii];
+                      final itemTool = vm.items[ii];
                       return _buildToolItemCard(itemTool, ii, forms);
                     },
                   );
@@ -4943,52 +5529,51 @@ class _ToolDataState extends State<ToolData> with MixinPref {
 
   Widget _buildSearchBar() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                color: context.searchAccentFill,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: context.searchAccentBorder),
-              ),
-              child: TextField(
-                controller: _searchController,
-                onChanged: _onSearchChanged,
-                textInputAction: TextInputAction.search,
-                decoration: InputDecoration(
-                  hintText: 'Search',
-                  hintStyle: TextStyle(color: Colors.orange.shade700),
-                  prefixIcon: Icon(Icons.search, color: Colors.orange.shade700),
-                  filled: true,
-                  fillColor: Colors.transparent,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 10,
+            child: TextField(
+              controller: _searchController,
+              onChanged: (_) => _onSearchTextEdited(),
+              onSubmitted: _canSubmitSearch ? (_) => _submitSearch() : null,
+              textInputAction: TextInputAction.search,
+              decoration: InputDecoration(
+                hintText: 'Cari data form...',
+                hintStyle: TextStyle(color: context.iconMuted),
+                prefixIcon: IconButton(
+                  icon: Icon(
+                    Icons.search,
+                    color: _canSubmitSearch ? clrOrange : context.iconMuted,
                   ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide.none,
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide.none,
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide(
-                      color: Colors.orange.shade700,
-                      width: 1.4,
-                    ),
-                  ),
+                  tooltip: 'Cari',
+                  onPressed: _canSubmitSearch ? _submitSearch : null,
+                ),
+                filled: true,
+                fillColor: context.searchAccentFill,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 12,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: context.searchAccentBorder),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: context.searchAccentBorder),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: clrOrange, width: 1.4),
                 ),
               ),
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 10),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+            padding: const EdgeInsets.symmetric(horizontal: 10),
             decoration: BoxDecoration(
               color: context.searchAccentFill,
               borderRadius: BorderRadius.circular(12),
@@ -4997,12 +5582,13 @@ class _ToolDataState extends State<ToolData> with MixinPref {
             child: DropdownButton<String>(
               value: _searchField,
               underline: const SizedBox.shrink(),
-              iconEnabledColor: Colors.orange.shade800,
+              iconEnabledColor: clrOrange,
+              borderRadius: BorderRadius.circular(12),
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: Colors.orange.shade900,
                 fontWeight: FontWeight.w600,
               ),
-              items: _searchFieldLabels.entries
+              items: kToolFormSearchFieldLabels.entries
                   .map(
                     (entry) => DropdownMenuItem<String>(
                       value: entry.key,
@@ -5013,19 +5599,21 @@ class _ToolDataState extends State<ToolData> with MixinPref {
               onChanged: (value) {
                 if (value == null) return;
                 setState(() => _searchField = value);
+                _refreshData();
               },
             ),
           ),
-          if (_searchQuery.isNotEmpty)
+          if (_searchController.text.trim().isNotEmpty)
             Container(
-              margin: const EdgeInsets.only(left: 4),
+              margin: const EdgeInsets.only(left: 6),
               decoration: BoxDecoration(
-                color: clrOrange.withValues(alpha: 0.12),
-                shape: BoxShape.circle,
+                color: Colors.red.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.red.shade100),
               ),
               child: IconButton(
                 onPressed: _clearSearch,
-                icon: Icon(Icons.clear, color: Colors.orange.shade900),
+                icon: Icon(Icons.close_rounded, color: Colors.red.shade400),
                 tooltip: 'Clear search',
               ),
             ),
@@ -5035,8 +5623,10 @@ class _ToolDataState extends State<ToolData> with MixinPref {
   }
 
   Widget _buildSearchNotFoundContent() {
-    final message = _searchQuery.isEmpty && _hasMilestoneFilter
-        ? 'No completed data found'
+    final message = _searchQuery.isEmpty && _hasMilestoneFilters
+        ? 'No forms match this milestone filter'
+        : _searchQuery.isEmpty
+        ? 'Not Found'
         : '$_searchQuery Not Found';
     return Center(
       child: Padding(
@@ -5110,19 +5700,65 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                 builder: (context, state) {
                   final filteredForms = state.forms
                       .where(_matchesMilestoneFilter)
-                      .where(_matchesSearch)
                       .toList();
                   final hasMoreForms = state.hasMore;
+                  // #region agent log
+                  if (!state.isLoadingTool) {
+                    String listBranch = 'list';
+                    if (state.error != null) {
+                      listBranch = 'error';
+                    } else if (state.forms.isEmpty && _searchQuery.isNotEmpty) {
+                      listBranch = 'searchEmpty';
+                    } else if (state.forms.isEmpty) {
+                      listBranch = 'apiEmpty';
+                    } else if (filteredForms.isEmpty) {
+                      listBranch = 'filterEmpty';
+                    }
+                    agentDebugLog(
+                      hypothesisId: listBranch == 'filterEmpty' ? 'B' : 'A',
+                      location: 'tool_data.dart:listBuilder',
+                      message: 'list render branch',
+                      data: {
+                        'branch': listBranch,
+                        'formsCount': state.forms.length,
+                        'filteredCount': filteredForms.length,
+                        'searchQuery': _searchQuery,
+                        'hasMilestoneFilters': _hasMilestoneFilters,
+                        'milestoneFiltersNorms': _milestoneFiltersNorms
+                            .toList(),
+                        'filterBlank': widget.filterBlankFormMilestone,
+                        'excludeFilters': widget.excludeFormMilestoneFilters,
+                      },
+                    );
+                  }
+                  // #endregion
                   if (state.isLoadingTool) {
-                    return SliverFillRemaiings(
-                      errors: "Loading",
-                      hasScrollBodys: false,
+                    return ShimmerListSliver(
+                      itemCount: 6,
+                      itemBuilder: _formCardSkeletonItem,
                     );
                   }
                   if (state.error != null) {
                     return SliverFillRemaiings(
                       errors: state.error ?? '${state.error}',
                       hasScrollBodys: false,
+                    );
+                  }
+                  if (state.forms.isEmpty && _searchQuery.isNotEmpty) {
+                    return SliverMainAxisGroup(
+                      slivers: [
+                        SliverPersistentHeader(
+                          pinned: true,
+                          delegate: _PinnedSearchHeaderDelegate(
+                            backgroundColor: context.pageBackground,
+                            child: _buildSearchBar(),
+                          ),
+                        ),
+                        SliverFillRemaining(
+                          hasScrollBody: false,
+                          child: _buildSearchNotFoundContent(),
+                        ),
+                      ],
                     );
                   }
                   if (state.forms.isEmpty) {
@@ -5163,6 +5799,20 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                           return _buildFormCard(forms, index);
                         }, childCount: filteredForms.length),
                       ),
+                      if (state.totalForms != null &&
+                          !hasMoreForms &&
+                          filteredForms.isNotEmpty)
+                        SliverToBoxAdapter(
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
+                            child: Text(
+                              _formLoadSummary(state, filteredForms.length),
+                              textAlign: TextAlign.center,
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(color: context.textSecondary),
+                            ),
+                          ),
+                        ),
                       if (hasMoreForms)
                         SliverToBoxAdapter(
                           child: Padding(
@@ -5170,7 +5820,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                             child: Column(
                               children: [
                                 Text(
-                                  'Showing ${filteredForms.length} of ${state.forms.length} loaded items',
+                                  _formLoadSummary(state, filteredForms.length),
                                   style: Theme.of(context).textTheme.bodySmall
                                       ?.copyWith(color: context.textSecondary),
                                 ),
@@ -5224,10 +5874,10 @@ class _PinnedSearchHeaderDelegate extends SliverPersistentHeaderDelegate {
   final Color backgroundColor;
 
   @override
-  double get minExtent => 60;
+  double get minExtent => 68;
 
   @override
-  double get maxExtent => 60;
+  double get maxExtent => 68;
 
   @override
   Widget build(
