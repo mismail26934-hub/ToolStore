@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tool_store_app/l10n/l10n_ext.dart';
 import 'package:tool_store_app/theme/app_theme.dart';
 import 'package:tool_store_app/view/custom/mixin/mixin_pref.dart';
 import 'package:tool_store_app/view/custom/routes/page_routes.dart';
@@ -172,7 +173,7 @@ class _SplashScreenState extends State<SplashScreen>
                     child: Material(
                       color: Colors.transparent,
                       child: Text(
-                        "Data Tool Monitoring",
+                        context.s.appTitle,
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.headlineSmall
                             ?.copyWith(
@@ -216,7 +217,7 @@ class _SplashScreenState extends State<SplashScreen>
                         const AppShimmer(child: SplashLoadingStripSkeleton()),
                         const SizedBox(height: 10),
                         Text(
-                          "Menyiapkan data sesi dan dashboard...",
+                          context.s.splashPreparing,
                           style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(
                                 color: subtitleColor,

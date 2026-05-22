@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tool_store_app/controller/function/funct.dart';
+import 'package:tool_store_app/l10n/l10n_ext.dart';
+import 'package:tool_store_app/l10n/locale_controller.dart';
 import 'package:tool_store_app/theme/app_theme.dart';
 import 'package:tool_store_app/theme/theme_controller.dart';
 import 'package:tool_store_app/view/custom/routes/page_routes.dart';
@@ -43,8 +45,9 @@ class _DrawerMenuState extends State<DrawerMenu> {
 
   bool get _isLoggedIn => widget.title.trim().isNotEmpty;
 
-  String get _displayName =>
-      _isLoggedIn ? widget.title.trim().toUpperCase() : 'GUEST USER';
+  String _displayName(BuildContext context) => _isLoggedIn
+      ? widget.title.trim().toUpperCase()
+      : context.s.guestUser;
 
   Widget _buildSectionTitle(BuildContext context, String label) {
     return Padding(
@@ -97,7 +100,7 @@ class _DrawerMenuState extends State<DrawerMenu> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  _isLoggedIn ? 'Akses Aktif' : 'Mode Tamu',
+                  _isLoggedIn ? context.s.activeAccess : context.s.guestMode,
                   style: Theme.of(
                     context,
                   ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
@@ -105,8 +108,8 @@ class _DrawerMenuState extends State<DrawerMenu> {
                 const SizedBox(height: 4),
                 Text(
                   _isLoggedIn
-                      ? 'Kelola request tool, user, dan dashboard dengan cepat.'
-                      : 'Silakan login untuk mengakses seluruh menu aplikasi.',
+                      ? context.s.activeAccessDesc
+                      : context.s.guestModeDesc,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: context.textSecondary,
                     height: 1.4,
@@ -203,10 +206,11 @@ class _DrawerMenuState extends State<DrawerMenu> {
         child: FutureBuilder<String>(
           future: _levelFuture,
           builder: (context, snapshot) {
+            final s = context.s;
             final levelSubtitle = !_isLoggedIn
-                ? 'Silakan login untuk melanjutkan'
+                ? s.pleaseLoginContinue
                 : (snapshot.connectionState == ConnectionState.waiting
-                      ? 'Memuat…'
+                      ? s.loadingEllipsis
                       : ((snapshot.data ?? '').trim().isEmpty
                             ? '—'
                             : (snapshot.data ?? '').trim()));
@@ -234,7 +238,7 @@ class _DrawerMenuState extends State<DrawerMenu> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            _displayName,
+                            _displayName(context),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: Theme.of(context).textTheme.titleLarge
@@ -289,7 +293,7 @@ class _DrawerMenuState extends State<DrawerMenu> {
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          'Akses cepat ke dashboard, data tool, riwayat, dan pengaturan user.',
+                          s.drawerTip,
                           style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(color: Colors.white, height: 1.35),
                         ),
@@ -313,8 +317,8 @@ class _DrawerMenuState extends State<DrawerMenu> {
     if (idUsers.isEmpty) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Data pengguna tidak lengkap. Silakan login ulang.'),
+        SnackBar(
+          content: Text(context.s.incompleteUserData),
         ),
       );
       return;
@@ -339,10 +343,11 @@ class _DrawerMenuState extends State<DrawerMenu> {
   }
 
   Future<void> _handleLogout(BuildContext context) async {
+    final s = context.s;
     ShowDialogBox.show(
       context: context,
-      title: 'Logout',
-      contentTitle: 'Are you sure logout ?',
+      title: s.logoutTitle,
+      contentTitle: s.logoutConfirm,
       onPressedNo: (dialogContext) {
         if (!dialogContext.mounted) return;
         Navigator.pop(dialogContext);
@@ -354,8 +359,8 @@ class _DrawerMenuState extends State<DrawerMenu> {
         if (!context.mounted) return;
         PageRoutes.routeLoginFast(context);
       },
-      textNo: 'Back',
-      textYes: 'Yes',
+      textNo: s.back,
+      textYes: s.yes,
       textColorNo: clrBlack,
       textColorYes: clrRed,
     );
@@ -402,15 +407,15 @@ class _DrawerMenuState extends State<DrawerMenu> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Dark Mode',
+                            context.s.darkMode,
                             style: Theme.of(context).textTheme.titleSmall
                                 ?.copyWith(fontWeight: FontWeight.w700),
                           ),
                           const SizedBox(height: 2),
                           Text(
                             isDark
-                                ? 'Tampilan gelap aktif. Ketuk untuk mode terang.'
-                                : 'Aktifkan tampilan gelap untuk kenyamanan malam hari.',
+                                ? context.s.darkModeOn
+                                : context.s.darkModeOff,
                             style: Theme.of(context).textTheme.bodySmall
                                 ?.copyWith(
                                   color: context.textSecondary,
@@ -423,6 +428,79 @@ class _DrawerMenuState extends State<DrawerMenu> {
                     Switch(
                       value: isDark,
                       onChanged: ThemeController.instance.setDarkMode,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildLocaleToggle(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      child: ListenableBuilder(
+        listenable: LocaleController.instance,
+        builder: (context, _) {
+          final isEnglish = LocaleController.instance.isEnglish;
+          return Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(18),
+              onTap: () => LocaleController.instance.toggle(),
+              child: Ink(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: context.cardSurface,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: context.cardBorder),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: clrOrange.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Icon(
+                        isEnglish
+                            ? Icons.translate_outlined
+                            : Icons.language_outlined,
+                        color: clrOrange,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            context.s.language,
+                            style: Theme.of(context).textTheme.titleSmall
+                                ?.copyWith(fontWeight: FontWeight.w700),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            isEnglish
+                                ? context.s.languageEn
+                                : context.s.languageId,
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: context.textSecondary,
+                                  height: 1.35,
+                                ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Switch(
+                      value: isEnglish,
+                      onChanged: LocaleController.instance.setEnglish,
                     ),
                   ],
                 ),
@@ -449,12 +527,12 @@ class _DrawerMenuState extends State<DrawerMenu> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisSize: MainAxisSize.min,
           children: [
-            _buildSectionTitle(context, 'Account'),
+            _buildSectionTitle(context, context.s.account),
             _buildMenuTile(
               context: context,
               icon: Icons.person_outline,
-              title: 'User',
-              subtitle: 'Kelola data user dan informasi akun.',
+              title: context.s.user,
+              subtitle: context.s.userSubtitle,
               iconColor: Colors.purple,
               onTap: () {
                 PageRoutes.routeUser(context);
@@ -476,12 +554,12 @@ class _DrawerMenuState extends State<DrawerMenu> {
         children: [
           _buildHeader(context),
           _buildInfoCard(context),
-          _buildSectionTitle(context, 'Main Menu'),
+          _buildSectionTitle(context, context.s.mainMenu),
           _buildMenuTile(
             context: context,
             icon: Icons.dashboard_customize_outlined,
-            title: 'Dashboard',
-            subtitle: 'Lihat ringkasan aktivitas dan monitoring request.',
+            title: context.s.dashboard,
+            subtitle: context.s.dashboardSubtitle,
             iconColor: Colors.deepOrange,
             onTap: () {
               PageRoutes.routeDashboard(context, '');
@@ -490,13 +568,13 @@ class _DrawerMenuState extends State<DrawerMenu> {
           _buildMenuTile(
             context: context,
             icon: Icons.handyman_outlined,
-            title: 'Data Tool',
-            subtitle: 'Buka daftar request tool dan detail item pekerjaan.',
+            title: context.s.dataTool,
+            subtitle: context.s.dataToolSubtitle,
             iconColor: Colors.blue,
             onTap: () {
               PageRoutes.routeTool(
                 context,
-                title: 'Data Tool',
+                title: context.s.dataTool,
                 excludeFormMilestoneFilters: const <String>[
                   'RECEIVED TOOL STORE',
                   'HOLD BY SERVICE ADMIN',
@@ -510,13 +588,13 @@ class _DrawerMenuState extends State<DrawerMenu> {
           _buildMenuTile(
             context: context,
             icon: Icons.task_alt_outlined,
-            title: 'Completed',
-            subtitle: 'Lihat item yang sudah selesai diproses.',
+            title: context.s.completed,
+            subtitle: context.s.completedSubtitle,
             iconColor: Colors.green,
             onTap: () {
               PageRoutes.routeTool(
                 context,
-                title: 'Completed',
+                title: context.s.completed,
                 formMilestoneFilter: 'RECEIVED TOOL STORE',
               );
             },
@@ -524,13 +602,13 @@ class _DrawerMenuState extends State<DrawerMenu> {
           _buildMenuTile(
             context: context,
             icon: Icons.stop_circle_outlined,
-            title: 'Hold Order',
-            subtitle: 'Orderan Tidak Dilanjutkan oleh Service Admin',
+            title: context.s.holdOrder,
+            subtitle: context.s.holdOrderSubtitle,
             iconColor: Colors.orange,
             onTap: () {
               PageRoutes.routeTool(
                 context,
-                title: 'Hold Order',
+                title: context.s.holdOrder,
                 formMilestoneFilter: 'HOLD BY SERVICE ADMIN',
               );
               Navigator.pop(context);
@@ -539,13 +617,13 @@ class _DrawerMenuState extends State<DrawerMenu> {
           _buildMenuTile(
             context: context,
             icon: Icons.cancel_outlined,
-            title: 'Rejected',
-            subtitle: 'Orderan Dibatalkan Oleh Foreman / Superior',
+            title: context.s.rejectedSuperior,
+            subtitle: context.s.rejectedSuperiorSubtitle,
             iconColor: Colors.red,
             onTap: () {
               PageRoutes.routeTool(
                 context,
-                title: 'Rejected',
+                title: context.s.rejectedSuperior,
                 formMilestoneFilter: 'REJECTED BY SUPERIOR',
               );
               Navigator.pop(context);
@@ -554,13 +632,13 @@ class _DrawerMenuState extends State<DrawerMenu> {
           _buildMenuTile(
             context: context,
             icon: Icons.cancel_rounded,
-            title: 'Rejected',
-            subtitle: 'Orderan Dibatalkan Oleh Dept Head',
+            title: context.s.rejectedDeptHead,
+            subtitle: context.s.rejectedDeptHeadSubtitle,
             iconColor: Colors.red,
             onTap: () {
               PageRoutes.routeTool(
                 context,
-                title: 'Rejected',
+                title: context.s.rejectedDeptHead,
                 formMilestoneFilter: 'REJECTED BY SERVICE DEPT. HEAD',
               );
               Navigator.pop(context);
@@ -577,8 +655,9 @@ class _DrawerMenuState extends State<DrawerMenu> {
           //   },
           // ),
           _buildSuperAdminUserSection(context),
-          _buildSectionTitle(context, 'Appearance'),
+          _buildSectionTitle(context, context.s.appearance),
           _buildThemeToggle(context),
+          _buildLocaleToggle(context),
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 12, 12, 20),
             child: Material(
@@ -629,15 +708,17 @@ class _DrawerMenuState extends State<DrawerMenu> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              _isLoggedIn ? 'Logout' : 'Login',
+                              _isLoggedIn
+                                  ? context.s.logout
+                                  : context.s.login,
                               style: Theme.of(context).textTheme.titleSmall
                                   ?.copyWith(fontWeight: FontWeight.w700),
                             ),
                             const SizedBox(height: 2),
                             Text(
                               _isLoggedIn
-                                  ? 'Keluar dari sesi dan hapus data login lokal.'
-                                  : 'Masuk untuk membuka seluruh fitur aplikasi.',
+                                  ? context.s.logoutDesc
+                                  : context.s.loginDesc,
                               style: Theme.of(context).textTheme.bodySmall
                                   ?.copyWith(
                                     color: context.textSecondary,

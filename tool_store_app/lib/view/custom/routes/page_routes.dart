@@ -5,6 +5,7 @@ import 'package:tool_store_app/view/menu/dashboard/dashboard.dart';
 import 'package:tool_store_app/view/menu/home/home.dart';
 import 'package:tool_store_app/view/menu/splash_login/login.dart';
 import 'package:tool_store_app/view/menu/tooll/tool_data.dart';
+import 'package:tool_store_app/l10n/l10n_ext.dart';
 import 'package:tool_store_app/view/menu/tooll/tool_form_multiple_input.dart';
 import 'package:tool_store_app/view/menu/user/user_data.dart';
 import 'package:tool_store_app/view/menu/user/user_form.dart';
@@ -54,10 +55,8 @@ class PageRoutes {
     if (lvl != 'SUPERADMIN') {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Akses ditolak. Menu User hanya untuk pengguna level SUPERADMIN.',
-          ),
+        SnackBar(
+          content: Text(context.s.accessDenied),
         ),
       );
       return;

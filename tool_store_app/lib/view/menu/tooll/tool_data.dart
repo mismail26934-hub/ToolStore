@@ -16,6 +16,8 @@ import 'package:tool_store_app/view/custom/shimmer/detail_section_vm.dart';
 import 'package:tool_store_app/view/custom/shimmer/skeletons.dart';
 import 'package:tool_store_app/debug/agent_log.dart';
 import 'package:tool_store_app/view/custom/tool_form_search_popup.dart';
+import 'package:tool_store_app/l10n/app_strings.dart';
+import 'package:tool_store_app/l10n/l10n_ext.dart';
 import 'package:tool_store_app/view/menu/drawer/drawer.dart';
 import 'package:tool_store_app/theme/app_theme.dart';
 import 'package:tool_store_app/view/var/var.dart';
@@ -96,6 +98,7 @@ class ToolData extends StatefulWidget {
 }
 
 class _ToolDataState extends State<ToolData> with MixinPref {
+  AppStrings get _s => AppStrings.current;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final Set<String> _expandedForms = <String>{};
   final TextEditingController _searchController = TextEditingController();
@@ -142,7 +145,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
       _searchController.text = initialQuery;
       _searchQuery = initialQuery;
       _searchField =
-          kToolFormSearchFieldLabels.containsKey(widget.initialSearchField)
+          kToolFormSearchFieldKeys.contains(widget.initialSearchField)
           ? widget.initialSearchField
           : 'all';
     }
@@ -319,9 +322,9 @@ class _ToolDataState extends State<ToolData> with MixinPref {
     final loaded = state.forms.length;
     final t = state.totalForms;
     if (t != null) {
-      return '$n shown · $loaded of $t form(s) loaded';
+      return _s.formsShownSummary(n, loaded, t);
     }
-    return '$n shown · $loaded form(s) loaded';
+    return _s.formsShownCount(n, loaded);
   }
 
   Future<void> _loadMoreForms() async {
@@ -399,14 +402,14 @@ class _ToolDataState extends State<ToolData> with MixinPref {
     final m = formMilestone.trim().toUpperCase();
     if (m == 'CONTINUE' || m == 'REVIEWED BY SERVICE ADMIN') {
       return (
-        text: 'CONTINUE',
+        text: _s.continueLabel,
         color: clrGreen,
         icon: Icons.play_circle_outline,
       );
     }
     if (m == 'HOLD' || m == 'HOLD BY SERVICE ADMIN') {
       return (
-        text: 'HOLD',
+        text: _s.holdLabel,
         color: Colors.orange.shade800,
         icon: Icons.pause_circle_outline,
       );
@@ -420,7 +423,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
     );
     return _buildInfoTile(
       icon: Icons.comment_bank_outlined,
-      label: 'SERVICE SUPPORT COMMENT',
+      label: _s.serviceSupportComment,
       value: forms.formSadminComment,
       statusText: milestoneUi.text,
       statusColor: milestoneUi.color,
@@ -428,11 +431,11 @@ class _ToolDataState extends State<ToolData> with MixinPref {
       trailing: _canAccessRequestOrderTool
           ? _buildCommentCardTrailingAction(
               icon: Icons.rate_review_outlined,
-              label: 'Service Support Review',
+              label: _s.serviceSupportReview,
               backgroundColor: Colors.indigo,
               tooltip: _canServiceSupportReviewByMilestone(forms)
-                  ? 'Service Support Review'
-                  : 'Service Support Review Disabled',
+                  ? _s.serviceSupportReview
+                  : _s.serviceSupportReviewDisabled,
               onPressed: _canServiceSupportReviewByMilestone(forms)
                   ? () => _showServiceAdminReviewDialog(forms)
                   : null,
@@ -488,24 +491,24 @@ class _ToolDataState extends State<ToolData> with MixinPref {
     return !salesOrderExists;
   }
 
-  static const _poActionsBlockedTooltip =
-      'Purchase Order hanya dapat diubah sebelum ada Sales Order';
+  String get _poActionsBlockedTooltip =>
+      AppStrings.current.poLockedBeforeSo;
 
   /// SO Add/Edit/Delete hanya saat belum ada Date WH Received untuk baris tool ini.
   bool _canManageSalesOrderWhenWhReceivedBlank(bool whReceivedExists) {
     return !whReceivedExists;
   }
 
-  static const _soActionsBlockedTooltip =
-      'Sales Order hanya dapat diubah sebelum ada Date WH Received';
+  String get _soActionsBlockedTooltip =>
+      AppStrings.current.soLockedBeforeWh;
 
   /// Date WH Received Add/Edit/Delete hanya saat belum ada Date Tool Room Received.
   bool _canManageWhReceivedWhenToolRoomBlank(bool toolRoomReceivedExists) {
     return !toolRoomReceivedExists;
   }
 
-  static const _whReceivedActionsBlockedTooltip =
-      'Date WH Received hanya dapat diubah sebelum ada Date Tool Room Received';
+  String get _whReceivedActionsBlockedTooltip =>
+      AppStrings.current.whLockedBeforeToolRoom;
 
   bool get _canManageSalesOrderPr {
     final currentLevel = level.trim().toUpperCase();
@@ -569,13 +572,14 @@ class _ToolDataState extends State<ToolData> with MixinPref {
     return StoreConnector<AppState, bool>(
       converter: (store) => _formHasTools(store.state, forms),
       builder: (context, hasTools) {
+        final s = context.s;
         if (!hasTools && _canAddToolToForm) {
           final canAdd = _canAddToolByMilestone(forms);
           return _buildCommentCardTrailingAction(
             icon: Icons.add_circle_outline,
-            label: 'Add Tool',
+            label: s.addTool,
             backgroundColor: Colors.orange.shade700,
-            tooltip: canAdd ? 'Add Tool' : 'Add Tool Disabled',
+            tooltip: canAdd ? s.addTool : s.addToolDisabled,
             onPressed: canAdd ? () => _openAddToolForm(forms) : null,
           );
         }
@@ -583,11 +587,11 @@ class _ToolDataState extends State<ToolData> with MixinPref {
           final canRequest = _canRequestOrderByMilestone(forms);
           return _buildCommentCardTrailingAction(
             icon: Icons.local_mall_outlined,
-            label: 'Request Order',
+            label: s.requestOrder,
             backgroundColor: Colors.deepOrange.shade600,
             tooltip: canRequest
-                ? 'Request Order Tool'
-                : 'Request Order Disabled',
+                ? s.requestOrderTool
+                : s.requestOrderDisabled,
             onPressed: canRequest
                 ? () => _showRequestOrderToolDialog(forms)
                 : null,
@@ -880,7 +884,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
         filled = max(filled, 6);
         partialStepIndex = 6;
         partialProgress = 0.5;
-        partialCountLabel ??= 'Partial';
+        partialCountLabel ??= _s.partial;
         break;
       case 'RECEIVED BY WH/GA':
         filled = max(filled, 6);
@@ -894,7 +898,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
         filled = max(filled, 5);
         partialStepIndex = 5;
         partialProgress = partialProgress ?? 0.5;
-        partialCountLabel ??= 'Partial';
+        partialCountLabel ??= _s.partial;
         break;
       default:
         break;
@@ -916,7 +920,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
     }
     final nextIdx = vm.orangeCompleted.clamp(0, _orderTimelineStepCount);
     if (nextIdx >= _orderTimelineStepCount) {
-      return 'COMPLETED';
+      return AppStrings.current.completedStatus;
     }
     return _orderTimelineNextMilestoneLabels[nextIdx];
   }
@@ -1097,15 +1101,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
     _OrderTimelineViewModel vm, {
     bool wrapInPanel = true,
   }) {
-    const steps = <(String, String)>[
-      ('1. Order Request', 'Request submitted.'),
-      ('2. Order Approval 1', 'Superior approval.'),
-      ('3. Order Review', 'Service support review.'),
-      ('4. Order Approval 2', 'Dept. head approval.'),
-      ('5. Order Processing', 'Tool lines / purchasing in progress.'),
-      ('6. WH Received', 'Warehouse received.'),
-      ('7. Tool Received', 'Tool room received.'),
-    ];
+    final steps = _s.workflowSteps;
 
     final panelBg = context.isDarkMode
         ? Colors.black
@@ -1202,9 +1198,9 @@ class _ToolDataState extends State<ToolData> with MixinPref {
       final subtitle = steps[i].$2;
       final accent = isRed ? errorColor : activeColor;
       final partialLabel = isPartial && vm.partialCountLabel != null
-          ? 'Partial (${vm.partialCountLabel})'
+          ? _s.partialWithCount(vm.partialCountLabel!)
           : isPartial
-          ? 'Partial'
+          ? _s.partial
           : subtitle;
       if (isMobile) {
         final stepSize = mobileStepSize;
@@ -1527,7 +1523,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(confirmContext, false),
-              child: Text('Cancel', style: TextStyle(color: context.bodyMuted)),
+              child: Text(_s.cancel, style: TextStyle(color: context.bodyMuted)),
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(confirmContext, true),
@@ -1539,7 +1535,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                   borderRadius: BorderRadius.circular(10),
                 ),
               ),
-              child: const Text('Yes'),
+              child: Text(_s.yes),
             ),
           ],
         );
@@ -1622,7 +1618,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
 
   Widget _buildAddToolHeaderAction(PostList forms) {
     final canAdd = _canAddToolByMilestone(forms);
-    final tooltip = canAdd ? 'Add Tool' : 'Add Tool Disabled';
+    final tooltip = canAdd ? _s.addTool : _s.addToolDisabled;
     final isMobile = MediaQuery.sizeOf(context).width < mobileWidth;
     if (isMobile) {
       return IconButton(
@@ -1642,7 +1638,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
     }
     return _buildActionButton(
       icon: Icons.add_circle_outline,
-      label: 'Add Tool',
+      label: _s.addTool,
       backgroundColor: Colors.orange.shade700,
       onPressed: canAdd ? () => _openAddToolForm(forms) : null,
     );
@@ -1804,7 +1800,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                     ),
                   ),
                   const SizedBox(width: 10),
-                  const Expanded(child: Text('Superior Validation')),
+                  Expanded(child: Text(_s.superiorValidation)),
                 ],
               ),
               content: Form(
@@ -1814,18 +1810,18 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                   children: [
                     DropdownButtonFormField<String>(
                       value: selectedApproval,
-                      decoration: const InputDecoration(
-                        labelText: 'Supervisor / Foreman Approval',
+                      decoration: InputDecoration(
+                        labelText: _s.supervisorApproval,
                         border: OutlineInputBorder(),
                       ),
-                      items: const [
+                      items: [
                         DropdownMenuItem(
                           value: 'APPROVED',
-                          child: Text('APPROVED'),
+                          child: Text(_s.approved),
                         ),
                         DropdownMenuItem(
                           value: 'REJECTED',
-                          child: Text('REJECTED'),
+                          child: Text(_s.rejected),
                         ),
                       ],
                       onChanged: (value) {
@@ -1835,7 +1831,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                       },
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          return 'Approval is required';
+                          return _s.approvalRequired;
                         }
                         return null;
                       },
@@ -1843,14 +1839,14 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                     const SizedBox(height: 12),
                     TextFormField(
                       controller: commentController,
-                      decoration: const InputDecoration(
-                        labelText: 'Supervisor / Foreman Comment',
+                      decoration: InputDecoration(
+                        labelText: _s.supervisorComment,
                         border: OutlineInputBorder(),
                       ),
                       maxLines: 2,
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          return 'Comment is required';
+                          return _s.commentRequired;
                         }
                         return null;
                       },
@@ -1863,7 +1859,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                   onPressed: isSubmitting
                       ? null
                       : () => Navigator.pop(dialogContext),
-                  child: const Text('Cancel'),
+                  child: Text(_s.cancel),
                 ),
                 ElevatedButton(
                   onPressed: isSubmitting
@@ -1872,9 +1868,8 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                           if (formKey.currentState?.validate() != true) return;
                           final confirmed = await _showSubmitConfirmationDialog(
                             dialogContext: dialogContext,
-                            title: 'Confirm Supervisor Validation',
-                            message:
-                                'This will submit supervisor/foreman approval for this request.',
+                            title: _s.confirmSupervisorValidation,
+                            message: _s.confirmSupervisorValidationMsg,
                             icon: Icons.fact_check_outlined,
                           );
                           if (confirmed != true) return;
@@ -1935,8 +1930,8 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                                   responseMessage.isNotEmpty
                                       ? responseMessage
                                       : (isSuccess
-                                            ? "Supervisor validation saved"
-                                            : "Failed saving validation"),
+                                            ? _s.supervisorValidationSaved
+                                            : _s.failedSavingValidation),
                                 ),
                               ),
                             );
@@ -1946,9 +1941,9 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                           } catch (_) {
                             if (!mounted) return;
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
+                              SnackBar(
                                 backgroundColor: Colors.red,
-                                content: Text('Failed saving validation'),
+                                content: Text(_s.failedSavingValidation),
                               ),
                             );
                           } finally {
@@ -1964,8 +1959,8 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                           width: 16,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Text(
-                          'Submit',
+                      : Text(
+                          _s.submit,
                           style: TextStyle(color: Colors.white),
                         ),
                 ),
@@ -2025,7 +2020,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                     ),
                   ),
                   const SizedBox(width: 10),
-                  const Expanded(child: Text('Dept Head Approval')),
+                  Expanded(child: Text(_s.deptHeadApprovalDialog)),
                 ],
               ),
               content: Form(
@@ -2035,18 +2030,18 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                   children: [
                     DropdownButtonFormField<String>(
                       value: selectedApproval,
-                      decoration: const InputDecoration(
-                        labelText: 'Service Dept. Head Approval',
+                      decoration: InputDecoration(
+                        labelText: _s.serviceDeptHeadApproval,
                         border: OutlineInputBorder(),
                       ),
-                      items: const [
+                      items: [
                         DropdownMenuItem(
                           value: 'APPROVED',
-                          child: Text('APPROVED'),
+                          child: Text(_s.approved),
                         ),
                         DropdownMenuItem(
                           value: 'REJECTED',
-                          child: Text('REJECTED'),
+                          child: Text(_s.rejected),
                         ),
                       ],
                       onChanged: (value) {
@@ -2056,7 +2051,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                       },
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          return 'Approval is required';
+                          return _s.approvalRequired;
                         }
                         return null;
                       },
@@ -2064,14 +2059,14 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                     const SizedBox(height: 12),
                     TextFormField(
                       controller: commentController,
-                      decoration: const InputDecoration(
-                        labelText: 'Service Dept. Head Comment',
+                      decoration: InputDecoration(
+                        labelText: _s.serviceDeptHeadComment,
                         border: OutlineInputBorder(),
                       ),
                       maxLines: 2,
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          return 'Comment is required';
+                          return _s.commentRequired;
                         }
                         return null;
                       },
@@ -2084,7 +2079,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                   onPressed: isSubmitting
                       ? null
                       : () => Navigator.pop(dialogContext),
-                  child: const Text('Cancel'),
+                  child: Text(_s.cancel),
                 ),
                 ElevatedButton(
                   onPressed: isSubmitting
@@ -2093,9 +2088,8 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                           if (formKey.currentState?.validate() != true) return;
                           final confirmed = await _showSubmitConfirmationDialog(
                             dialogContext: dialogContext,
-                            title: 'Confirm Dept Head Approval',
-                            message:
-                                'This will submit dept head approval for this request.',
+                            title: _s.confirmDeptHeadApproval,
+                            message: _s.confirmDeptHeadApprovalMsg,
                             icon: Icons.verified_outlined,
                           );
                           if (confirmed != true) return;
@@ -2157,8 +2151,8 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                                   responseMessage.isNotEmpty
                                       ? responseMessage
                                       : (isSuccess
-                                            ? "Dept head approval saved"
-                                            : "Failed saving dept head approval"),
+                                            ? _s.deptHeadApprovalSaved
+                                            : _s.failedDeptHeadApproval),
                                 ),
                               ),
                             );
@@ -2168,10 +2162,10 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                           } catch (_) {
                             if (!mounted) return;
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
+                              SnackBar(
                                 backgroundColor: Colors.red,
                                 content: Text(
-                                  'Failed saving dept head approval',
+                                  _s.failedDeptHeadApproval,
                                 ),
                               ),
                             );
@@ -2188,8 +2182,8 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                           width: 16,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Text(
-                          'Submit',
+                      : Text(
+                          _s.submit,
                           style: TextStyle(color: Colors.white),
                         ),
                 ),
@@ -2245,7 +2239,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                     ),
                   ),
                   const SizedBox(width: 10),
-                  const Expanded(child: Text('Service Admin / Support Review')),
+                  Expanded(child: Text(_s.serviceAdminReview)),
                 ],
               ),
               content: Form(
@@ -2255,16 +2249,19 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                   children: [
                     DropdownButtonFormField<String>(
                       value: selectedContinueHold,
-                      decoration: const InputDecoration(
-                        labelText: 'Continue or hold',
+                      decoration: InputDecoration(
+                        labelText: _s.continueOrHold,
                         border: OutlineInputBorder(),
                       ),
-                      items: const [
+                      items: [
                         DropdownMenuItem(
                           value: 'CONTINUE',
-                          child: Text('CONTINUE'),
+                          child: Text(_s.continueLabel),
                         ),
-                        DropdownMenuItem(value: 'HOLD', child: Text('HOLD')),
+                        DropdownMenuItem(
+                          value: 'HOLD',
+                          child: Text(_s.holdLabel),
+                        ),
                       ],
                       onChanged: (value) {
                         setStateDialog(() {
@@ -2273,7 +2270,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                       },
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          return 'Continue or hold is required';
+                          return _s.continueOrHoldRequired;
                         }
                         return null;
                       },
@@ -2281,14 +2278,14 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                     const SizedBox(height: 12),
                     TextFormField(
                       controller: commentController,
-                      decoration: const InputDecoration(
-                        labelText: 'Service Admin / Support Comment',
+                      decoration: InputDecoration(
+                        labelText: _s.serviceAdminComment,
                         border: OutlineInputBorder(),
                       ),
                       maxLines: 2,
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
-                          return 'Comment is required';
+                          return _s.commentRequired;
                         }
                         return null;
                       },
@@ -2301,7 +2298,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                   onPressed: isSubmitting
                       ? null
                       : () => Navigator.pop(dialogContext),
-                  child: const Text('Cancel'),
+                  child: Text(_s.cancel),
                 ),
                 ElevatedButton(
                   onPressed: isSubmitting
@@ -2310,9 +2307,9 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                           if (formKey.currentState?.validate() != true) return;
                           final confirmed = await _showSubmitConfirmationDialog(
                             dialogContext: dialogContext,
-                            title: 'Confirm Service Admin Review',
+                            title: _s.confirmServiceAdminReview,
                             message:
-                                'This will submit service admin/support review for this request.',
+                                _s.confirmServiceAdminReviewMsg,
                             icon: Icons.rate_review_outlined,
                           );
                           if (confirmed != true) return;
@@ -2384,10 +2381,10 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                           } catch (_) {
                             if (!mounted) return;
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
+                              SnackBar(
                                 backgroundColor: Colors.red,
                                 content: Text(
-                                  'Failed saving service admin review',
+                                  _s.failedServiceAdminReview,
                                 ),
                               ),
                             );
@@ -2404,8 +2401,8 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                           width: 16,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Text(
-                          'Submit',
+                      : Text(
+                          _s.submit,
                           style: TextStyle(color: Colors.white),
                         ),
                 ),
@@ -2422,8 +2419,8 @@ class _ToolDataState extends State<ToolData> with MixinPref {
     if (!_canRequestOrderByMilestone(forms)) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text(
-            'Request Order hanya untuk milestone kosong, Draft, atau Check By Tool Store.',
+          content: Text(
+            _s.requestOrderOnlyMilestone,
             style: TextStyle(color: Colors.white),
           ),
           backgroundColor: Colors.red,
@@ -2459,11 +2456,11 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                     ),
                   ),
                   const SizedBox(width: 10),
-                  const Expanded(child: Text('Request order tool')),
+                  Expanded(child: Text(_s.requestOrderToolDialog)),
                 ],
               ),
               content: Text(
-                'Submit To Superior for Approval',
+                _s.submitToSuperiorApproval,
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
               actions: [
@@ -2471,7 +2468,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                   onPressed: isSubmitting
                       ? null
                       : () => Navigator.pop(dialogContext),
-                  child: const Text('Cancel'),
+                  child: Text(_s.cancel),
                 ),
                 ElevatedButton(
                   onPressed: isSubmitting
@@ -2479,9 +2476,8 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                       : () async {
                           final confirmed = await _showSubmitConfirmationDialog(
                             dialogContext: dialogContext,
-                            title: 'Confirm request order',
-                            message:
-                                'Submit the tool order request for this form?',
+                            title: _s.confirmRequestOrderTitle,
+                            message: _s.confirmRequestOrderMsg,
                             icon: Icons.local_mall_outlined,
                           );
                           if (confirmed != true) return;
@@ -2543,8 +2539,8 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                                   responseMessage.isNotEmpty
                                       ? responseMessage
                                       : (isSuccess
-                                            ? "Order request submitted"
-                                            : "Failed to submit order request"),
+                                            ? _s.orderRequestSubmitted
+                                            : _s.failedSubmitOrder),
                                 ),
                               ),
                             );
@@ -2554,9 +2550,9 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                           } catch (_) {
                             if (!mounted) return;
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
+                              SnackBar(
                                 backgroundColor: Colors.red,
-                                content: Text('Failed to submit order request'),
+                                content: Text(_s.failedSubmitOrder),
                               ),
                             );
                           } finally {
@@ -2572,8 +2568,8 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                           width: 16,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Text(
-                          'Submit',
+                      : Text(
+                          _s.submit,
                           style: TextStyle(color: Colors.white),
                         ),
                 ),
@@ -2590,7 +2586,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text(
+          content: Text(
             'Akses ditolak. Edit PO hanya untuk SUPERADMIN dan TOOL_KEEPER.',
             style: TextStyle(color: Colors.white),
           ),
@@ -2611,7 +2607,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('Update Purchase Order'),
+          title: Text(_s.updatePurchaseOrder),
           content: SingleChildScrollView(
             child: Form(
               key: formKey,
@@ -2643,7 +2639,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: Text('Cancel', style: TextStyle(color: context.bodyMuted)),
+              child: Text(_s.cancel, style: TextStyle(color: context.bodyMuted)),
             ),
             TextButton(
               onPressed: () async {
@@ -2703,7 +2699,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                         (editResult.serverMessage != null &&
                             editResult.serverMessage!.isNotEmpty)
                         ? editResult.serverMessage!
-                        : 'Request failed';
+                        : _s.requestFailed;
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(
@@ -2735,7 +2731,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                   }
                 }
               },
-              child: Text('Save', style: TextStyle(color: clrOrange)),
+              child: Text(_s.save, style: TextStyle(color: clrOrange)),
             ),
           ],
         );
@@ -2914,7 +2910,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text(
+          content: Text(
             'Akses ditolak. Tambah PO hanya untuk SUPERADMIN dan TOOL_KEEPER.',
             style: TextStyle(color: Colors.white),
           ),
@@ -2932,7 +2928,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
         context: context,
         builder: (dialogContext) {
           return AlertDialog(
-            title: const Text('Add Purchase Order'),
+            title: Text(_s.addPurchaseOrder),
             content: SingleChildScrollView(
               child: Form(
                 key: formKey,
@@ -3025,7 +3021,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                           (addResult.serverMessage != null &&
                               addResult.serverMessage!.isNotEmpty)
                           ? addResult.serverMessage!
-                          : 'Request failed';
+                          : _s.requestFailed;
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
@@ -3057,7 +3053,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                     }
                   }
                 },
-                child: Text('Save', style: TextStyle(color: clrOrange)),
+                child: Text(_s.save, style: TextStyle(color: clrOrange)),
               ),
             ],
           );
@@ -3073,7 +3069,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text(
+          content: Text(
             'Akses ditolak. Hapus PO hanya untuk SUPERADMIN dan TOOL_KEEPER.',
             style: TextStyle(color: Colors.white),
           ),
@@ -3087,7 +3083,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('Delete Purchase Order'),
+          title: Text(_s.deletePurchaseOrder),
           content: Text(
             'Are you sure you want to delete PO ${_displayValue(itemPO.poNo)}? '
             'This will be removed from the server.',
@@ -3095,7 +3091,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, false),
-              child: Text('Cancel', style: TextStyle(color: context.bodyMuted)),
+              child: Text(_s.cancel, style: TextStyle(color: context.bodyMuted)),
             ),
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, true),
@@ -3162,7 +3158,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
             (deleteResult.serverMessage != null &&
                 deleteResult.serverMessage!.isNotEmpty)
             ? deleteResult.serverMessage!
-            : 'Delete failed';
+            : _s.deleteFailed;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(errText, style: const TextStyle(color: Colors.white)),
@@ -3187,7 +3183,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text(
+          content: Text(
             'Akses ditolak. SO/PR hanya untuk SUPERADMIN, COUNTER, dan GA.',
             style: TextStyle(color: Colors.white),
           ),
@@ -3209,7 +3205,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('Update Sales Order (SO) / Purchase Request (PR)'),
+          title: Text(_s.updateSalesOrder),
           content: SingleChildScrollView(
             child: Form(
               key: formKey,
@@ -3262,7 +3258,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: Text('Cancel', style: TextStyle(color: context.bodyMuted)),
+              child: Text(_s.cancel, style: TextStyle(color: context.bodyMuted)),
             ),
             TextButton(
               onPressed: () async {
@@ -3326,7 +3322,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                         (editResult.serverMessage != null &&
                             editResult.serverMessage!.isNotEmpty)
                         ? editResult.serverMessage!
-                        : 'Request failed';
+                        : _s.requestFailed;
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(
@@ -3358,7 +3354,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                   }
                 }
               },
-              child: Text('Save', style: TextStyle(color: clrOrange)),
+              child: Text(_s.save, style: TextStyle(color: clrOrange)),
             ),
           ],
         );
@@ -3374,7 +3370,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text(
+          content: Text(
             'Akses ditolak. Tambah SO/PR hanya untuk SUPERADMIN, COUNTER, dan GA.',
             style: TextStyle(color: Colors.white),
           ),
@@ -3394,7 +3390,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
         context: context,
         builder: (dialogContext) {
           return AlertDialog(
-            title: const Text('Add Sales Order (SO) / Purchase Request (PR)'),
+            title: Text(_s.addSalesOrder),
             content: SingleChildScrollView(
               child: Form(
                 key: formKey,
@@ -3511,7 +3507,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                           (addResult.serverMessage != null &&
                               addResult.serverMessage!.isNotEmpty)
                           ? addResult.serverMessage!
-                          : 'Request failed';
+                          : _s.requestFailed;
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
@@ -3543,7 +3539,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                     }
                   }
                 },
-                child: Text('Save', style: TextStyle(color: clrOrange)),
+                child: Text(_s.save, style: TextStyle(color: clrOrange)),
               ),
             ],
           );
@@ -3559,7 +3555,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text(
+          content: Text(
             'Akses ditolak. Hapus SO/PR hanya untuk SUPERADMIN, COUNTER, dan GA.',
             style: TextStyle(color: Colors.white),
           ),
@@ -3573,7 +3569,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('Delete Sales Order / Purchase Request (SO/PR)'),
+          title: Text(_s.deleteSalesOrder),
           content: Text(
             'Are you sure you want to delete SO / PR number ${_displayValue(itemSO.so)}? '
             'This will be removed from the server.',
@@ -3581,7 +3577,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, false),
-              child: Text('Cancel', style: TextStyle(color: context.bodyMuted)),
+              child: Text(_s.cancel, style: TextStyle(color: context.bodyMuted)),
             ),
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, true),
@@ -3652,7 +3648,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
             (deleteResult.serverMessage != null &&
                 deleteResult.serverMessage!.isNotEmpty)
             ? deleteResult.serverMessage!
-            : 'Delete failed';
+            : _s.deleteFailed;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(errText, style: const TextStyle(color: Colors.white)),
@@ -3676,7 +3672,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
     if (!_canManageRcvWhDate) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(
             'Akses ditolak. Mengubah tanggal WH received hanya untuk SUPERADMIN dan WH.',
             style: TextStyle(color: Colors.white),
@@ -3695,7 +3691,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
         context: context,
         builder: (dialogContext) {
           return AlertDialog(
-            title: const Text('Update Date WH Received'),
+            title: Text(_s.updateDateWhReceived),
             content: SingleChildScrollView(
               child: Form(
                 key: formKey,
@@ -3786,7 +3782,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                           (editResult.serverMessage != null &&
                               editResult.serverMessage!.isNotEmpty)
                           ? editResult.serverMessage!
-                          : 'Request failed';
+                          : _s.requestFailed;
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
@@ -3818,7 +3814,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                     }
                   }
                 },
-                child: Text('Save', style: TextStyle(color: clrOrange)),
+                child: Text(_s.save, style: TextStyle(color: clrOrange)),
               ),
             ],
           );
@@ -3833,7 +3829,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
     if (!_canManageRcvWhDate) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(
             'Akses ditolak. Menambah tanggal WH received hanya untuk SUPERADMIN dan WH.',
             style: TextStyle(color: Colors.white),
@@ -3852,7 +3848,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
         context: context,
         builder: (dialogContext) {
           return AlertDialog(
-            title: const Text('Add Date WH Received'),
+            title: Text(_s.addDateWhReceived),
             content: SingleChildScrollView(
               child: Form(
                 key: formKey,
@@ -3944,7 +3940,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                           (addResult.serverMessage != null &&
                               addResult.serverMessage!.isNotEmpty)
                           ? addResult.serverMessage!
-                          : 'Request failed';
+                          : _s.requestFailed;
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
@@ -3976,7 +3972,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                     }
                   }
                 },
-                child: Text('Save', style: TextStyle(color: clrOrange)),
+                child: Text(_s.save, style: TextStyle(color: clrOrange)),
               ),
             ],
           );
@@ -3991,7 +3987,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
     if (!_canManageRcvWhDate) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(
             'Akses ditolak. Menghapus tanggal WH received hanya untuk SUPERADMIN dan WH.',
             style: TextStyle(color: Colors.white),
@@ -4007,7 +4003,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('Delete Date WH Received'),
+          title: Text(_s.deleteDateWhReceived),
           content: Text(
             'Are you sure you want to delete the WH received date '
             '${_displayValue(item.rcvWhDate)}? This will be removed from the server.',
@@ -4015,7 +4011,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, false),
-              child: Text('Cancel', style: TextStyle(color: context.bodyMuted)),
+              child: Text(_s.cancel, style: TextStyle(color: context.bodyMuted)),
             ),
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, true),
@@ -4077,7 +4073,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
             (deleteResult.serverMessage != null &&
                 deleteResult.serverMessage!.isNotEmpty)
             ? deleteResult.serverMessage!
-            : 'Delete failed';
+            : _s.deleteFailed;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(errText, style: const TextStyle(color: Colors.white)),
@@ -4101,7 +4097,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
     if (!_canManageRcvToolDate) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(
             'Akses ditolak. Mengubah tanggal Tool Room received hanya untuk SUPERADMIN dan TOOL_KEEPER.',
             style: TextStyle(color: Colors.white),
@@ -4120,7 +4116,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
         context: context,
         builder: (dialogContext) {
           return AlertDialog(
-            title: const Text('Update Date Tool Room Received'),
+            title: Text(_s.updateDateToolRoomReceived),
             content: SingleChildScrollView(
               child: Form(
                 key: formKey,
@@ -4215,7 +4211,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                           (editResult.serverMessage != null &&
                               editResult.serverMessage!.isNotEmpty)
                           ? editResult.serverMessage!
-                          : 'Request failed';
+                          : _s.requestFailed;
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
@@ -4247,7 +4243,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                     }
                   }
                 },
-                child: Text('Save', style: TextStyle(color: clrOrange)),
+                child: Text(_s.save, style: TextStyle(color: clrOrange)),
               ),
             ],
           );
@@ -4265,7 +4261,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
     if (!_canManageRcvToolDate) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(
             'Akses ditolak. Menambah tanggal Tool Room received hanya untuk SUPERADMIN dan TOOL_KEEPER.',
             style: TextStyle(color: Colors.white),
@@ -4284,7 +4280,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
         context: context,
         builder: (dialogContext) {
           return AlertDialog(
-            title: const Text('Add Date Tool Room Received'),
+            title: Text(_s.addDateToolRoomReceived),
             content: SingleChildScrollView(
               child: Form(
                 key: formKey,
@@ -4376,7 +4372,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                           (addResult.serverMessage != null &&
                               addResult.serverMessage!.isNotEmpty)
                           ? addResult.serverMessage!
-                          : 'Request failed';
+                          : _s.requestFailed;
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
@@ -4408,7 +4404,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                     }
                   }
                 },
-                child: Text('Save', style: TextStyle(color: clrOrange)),
+                child: Text(_s.save, style: TextStyle(color: clrOrange)),
               ),
             ],
           );
@@ -4423,7 +4419,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
     if (!_canManageRcvToolDate) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(
             'Akses ditolak. Menghapus tanggal Tool Room received hanya untuk SUPERADMIN dan TOOL_KEEPER.',
             style: TextStyle(color: Colors.white),
@@ -4439,7 +4435,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('Delete Date Tool Room Received'),
+          title: Text(_s.deleteDateToolRoomReceived),
           content: Text(
             'Are you sure you want to delete the tool room received date '
             '${_displayValue(item.rcvToolDate)}? This will be removed from the server.',
@@ -4447,7 +4443,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, false),
-              child: Text('Cancel', style: TextStyle(color: context.bodyMuted)),
+              child: Text(_s.cancel, style: TextStyle(color: context.bodyMuted)),
             ),
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, true),
@@ -4513,7 +4509,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
             (deleteResult.serverMessage != null &&
                 deleteResult.serverMessage!.isNotEmpty)
             ? deleteResult.serverMessage!
-            : 'Delete failed';
+            : _s.deleteFailed;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(errText, style: const TextStyle(color: Colors.white)),
@@ -4539,12 +4535,11 @@ class _ToolDataState extends State<ToolData> with MixinPref {
     required VoidCallback? onDelete,
     String? disabledTooltip,
   }) {
-    final editTooltip = onEdit != null
-        ? 'Edit'
-        : (disabledTooltip ?? 'Edit tidak tersedia');
+    final editTooltip =
+        onEdit != null ? _s.editLabel : (disabledTooltip ?? _s.editUnavailable);
     final deleteTooltip = onDelete != null
-        ? 'Delete'
-        : (disabledTooltip ?? 'Delete tidak tersedia');
+        ? _s.deleteLabel
+        : (disabledTooltip ?? _s.deleteUnavailable);
     final compact = MediaQuery.sizeOf(context).width < mobileWidth;
     if (compact) {
       return Wrap(
@@ -4580,12 +4575,12 @@ class _ToolDataState extends State<ToolData> with MixinPref {
         TextButton.icon(
           onPressed: onEdit,
           icon: const Icon(Icons.edit_outlined, size: 18),
-          label: const Text('Edit'),
+          label: Text(_s.editLabel),
         ),
         TextButton.icon(
           onPressed: onDelete,
           icon: const Icon(Icons.delete_outline, size: 18),
-          label: const Text('Delete'),
+          label: Text(_s.deleteLabel),
           style: TextButton.styleFrom(foregroundColor: Colors.red.shade700),
         ),
       ],
@@ -4920,7 +4915,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                                       )
                                     : null,
                                 icon: const Icon(Icons.add, size: 18),
-                                label: const Text('Add'),
+                                label: Text(_s.addButton),
                                 style: TextButton.styleFrom(
                                   foregroundColor: clrOrange,
                                 ),
@@ -4996,7 +4991,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                                       )
                                     : null,
                                 icon: const Icon(Icons.add, size: 18),
-                                label: const Text('Add'),
+                                label: Text(_s.addButton),
                                 style: TextButton.styleFrom(
                                   foregroundColor: clrOrange,
                                 ),
@@ -5076,7 +5071,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                                       )
                                     : null,
                                 icon: const Icon(Icons.add, size: 18),
-                                label: const Text('Add'),
+                                label: Text(_s.addButton),
                                 style: TextButton.styleFrom(
                                   foregroundColor: clrOrange,
                                 ),
@@ -5528,6 +5523,8 @@ class _ToolDataState extends State<ToolData> with MixinPref {
   }
 
   Widget _buildSearchBar() {
+    final s = context.s;
+    final fieldLabels = s.searchFieldLabels;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
       child: Row(
@@ -5540,14 +5537,14 @@ class _ToolDataState extends State<ToolData> with MixinPref {
               onSubmitted: _canSubmitSearch ? (_) => _submitSearch() : null,
               textInputAction: TextInputAction.search,
               decoration: InputDecoration(
-                hintText: 'Cari data form...',
+                hintText: s.searchFormHint,
                 hintStyle: TextStyle(color: context.iconMuted),
                 prefixIcon: IconButton(
                   icon: Icon(
                     Icons.search,
                     color: _canSubmitSearch ? clrOrange : context.iconMuted,
                   ),
-                  tooltip: 'Cari',
+                  tooltip: s.search,
                   onPressed: _canSubmitSearch ? _submitSearch : null,
                 ),
                 filled: true,
@@ -5588,11 +5585,11 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                 color: Colors.orange.shade900,
                 fontWeight: FontWeight.w600,
               ),
-              items: kToolFormSearchFieldLabels.entries
+              items: kToolFormSearchFieldKeys
                   .map(
-                    (entry) => DropdownMenuItem<String>(
-                      value: entry.key,
-                      child: Text(entry.value),
+                    (key) => DropdownMenuItem<String>(
+                      value: key,
+                      child: Text(fieldLabels[key] ?? key),
                     ),
                   )
                   .toList(),
@@ -5614,7 +5611,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
               child: IconButton(
                 onPressed: _clearSearch,
                 icon: Icon(Icons.close_rounded, color: Colors.red.shade400),
-                tooltip: 'Clear search',
+                tooltip: _s.clearSearch,
               ),
             ),
         ],
@@ -5624,10 +5621,10 @@ class _ToolDataState extends State<ToolData> with MixinPref {
 
   Widget _buildSearchNotFoundContent() {
     final message = _searchQuery.isEmpty && _hasMilestoneFilters
-        ? 'No forms match this milestone filter'
+        ? _s.noFormsMilestoneFilter
         : _searchQuery.isEmpty
-        ? 'Not Found'
-        : '$_searchQuery Not Found';
+        ? _s.searchNotFoundSuffix
+        : _s.searchNotFound(_searchQuery);
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -5843,8 +5840,8 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                                         : const Icon(Icons.expand_more),
                                     label: Text(
                                       state.isLoadingMore
-                                          ? 'Loading...'
-                                          : 'Load $kToolFormPageSize more',
+                                          ? _s.loading
+                                          : _s.loadMoreUsers(kToolFormPageSize),
                                     ),
                                   ),
                                 ),

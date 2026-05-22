@@ -13,6 +13,8 @@ import 'package:tool_store_app/view/custom/show_dialog/show_dialog.dart';
 import 'package:tool_store_app/theme/app_theme.dart';
 import 'package:tool_store_app/view/custom/shimmer/app_shimmer.dart';
 import 'package:tool_store_app/view/custom/shimmer/skeletons.dart';
+import 'package:tool_store_app/l10n/app_strings.dart';
+import 'package:tool_store_app/l10n/l10n_ext.dart';
 import 'package:tool_store_app/view/var/var.dart';
 
 String _userPickLabel(PostList u) {
@@ -154,7 +156,7 @@ class _ToolUserPickerDialogState extends State<_ToolUserPickerDialog> {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          'Cari lalu ketuk salah satu nama',
+                          context.s.searchThenTapName,
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: context.textSecondary,
                           ),
@@ -180,7 +182,7 @@ class _ToolUserPickerDialogState extends State<_ToolUserPickerDialog> {
                 onChanged: (_) => setState(() {}),
                 textInputAction: TextInputAction.search,
                 decoration: InputDecoration(
-                  hintText: 'Nama atau username…',
+                  hintText: context.s.searchNameOrUsernameHint,
                   prefixIcon: Icon(Icons.search_rounded, color: clrOrange),
                   filled: true,
                   fillColor: context.inputFill,
@@ -228,8 +230,8 @@ class _ToolUserPickerDialogState extends State<_ToolUserPickerDialog> {
                             const SizedBox(height: 12),
                             Text(
                               widget.users.isEmpty
-                                  ? 'Belum ada data user'
-                                  : 'Tidak ada hasil untuk pencarian ini',
+                                  ? context.s.noUserData
+                                  : context.s.noSearchResults,
                               textAlign: TextAlign.center,
                               style: theme.textTheme.bodyMedium?.copyWith(
                                 color: context.textSecondary,
@@ -453,7 +455,7 @@ class ToolFormInputState extends State<ToolFormInput> {
           content: Text(
             responseMessage.isNotEmpty
                 ? responseMessage
-                : (isSuccess ? "Success" : "Failed process data"),
+                : (isSuccess ? AppStrings.current.success : AppStrings.current.failedProcessData),
           ),
         ),
       );
@@ -462,9 +464,9 @@ class ToolFormInputState extends State<ToolFormInput> {
     } catch (_) {
       if (!mounted) return false;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           backgroundColor: Colors.red,
-          content: Text('Failed process data'),
+          content: Text(AppStrings.current.failedProcessData),
         ),
       );
       return false;
@@ -543,7 +545,7 @@ class ToolFormInputState extends State<ToolFormInput> {
         return FormField<String>(
           validator: (_) {
             if (controller.text.trim().isEmpty) {
-              return 'Required';
+              return AppStrings.current.required;
             }
             return null;
           },
@@ -582,7 +584,7 @@ class ToolFormInputState extends State<ToolFormInput> {
                                   controller.clear();
                                   field.didChange(null);
                                 }),
-                                tooltip: 'Hapus',
+                                tooltip: context.s.remove,
                               ),
                             Padding(
                               padding: const EdgeInsets.only(right: 8),
@@ -697,7 +699,7 @@ class ToolFormInputState extends State<ToolFormInput> {
             controllers: controller,
             validators: (value) {
               if (value == null || value.isEmpty) {
-                return 'Required !';
+                return context.s.requiredField;
               }
               return null;
             },
@@ -710,8 +712,8 @@ class ToolFormInputState extends State<ToolFormInput> {
   void _showDeleteDialog() {
     ShowDialogBox.show(
       context: context,
-      title: 'Delete ${formNoCont.text}',
-      contentTitle: ' Are you sure delete this data ?',
+      title: AppStrings.current.deleteFormTitle(formNoCont.text),
+      contentTitle: AppStrings.current.confirmDeleteThisData,
       onPressedNo: (dialogContext) {
         if (!dialogContext.mounted) return;
         Navigator.pop(dialogContext);
@@ -723,8 +725,8 @@ class ToolFormInputState extends State<ToolFormInput> {
         if (!mounted || !isSuccess) return;
         await PageRoutes.routeTool(context);
       },
-      textNo: 'Cancel',
-      textYes: 'Yes',
+      textNo: AppStrings.current.cancel,
+      textYes: AppStrings.current.yes,
       textColorNo: clrBlack,
       textColorYes: clrOrange,
     );
@@ -732,14 +734,21 @@ class ToolFormInputState extends State<ToolFormInput> {
 
   @override
   Widget build(BuildContext context) {
-    final statusOrderOptions = ["HOLDER", "NON HOLDER"];
+    final statusOrderOptions = [
+      context.s.statusHolder,
+      context.s.statusNonHolder,
+    ];
     final selectedStatusOrder =
         statusOrderOptions.contains(statusOrderCont.text)
         ? statusOrderCont.text
         : null;
-    final categoryOptions = statusOrderCont.text == "HOLDER"
-        ? ["MISSING", "DAMAGE", "ADDITIONAL"]
-        : ["BUDGET", "NON BUDGET"];
+    final categoryOptions = statusOrderCont.text == context.s.statusHolder
+        ? [
+            context.s.categoryMissing,
+            context.s.categoryDamage,
+            context.s.categoryAdditional,
+          ]
+        : [context.s.categoryBudget, context.s.categoryNonBudget];
     final selectedCategory = categoryOptions.contains(servCommentCont.text)
         ? servCommentCont.text
         : null;
@@ -775,7 +784,7 @@ class ToolFormInputState extends State<ToolFormInput> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              _isEditMode ? "Edit Data Tool" : "Add Data Tool",
+              _isEditMode ? context.s.editDataTool : context.s.addDataTool,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 color: clrOrange,
                 fontWeight: FontWeight.w800,
@@ -784,7 +793,9 @@ class ToolFormInputState extends State<ToolFormInput> {
             ),
             const SizedBox(height: 3),
             Text(
-              formNoCont.text.isEmpty ? "Tool Request Form" : formNoCont.text,
+              formNoCont.text.isEmpty
+                  ? context.s.toolRequestForm
+                  : formNoCont.text,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.labelMedium?.copyWith(
@@ -843,8 +854,8 @@ class ToolFormInputState extends State<ToolFormInput> {
                       ),
                       child: IconButton(
                         tooltip: canDelete
-                            ? 'Delete data'
-                            : 'Cannot delete: tool list has data',
+                            ? context.s.deleteDataTooltip
+                            : context.s.cannotDeleteToolListHasData,
                         onPressed: canDelete ? _showDeleteDialog : null,
                         icon: const Icon(Icons.delete_outline_rounded),
                         color: clrWhite,
@@ -873,16 +884,16 @@ class ToolFormInputState extends State<ToolFormInput> {
               children: [
                 _buildSectionCard(
                   context: context,
-                  title: 'Request Information',
+                  title: context.s.requestInformationSection,
                   icon: Icons.description_outlined,
                   children: [
                     TextFormFields(
-                      labelTexts: 'Form Number',
+                      labelTexts: context.s.formNumber,
                       textColor: Colors.black,
                       controllers: formNoCont,
                       validators: (formNumber) {
                         if (formNumber == null || formNumber.isEmpty) {
-                          return 'Required !';
+                          return context.s.requiredField;
                         }
                         return null;
                       },
@@ -916,11 +927,11 @@ class ToolFormInputState extends State<ToolFormInput> {
                         }),
                         decoration: _dropdownDecoration(
                           context,
-                          "Status Order",
+                          context.s.statusOrder,
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
-                            return 'Please select !';
+                            return context.s.pleaseSelect;
                           }
                           return null;
                         },
@@ -954,10 +965,13 @@ class ToolFormInputState extends State<ToolFormInput> {
                             : (val) => setState(
                                 () => servCommentCont.text = val.toString(),
                               ),
-                        decoration: _dropdownDecoration(context, "Category"),
+                        decoration: _dropdownDecoration(
+                          context,
+                          context.s.searchFieldCategory,
+                        ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
-                            return 'Please select !';
+                            return context.s.pleaseSelect;
                           }
                           return null;
                         },
@@ -965,7 +979,7 @@ class ToolFormInputState extends State<ToolFormInput> {
                     ),
                     _buildDateField(
                       context: context,
-                      label: 'Create Date',
+                      label: context.s.createDate,
                       controller: dateServNameCont,
                     ),
                     StoreConnector<AppState, UserState>(
@@ -1010,12 +1024,12 @@ class ToolFormInputState extends State<ToolFormInput> {
                                 context: context,
                                 users: mechanicUsers,
                                 controller: servNameCont,
-                                label: 'Serviceman',
-                                placeholder: 'Ketuk untuk pilih serviceman',
-                                dialogTitle: 'Pilih serviceman',
+                                label: context.s.searchFieldServiceman,
+                                placeholder: context.s.tapToPickServiceman,
+                                dialogTitle: context.s.pickServicemanTitle,
                                 emptyDataMessage: userState.isLoading
-                                    ? 'Data user belum dimuat'
-                                    : 'Tidak ada user dengan level MECHANIC',
+                                    ? context.s.userDataNotLoaded
+                                    : context.s.noMechanicUsers,
                               ),
                             ),
                             const SizedBox(height: 10),
@@ -1030,12 +1044,12 @@ class ToolFormInputState extends State<ToolFormInput> {
                                 context: context,
                                 users: toolKeeperUsers,
                                 controller: checkedByCont,
-                                label: 'Check By',
-                                placeholder: 'Ketuk untuk pilih check by',
-                                dialogTitle: 'Pilih check by',
+                                label: context.s.checkBy,
+                                placeholder: context.s.tapToPickCheckBy,
+                                dialogTitle: context.s.pickCheckByTitle,
                                 emptyDataMessage: userState.isLoading
-                                    ? 'Data user belum dimuat'
-                                    : 'Tidak ada user dengan level TOOL_KEEPER',
+                                    ? context.s.userDataNotLoaded
+                                    : context.s.noToolKeeperUsers,
                               ),
                             ),
                           ],
@@ -1044,7 +1058,7 @@ class ToolFormInputState extends State<ToolFormInput> {
                     ),
                     _buildDateField(
                       context: context,
-                      label: 'Check Date',
+                      label: context.s.checkDate,
                       controller: dateCheckByCont,
                     ),
                   ],
@@ -1065,10 +1079,10 @@ class ToolFormInputState extends State<ToolFormInput> {
                     onPressed: () {
                       ShowDialogBox.show(
                         context: context,
-                        title: 'Please make sure all data is correct',
+                        title: context.s.confirmDataCorrectTitle,
                         contentTitle: _isEditMode
-                            ? ' Are you sure edit data ?'
-                            : 'Are you sure save data ?',
+                            ? context.s.confirmEditData
+                            : context.s.confirmSaveData,
                         onPressedNo: (dialogContext) {
                           if (!dialogContext.mounted) return;
                           Navigator.pop(dialogContext);
@@ -1090,8 +1104,8 @@ class ToolFormInputState extends State<ToolFormInput> {
                             await PageRoutes.routeTool(context);
                           }
                         },
-                        textNo: 'Cancel',
-                        textYes: 'Yes',
+                        textNo: context.s.cancel,
+                        textYes: context.s.yes,
                         textColorNo: clrBlack,
                         textColorYes: clrOrange,
                       );
@@ -1105,7 +1119,7 @@ class ToolFormInputState extends State<ToolFormInput> {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          _isEditMode ? 'Update Data' : 'Save Data',
+                          _isEditMode ? context.s.updateData : context.s.saveData,
                           style: TextStyle(
                             fontWeight: FontWeight.w700,
                             fontSize: btnFontSize,

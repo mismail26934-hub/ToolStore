@@ -7,6 +7,8 @@ import 'package:tool_store_app/model/post_get_data.dart';
 import 'package:tool_store_app/view/custom/form/text_form_field.dart';
 import 'package:tool_store_app/view/custom/show_dialog/show_dialog.dart';
 import 'package:tool_store_app/theme/app_theme.dart';
+import 'package:tool_store_app/l10n/app_strings.dart';
+import 'package:tool_store_app/l10n/l10n_ext.dart';
 import 'package:tool_store_app/view/var/var.dart';
 
 class ToolFormMultipleInput extends StatefulWidget {
@@ -23,21 +25,23 @@ class ToolFormMultipleInput extends StatefulWidget {
 }
 
 class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
-  bool get _isAddMode => widget.subtitle == "ADD DATA";
+  bool get _isAddMode {
+    final upper = widget.subtitle.trim().toUpperCase();
+    return upper.contains('ADD') || upper.contains('TAMBAH');
+  }
   bool _isSubmitting = false;
 
-  static const List<String> _actionNoteOptions = [
-    // A  = Order Small Tool Account
-    'A  = Order Small Tool Account',
-    // B = Order Rep & Maint Account
-    'B = Order Rep & Maint Account',
-    // C = Charge Personal Account
-    'C = Charge Personal Account',
-    // D = Charge to ______________
-    'D = Charge to ...',
-  ];
+  List<String> get _actionNoteOptions => [
+        AppStrings.current.actionNoteA,
+        AppStrings.current.actionNoteB,
+        AppStrings.current.actionNoteC,
+        AppStrings.current.actionNoteD,
+      ];
 
-  static const List<String> _actionTypeOptions = ['CAT', 'VENDOR'];
+  List<String> get _actionTypeOptions => [
+        AppStrings.current.actionTypeCat,
+        AppStrings.current.actionTypeVendor,
+      ];
 
   Widget _buildSectionCard({
     required BuildContext context,
@@ -94,8 +98,8 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
   void _showDeleteDialog(int i) {
     ShowDialogBox.show(
       context: context,
-      title: 'Delete ${pnGroupCont[i].text}',
-      contentTitle: ' Are you sure delete this data ?',
+      title: AppStrings.current.deleteItemTitle(pnGroupCont[i].text),
+      contentTitle: AppStrings.current.confirmDeleteThisData,
       onPressedNo: (dialogContext) {
         if (!dialogContext.mounted) return;
         Navigator.pop(dialogContext);
@@ -104,8 +108,8 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
         if (dialogContext.mounted) Navigator.pop(dialogContext);
         if (!mounted) return;
       },
-      textNo: 'Cancel',
-      textYes: 'Yes',
+      textNo: AppStrings.current.cancel,
+      textYes: AppStrings.current.yes,
       textColorNo: clrBlack,
       textColorYes: clrOrange,
     );
@@ -186,7 +190,7 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
     final submitIndex = _resolveSubmitIndex(index);
     final idForm = _resolveParentIdForm(submitIndex);
     if (idForm.isEmpty) {
-      throw Exception('ID form tidak valid. Buka ulang dari daftar order.');
+      throw Exception(AppStrings.current.invalidFormIdReopenOrder);
     }
 
     var formDetailDate = formDetailDateCont.text.trim();
@@ -203,7 +207,7 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
       }
     }
     if (formDetailUser.isEmpty) {
-      throw Exception('User login tidak ditemukan. Silakan login ulang.');
+      throw Exception(AppStrings.current.loginUserNotFound);
     }
 
     return {
@@ -321,10 +325,12 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
         );
 
     if (result.statusValue != null && result.statusValue != '1') {
-      throw Exception(result.serverMessage ?? 'Proses gagal');
+      throw Exception(result.serverMessage ?? AppStrings.current.processFailed);
     }
     return result.serverMessage ??
-        (_isAddMode ? 'ADD DATA TOOL SUCCESS' : 'EDIT DATA TOOL SUCCESS');
+        (_isAddMode
+            ? AppStrings.current.addToolSuccess
+            : AppStrings.current.editToolSuccess);
   }
 
   Future<void> _submitData() async {
@@ -333,8 +339,8 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
 
     try {
       String successMessage = _isAddMode
-          ? 'Data berhasil ditambahkan'
-          : 'Data berhasil diupdate';
+          ? AppStrings.current.dataAddedSuccess
+          : AppStrings.current.dataUpdatedSuccess;
       for (var i = 0; i < idFormToolCont.length; i++) {
         successMessage = await _submitRowToApi(
           index: i,
@@ -442,7 +448,9 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
             ),
             const SizedBox(height: 3),
             Text(
-              _isAddMode ? "Multiple Detail Input" : "Single Detail Input",
+              _isAddMode
+                  ? context.s.multipleDetailInput
+                  : context.s.singleDetailInput,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.labelMedium?.copyWith(
@@ -488,7 +496,7 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
                   ],
                 ),
                 child: IconButton(
-                  tooltip: "Add item row",
+                  tooltip: context.s.addItemRowTooltip,
                   onPressed: _addRow,
                   icon: const Icon(Icons.add_rounded),
                   color: context.cardSurface,
@@ -542,12 +550,12 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
                             children: [
                               Expanded(
                                 child: TextFormFields(
-                                  labelTexts: 'PN GROUP CONSIST',
+                                  labelTexts: context.s.pnGroupConsist,
                                   textColor: Colors.black,
                                   controllers: pnGroupCont[i],
                                   validators: (value) =>
                                       (value == null || value.isEmpty)
-                                      ? 'Required !'
+                                      ? context.s.requiredField
                                       : null,
                                 ),
                               ),
@@ -559,14 +567,14 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
                                   controllers: qtyCont[i],
                                   validators: (value) =>
                                       (value == null || value.isEmpty)
-                                      ? 'Required !'
+                                      ? context.s.requiredField
                                       : null,
                                 ),
                               ),
                             ],
                           ),
                           TextFormFields(
-                            labelTexts: 'DESCRIPTION',
+                            labelTexts: context.s.description,
                             textColor: Colors.black,
                             controllers: pnDescCont[i],
                             validators: (value) =>
@@ -579,12 +587,12 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
                             children: [
                               Expanded(
                                 child: TextFormFields(
-                                  labelTexts: 'PRICE',
+                                  labelTexts: context.s.price,
                                   textColor: Colors.black,
                                   controllers: partValueCont[i],
                                   validators: (value) =>
                                       (value == null || value.isEmpty)
-                                      ? 'Required !'
+                                      ? context.s.requiredField
                                       : null,
                                 ),
                               ),
@@ -631,7 +639,7 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
                                     ),
                                     validator: (value) {
                                       if (value == null || value.isEmpty) {
-                                        return 'Please select !';
+                                        return context.s.pleaseSelect;
                                       }
                                       return null;
                                     },
@@ -644,12 +652,12 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
                             children: [
                               Expanded(
                                 child: TextFormFields(
-                                  labelTexts: 'EXPLANATION',
+                                  labelTexts: context.s.explanation,
                                   textColor: Colors.black,
                                   controllers: explanCont[i],
                                   validators: (value) =>
                                       (value == null || value.isEmpty)
-                                      ? 'Required !'
+                                      ? context.s.requiredField
                                       : null,
                                 ),
                               ),
@@ -703,7 +711,7 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
                                     ),
                                     validator: (value) {
                                       if (value == null || value.isEmpty) {
-                                        return 'Please select !';
+                                        return context.s.pleaseSelect;
                                       }
                                       return null;
                                     },
@@ -733,10 +741,10 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
                     onPressed: () {
                       ShowDialogBox.show(
                         context: context,
-                        title: 'Please make sure all data is correct',
+                        title: context.s.confirmDataCorrectTitle,
                         contentTitle: _isAddMode
-                            ? 'Are you sure save data ?'
-                            : ' Are you sure edit data ?',
+                            ? context.s.confirmSaveData
+                            : context.s.confirmEditData,
                         onPressedNo: (dialogContext) {
                           if (!dialogContext.mounted) return;
                           Navigator.pop(dialogContext);
@@ -763,8 +771,10 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
                         const SizedBox(width: 8),
                         Text(
                           _isSubmitting
-                              ? 'Processing...'
-                              : (_isAddMode ? 'Save Data' : 'Update Data'),
+                                      ? context.s.processing
+                                      : (_isAddMode
+                                            ? context.s.saveData
+                                            : context.s.updateData),
                           style: TextStyle(
                             fontWeight: FontWeight.w700,
                             fontSize: btnFontSize,

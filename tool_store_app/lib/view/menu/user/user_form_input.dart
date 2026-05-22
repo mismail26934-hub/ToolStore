@@ -12,6 +12,8 @@ import 'package:tool_store_app/view/custom/show_dialog/show_dialog.dart';
 import 'package:tool_store_app/theme/app_theme.dart';
 import 'package:tool_store_app/view/custom/shimmer/app_shimmer.dart';
 import 'package:tool_store_app/view/custom/shimmer/skeletons.dart';
+import 'package:tool_store_app/l10n/app_strings.dart';
+import 'package:tool_store_app/l10n/l10n_ext.dart';
 import 'package:tool_store_app/view/var/var.dart';
 
 String _labelSuperiorPick(PostList s) {
@@ -124,7 +126,7 @@ class _SuperiorPickerDialogState extends State<_SuperiorPickerDialog> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Pilih superior',
+                          context.s.pickSuperiorTitle,
                           style: theme.textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.w800,
                             letterSpacing: 0.2,
@@ -132,7 +134,7 @@ class _SuperiorPickerDialogState extends State<_SuperiorPickerDialog> {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          'Cari lalu ketuk salah satu nama',
+                          context.s.searchThenTapName,
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: context.textSecondary,
                           ),
@@ -158,7 +160,7 @@ class _SuperiorPickerDialogState extends State<_SuperiorPickerDialog> {
                 onChanged: (_) => setState(() {}),
                 textInputAction: TextInputAction.search,
                 decoration: InputDecoration(
-                  hintText: 'Nama atau username…',
+                  hintText: context.s.searchNameOrUsernameHint,
                   prefixIcon: Icon(Icons.search_rounded, color: clrOrange),
                   filled: true,
                   fillColor: context.inputFill,
@@ -423,10 +425,10 @@ class _UserFormInputState extends State<UserFormInput> {
         final msg = responseMessage.isNotEmpty
             ? responseMessage
             : (isDelete
-                  ? 'Data user berhasil dihapus'
+                  ? AppStrings.current.userDeletedSuccess
                   : (_isEditMode
-                        ? 'Data user berhasil diperbarui'
-                        : 'Data user berhasil ditambahkan'));
+                        ? AppStrings.current.userUpdatedSuccess
+                        : AppStrings.current.userAddedSuccess));
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(backgroundColor: Colors.green, content: Text(msg)),
         );
@@ -451,7 +453,7 @@ class _UserFormInputState extends State<UserFormInput> {
         if (!mounted) return;
         final msg = responseMessage.isNotEmpty
             ? responseMessage
-            : 'Gagal memproses data user';
+            : AppStrings.current.userProcessFailed;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(backgroundColor: Colors.red, content: Text(msg)),
         );
@@ -552,7 +554,7 @@ class _UserFormInputState extends State<UserFormInput> {
     if (!mounted) return;
     if (raw.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Data superior belum dimuat')),
+        SnackBar(content: Text(context.s.superiorDataNotLoaded)),
       );
       return;
     }
@@ -576,8 +578,8 @@ class _UserFormInputState extends State<UserFormInput> {
   void _showDeleteDialog() {
     ShowDialogBox.show(
       context: context,
-      title: 'WARNING !',
-      contentTitle: 'Are you sure delete data ?',
+      title: context.s.warning,
+      contentTitle: context.s.confirmDeleteData,
       onPressedNo: (dialogContext) {
         if (!dialogContext.mounted) return;
         Navigator.pop(dialogContext);
@@ -586,8 +588,8 @@ class _UserFormInputState extends State<UserFormInput> {
         if (dialogContext.mounted) Navigator.pop(dialogContext);
         await submitData(paramDeleteDataUser);
       },
-      textNo: 'Back',
-      textYes: 'Yes',
+      textNo: context.s.back,
+      textYes: context.s.yes,
       textColorNo: clrBlack,
       textColorYes: clrRed,
     );
@@ -626,7 +628,7 @@ class _UserFormInputState extends State<UserFormInput> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              _isEditMode ? "Edit Data User" : "Add Data User",
+              _isEditMode ? context.s.editDataUser : context.s.addDataUser,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 color: clrOrange,
                 fontWeight: FontWeight.w800,
@@ -636,7 +638,7 @@ class _UserFormInputState extends State<UserFormInput> {
             const SizedBox(height: 3),
             Text(
               namaFormCont.text.isEmpty
-                  ? "User Account Form"
+                  ? context.s.userAccountForm
                   : namaFormCont.text,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -683,7 +685,7 @@ class _UserFormInputState extends State<UserFormInput> {
                   ],
                 ),
                 child: IconButton(
-                  tooltip: "Delete data",
+                  tooltip: context.s.deleteDataTooltip,
                   onPressed: _showDeleteDialog,
                   icon: const Icon(Icons.delete_outline_rounded),
                   color: clrWhite,
@@ -713,14 +715,14 @@ class _UserFormInputState extends State<UserFormInput> {
                     children: [
                       _buildSectionCard(
                         context: context,
-                        title: 'User Information',
+                        title: context.s.userInformationSection,
                         icon: Icons.person_outline_rounded,
                         children: [
-                          _buildTextField(usernameFormCont, "Username"),
+                          _buildTextField(usernameFormCont, context.s.username),
                           const SizedBox(height: 10),
                           _buildTextField(
                             passwordFormCont,
-                            "Password",
+                            context.s.password,
                             isPassword: true,
                             showClearButton: true,
                             onChanged: (_) => setState(() {}),
@@ -728,28 +730,28 @@ class _UserFormInputState extends State<UserFormInput> {
                           const SizedBox(height: 10),
                           _buildTextField(
                             confirmPasswordFormCont,
-                            "Confirm Password",
+                            context.s.confirmPassword,
                             isPassword: true,
                             showClearButton: true,
                             confirmMatchesPassword: true,
                             onChanged: (_) => setState(() {}),
                           ),
                           const SizedBox(height: 10),
-                          _buildTextField(namaFormCont, "Name"),
+                          _buildTextField(namaFormCont, context.s.fieldName),
                           const SizedBox(height: 10),
                           _buildTextField(
                             telpFormCont,
-                            "No. Telp",
+                            context.s.fieldPhone,
                             isPhone: true,
                           ),
                         ],
                       ),
                       _buildSectionCard(
                         context: context,
-                        title: 'Access & Role',
+                        title: context.s.accessAndRoleSection,
                         icon: Icons.verified_user_outlined,
                         children: [
-                          _buildTextField(tuidFormCont, "ID"),
+                          _buildTextField(tuidFormCont, context.s.fieldId),
                           const SizedBox(height: 10),
                           DropdownButtonFormField<String>(
                             style: Theme.of(context).textTheme.labelMedium,
@@ -785,10 +787,10 @@ class _UserFormInputState extends State<UserFormInput> {
                                 : (val) => setState(
                                     () => levelFormCont.text = val ?? '',
                                   ),
-                            decoration: _dropdownDecoration(context, "Level"),
+                            decoration: _dropdownDecoration(context, context.s.fieldLevel),
                             validator: (value) {
                               if (value == null || value.isEmpty) {
-                                return 'Please select a Level !';
+                                return context.s.pleaseSelectLevel;
                               }
                               return null;
                             },
@@ -809,7 +811,7 @@ class _UserFormInputState extends State<UserFormInput> {
                                   if (namaSuperiorFormCont.text
                                       .trim()
                                       .isEmpty) {
-                                    return 'Required';
+                                    return context.s.required;
                                   }
                                   return null;
                                 },
@@ -835,7 +837,7 @@ class _UserFormInputState extends State<UserFormInput> {
                                             decoration:
                                                 _dropdownDecoration(
                                                   context,
-                                                  'Superior',
+                                                  context.s.fieldSuperior,
                                                 ).copyWith(
                                                   errorText: field.errorText,
                                                   suffixIcon: Row(
@@ -858,7 +860,7 @@ class _UserFormInputState extends State<UserFormInput> {
                                                                   null,
                                                                 );
                                                               }),
-                                                          tooltip: 'Hapus',
+                                                          tooltip: context.s.remove,
                                                         ),
                                                       Padding(
                                                         padding:
@@ -878,7 +880,7 @@ class _UserFormInputState extends State<UserFormInput> {
                                             child: Text(
                                               hasValue
                                                   ? namaSuperiorFormCont.text
-                                                  : 'Ketuk untuk pilih superior',
+                                                  : context.s.tapToPickSuperior,
                                               style: Theme.of(context)
                                                   .textTheme
                                                   .labelMedium
@@ -910,10 +912,10 @@ class _UserFormInputState extends State<UserFormInput> {
                             if (_formKey.currentState!.validate()) {
                               ShowDialogBox.show(
                                 context: context,
-                                title: 'Please make sure all data is correct',
+                                title: context.s.confirmDataCorrectTitle,
                                 contentTitle: _isEditMode
-                                    ? ' Are you sure edit data ?'
-                                    : 'Are you sure save data ?',
+                                    ? context.s.confirmEditData
+                                    : context.s.confirmSaveData,
                                 onPressedNo: (dialogContext) {
                                   if (!dialogContext.mounted) return;
                                   Navigator.pop(dialogContext);
@@ -928,8 +930,8 @@ class _UserFormInputState extends State<UserFormInput> {
                                         : paramAddDataUser,
                                   );
                                 },
-                                textNo: 'Cancel',
-                                textYes: 'Yes',
+                                textNo: context.s.cancel,
+                                textYes: context.s.yes,
                                 textColorNo: clrBlack,
                                 textColorYes: clrOrange,
                               );
@@ -956,7 +958,7 @@ class _UserFormInputState extends State<UserFormInput> {
                               ),
                               const SizedBox(width: 8),
                               Text(
-                                _isEditMode ? 'Update Data' : 'Save Data',
+                                _isEditMode ? context.s.updateData : context.s.saveData,
                                 style: const TextStyle(
                                   fontWeight: FontWeight.w700,
                                   fontSize: 15,
@@ -1015,7 +1017,7 @@ class _UserFormInputState extends State<UserFormInput> {
         ),
         suffixIcon: showClearButton && controller.text.isNotEmpty
             ? IconButton(
-                tooltip: 'Clear',
+                tooltip: context.s.clear,
                 icon: const Icon(Icons.clear_rounded, size: 20),
                 onPressed: () {
                   controller.clear();
@@ -1035,11 +1037,11 @@ class _UserFormInputState extends State<UserFormInput> {
             return null;
           }
           if (value != passwordFormCont.text) {
-            return 'Password tidak cocok';
+            return context.s.passwordMismatch;
           }
           return null;
         }
-        if (value == null || value.isEmpty) return 'Required !';
+        if (value == null || value.isEmpty) return context.s.requiredField;
         return null;
       },
     );

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tool_store_app/l10n/locale_controller.dart';
 
 /// Persists and broadcasts light / dark theme changes app-wide.
 class ThemeController extends ChangeNotifier {
@@ -33,11 +34,15 @@ class ThemeController extends ChangeNotifier {
 
   Future<void> toggle() => setDarkMode(!isDarkMode);
 
-  /// Keeps dark-mode preference when login data is cleared on logout.
+  /// Keeps theme and locale preferences when login data is cleared on logout.
   static Future<void> preserveOnPrefsClear(SharedPreferences prefs) async {
     final isDark = prefs.getBool(prefKey) ?? false;
+    final localeCode =
+        prefs.getString(LocaleController.prefKey) ?? LocaleController.defaultCode;
     await prefs.clear();
     await prefs.setBool(prefKey, isDark);
+    await prefs.setString(LocaleController.prefKey, localeCode);
     await instance.load();
+    await LocaleController.instance.load();
   }
 }

@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tool_store_app/controller/cont_crud/redux/action.dart';
 import 'package:tool_store_app/view/custom/routes/page_routes.dart';
 import 'package:tool_store_app/view/menu/tooll/tool_form.dart';
+import 'package:tool_store_app/l10n/app_strings.dart';
 import 'package:tool_store_app/view/var/var.dart';
 
 void postContUser(
@@ -32,7 +33,9 @@ void postContUser(
   namaSuperiorFormCont.text = namaSuperior;
   PageRoutes.routeUserForm(
     context,
-    iduserFormCont.text.isEmpty ? 'ADD DATA' : 'EDIT DATA',
+    iduserFormCont.text.isEmpty
+        ? AppStrings.current.addData
+        : AppStrings.current.editData,
     () {},
     levelReadOnly: levelReadOnly,
     popOnSuccess: popOnSuccess,
@@ -107,7 +110,9 @@ void postContForm(
     context,
     MaterialPageRoute(
       builder: (context) => ToolForm(
-        title: idFormCont.text.isEmpty ? 'ADD DATA' : 'EDIT DATA',
+        title: idFormCont.text.isEmpty
+            ? AppStrings.current.addData
+            : AppStrings.current.editData,
         onPressTailing: () {},
       ),
     ),
@@ -192,7 +197,7 @@ Future<void> postMultipleToolCont(
 
   await PageRoutes.routeUserFormDetail(
     context,
-    navigateAsAdd ? 'ADD DATA' : 'EDIT DATA',
+    navigateAsAdd ? AppStrings.current.addData : AppStrings.current.editData,
     parentIdForm: parentIdFormForToolDetail,
   );
 }

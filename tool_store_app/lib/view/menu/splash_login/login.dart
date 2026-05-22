@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tool_store_app/model/post_get_data.dart';
+import 'package:tool_store_app/l10n/l10n_ext.dart';
 import 'package:tool_store_app/theme/app_theme.dart';
 import 'package:tool_store_app/view/menu/dashboard/dashboard.dart';
 import 'package:tool_store_app/view/var/var.dart';
@@ -45,6 +46,7 @@ class _LoginState extends State<Login> {
 
   @override
   Widget build(BuildContext context) {
+    final s = context.s;
     return Scaffold(
       backgroundColor: context.isDarkMode ? Colors.black : Colors.white,
       body: Container(
@@ -81,7 +83,7 @@ class _LoginState extends State<Login> {
                         child: Material(
                           color: Colors.transparent,
                           child: Text(
-                            "Data Tool Monitoring",
+                            s.appTitle,
                             textAlign: TextAlign.center,
                             style: Theme.of(context).textTheme.headlineSmall
                                 ?.copyWith(
@@ -100,7 +102,7 @@ class _LoginState extends State<Login> {
                         child: Material(
                           color: Colors.transparent,
                           child: Text(
-                            "Masuk untuk melanjutkan ke dashboard",
+                            s.loginSubtitle,
                             style: Theme.of(context).textTheme.bodyMedium
                                 ?.copyWith(
                                   color: context.isDarkMode
@@ -153,7 +155,7 @@ class _LoginState extends State<Login> {
                                     ),
                                     const SizedBox(width: 10),
                                     Text(
-                                      'Login Akun',
+                                      s.loginAccount,
                                       style: Theme.of(context)
                                           .textTheme
                                           .titleMedium
@@ -169,12 +171,12 @@ class _LoginState extends State<Login> {
                                   textInputAction: TextInputAction.next,
                                   decoration: _inputDecoration(
                                     context,
-                                    label: 'Username',
+                                    label: s.username,
                                     icon: Icons.person_outline,
                                   ),
                                   validator: (value) =>
                                       value == null || value.trim().isEmpty
-                                      ? 'Required !'
+                                      ? s.requiredField
                                       : null,
                                 ),
                                 const SizedBox(height: 14),
@@ -183,7 +185,7 @@ class _LoginState extends State<Login> {
                                   obscureText: _obscurePassword,
                                   decoration: _inputDecoration(
                                     context,
-                                    label: 'Password',
+                                    label: s.password,
                                     icon: Icons.lock_outline,
                                     suffixIcon: IconButton(
                                       icon: Icon(
@@ -199,7 +201,7 @@ class _LoginState extends State<Login> {
                                   ),
                                   validator: (value) =>
                                       value == null || value.trim().isEmpty
-                                      ? 'Required !'
+                                      ? s.requiredField
                                       : null,
                                 ),
                                 const SizedBox(height: 22),
@@ -349,7 +351,7 @@ class _LoginState extends State<Login> {
                                                           backgroundColor:
                                                               clrRed,
                                                           content: Text(
-                                                            cekInternet,
+                                                            s.checkInternet,
                                                           ),
                                                         ),
                                                       );
@@ -380,7 +382,7 @@ class _LoginState extends State<Login> {
                                             size: 20,
                                           ),
                                     label: Text(
-                                      loadingLogin ? "Loading..." : "LOGIN",
+                                      loadingLogin ? s.loading : s.loginButton,
                                       style: const TextStyle(
                                         fontSize: 15,
                                         fontWeight: FontWeight.w700,

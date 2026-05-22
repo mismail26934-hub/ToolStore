@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tool_store_app/l10n/l10n_ext.dart';
 import 'package:tool_store_app/theme/app_theme.dart';
 import 'package:tool_store_app/view/var/var.dart';
 
@@ -13,16 +14,16 @@ class ToolFormSearchResult {
   final String searchField;
 }
 
-/// Label dropdown — sama dengan [tool_data.dart].
-const Map<String, String> kToolFormSearchFieldLabels = {
-  'all': 'All',
-  'formNo': 'Form No',
-  'serviceman': 'Serviceman',
-  'status': 'Status',
-  'idForm': 'Category',
-  'pnGroup': 'PN Group',
-  'pnDesc': 'Description',
-};
+/// Keys dropdown pencarian form — label dari [AppStrings.searchFieldLabels].
+const List<String> kToolFormSearchFieldKeys = [
+  'all',
+  'formNo',
+  'serviceman',
+  'status',
+  'idForm',
+  'pnGroup',
+  'pnDesc',
+];
 
 /// Popup pencarian form (UI sama dengan search bar di tool list).
 Future<ToolFormSearchResult?> showToolFormSearchPopup(
@@ -66,7 +67,7 @@ class _ToolFormSearchDialogState extends State<_ToolFormSearchDialog> {
     super.initState();
     _controller = TextEditingController(text: widget.initialQuery);
     _controller.addListener(() => setState(() {}));
-    _searchField = kToolFormSearchFieldLabels.containsKey(widget.initialSearchField)
+    _searchField = kToolFormSearchFieldKeys.contains(widget.initialSearchField)
         ? widget.initialSearchField
         : 'all';
   }
@@ -88,6 +89,8 @@ class _ToolFormSearchDialogState extends State<_ToolFormSearchDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final s = context.s;
+    final fieldLabels = s.searchFieldLabels;
     return Dialog(
       backgroundColor: context.cardSurface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -111,7 +114,7 @@ class _ToolFormSearchDialogState extends State<_ToolFormSearchDialog> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    'Cari Data Form',
+                    s.searchFormTitle,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w700,
                     ),
@@ -120,7 +123,7 @@ class _ToolFormSearchDialogState extends State<_ToolFormSearchDialog> {
                 IconButton(
                   onPressed: () => Navigator.pop(context),
                   icon: Icon(Icons.close, color: context.iconMuted),
-                  tooltip: 'Tutup',
+                  tooltip: s.close,
                 ),
               ],
             ),
@@ -131,7 +134,7 @@ class _ToolFormSearchDialogState extends State<_ToolFormSearchDialog> {
               onSubmitted: _canSearch ? (_) => _submit() : null,
               textInputAction: TextInputAction.search,
               decoration: InputDecoration(
-                hintText: 'Cari data form...',
+                hintText: s.searchFormHint,
                 hintStyle: TextStyle(color: context.iconMuted),
                 prefixIcon: IconButton(
                   icon: Icon(
@@ -178,11 +181,11 @@ class _ToolFormSearchDialogState extends State<_ToolFormSearchDialog> {
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
-                  items: kToolFormSearchFieldLabels.entries
+                  items: kToolFormSearchFieldKeys
                       .map(
-                        (entry) => DropdownMenuItem<String>(
-                          value: entry.key,
-                          child: Text(entry.value),
+                        (key) => DropdownMenuItem<String>(
+                          value: key,
+                          child: Text(fieldLabels[key] ?? key),
                         ),
                       )
                       .toList(),
@@ -199,7 +202,7 @@ class _ToolFormSearchDialogState extends State<_ToolFormSearchDialog> {
               child: ElevatedButton.icon(
                 onPressed: _canSearch ? _submit : null,
                 icon: const Icon(Icons.search, size: 20),
-                label: const Text('Cari'),
+                label: Text(s.search),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: clrOrange,
                   disabledBackgroundColor: clrOrange.withValues(alpha: 0.35),

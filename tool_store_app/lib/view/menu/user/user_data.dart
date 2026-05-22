@@ -13,6 +13,7 @@ import 'package:tool_store_app/view/custom/shimmer/app_shimmer.dart';
 import 'package:tool_store_app/view/custom/shimmer/skeletons.dart';
 import 'package:tool_store_app/theme/app_theme.dart';
 import 'package:tool_store_app/theme/theme_controller.dart';
+import 'package:tool_store_app/l10n/l10n_ext.dart';
 import 'package:tool_store_app/view/menu/drawer/drawer.dart';
 import 'package:tool_store_app/view/var/var.dart';
 
@@ -54,11 +55,8 @@ class _UserDataState extends State<UserData> with MixinPref {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Akses ditolak. Menu User hanya untuk SUPERADMIN. '
-            'Sesi diakhiri — silakan login kembali.',
-          ),
+        SnackBar(
+          content: Text(context.s.accessDeniedSessionEnded),
         ),
       );
       final prefs = await SharedPreferences.getInstance();
@@ -67,15 +65,6 @@ class _UserDataState extends State<UserData> with MixinPref {
       await PageRoutes.routeLoginFast(context);
     });
   }
-
-  static const Map<String, String> _searchFieldLabels = {
-    'all': 'Semua',
-    'username': 'Username',
-    'name': 'Name',
-    'phone': 'No.Telp',
-    'level': 'Level',
-    'status': 'Status',
-  };
 
   bool get _canSubmitSearch => _searchController.text.trim().isNotEmpty;
 
@@ -248,7 +237,7 @@ class _UserDataState extends State<UserData> with MixinPref {
                 ),
               ),
               IconButton(
-                tooltip: 'Edit user',
+                tooltip: context.s.editUserTooltip,
                 onPressed: () {
                   postContUser(
                     users.idUsers,
@@ -274,7 +263,7 @@ class _UserDataState extends State<UserData> with MixinPref {
             children: [
               _buildMetaChip(
                 icon: Icons.verified_user_outlined,
-                label: 'Level ${_displayValue(users.level)}',
+                label: context.s.levelChip(_displayValue(users.level)),
                 color: Colors.orange.shade800,
               ),
               _buildMetaChip(
@@ -285,9 +274,9 @@ class _UserDataState extends State<UserData> with MixinPref {
             ],
           ),
           const SizedBox(height: 14),
-          _buildLineItem('Name', users.namaUser),
-          _buildLineItem('No.Telp', users.noTelp),
-          _buildLineItem('Superior', users.namaSuperior),
+          _buildLineItem(context.s.fieldName, users.namaUser),
+          _buildLineItem(context.s.fieldPhone, users.noTelp),
+          _buildLineItem(context.s.fieldSuperior, users.namaSuperior),
         ],
       ),
     );
@@ -346,8 +335,8 @@ class _UserDataState extends State<UserData> with MixinPref {
   String _userLoadSummary(UserState state) {
     final n = state.users.length;
     final t = state.totalUsers;
-    if (t != null) return '$n of $t user(s) loaded';
-    return '$n user(s) loaded';
+    if (t != null) return context.s.usersLoadedSummary(n, t);
+    return context.s.usersLoadedCount(n);
   }
 
   @override
@@ -363,6 +352,8 @@ class _UserDataState extends State<UserData> with MixinPref {
   }
 
   Widget _buildSearchBar() {
+    final s = context.s;
+    final fieldLabels = s.userSearchFieldLabels;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
       child: Row(
@@ -375,14 +366,14 @@ class _UserDataState extends State<UserData> with MixinPref {
               onSubmitted: _canSubmitSearch ? (_) => _submitSearch() : null,
               textInputAction: TextInputAction.search,
               decoration: InputDecoration(
-                hintText: 'Cari data user...',
+                hintText: s.searchUserHint,
                 hintStyle: TextStyle(color: context.iconMuted),
                 prefixIcon: IconButton(
                   icon: Icon(
                     Icons.search,
                     color: _canSubmitSearch ? clrOrange : context.iconMuted,
                   ),
-                  tooltip: 'Cari',
+                  tooltip: s.search,
                   onPressed: _canSubmitSearch ? _submitSearch : null,
                 ),
                 filled: true,
@@ -423,7 +414,7 @@ class _UserDataState extends State<UserData> with MixinPref {
                 color: Colors.orange.shade900,
                 fontWeight: FontWeight.w600,
               ),
-              items: _searchFieldLabels.entries
+              items: fieldLabels.entries
                   .map(
                     (entry) => DropdownMenuItem<String>(
                       value: entry.key,
@@ -451,7 +442,7 @@ class _UserDataState extends State<UserData> with MixinPref {
               child: IconButton(
                 onPressed: _clearSearch,
                 icon: Icon(Icons.close_rounded, color: Colors.red.shade400),
-                tooltip: 'Clear search',
+                tooltip: s.clearSearch,
               ),
             ),
         ],
@@ -469,8 +460,7 @@ class _UserDataState extends State<UserData> with MixinPref {
             Icon(Icons.search_off, size: 52, color: context.iconMuted),
             const SizedBox(height: 12),
             Text(
-              '$_searchQuery '
-              'Not Found',
+              context.s.searchNotFound(_searchQuery),
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                 color: Colors.orange.shade900,
@@ -569,7 +559,7 @@ class _UserDataState extends State<UserData> with MixinPref {
                   // 4. Data benar-benar kosong (tanpa filter)
                   if (state.users.isEmpty) {
                     return SliverFillRemaiings(
-                      errors: state.error ?? "No Record Data Found",
+                      errors: state.error ?? context.s.noRecordDataFound,
                       hasScrollBodys: false,
                     );
                   }
@@ -632,8 +622,10 @@ class _UserDataState extends State<UserData> with MixinPref {
                                         : const Icon(Icons.expand_more),
                                     label: Text(
                                       state.isLoadingMore
-                                          ? 'Loading...'
-                                          : 'Load $kUserPageSize more',
+                                          ? context.s.loading
+                                          : context.s.loadMoreUsers(
+                                              kUserPageSize,
+                                            ),
                                     ),
                                   ),
                                 ),

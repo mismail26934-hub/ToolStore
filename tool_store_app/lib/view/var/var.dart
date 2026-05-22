@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tool_store_app/l10n/app_strings.dart';
 
 const mobileWidth = 600;
 double paddingForm = 5.0;
@@ -13,8 +14,8 @@ double btnFontSize = 15.0;
 
 String errors = "";
 String messages = "";
-String cekInternet = "Check Internet Connection";
-String serverDown = "Server Down";
+String get cekInternet => AppStrings.current.checkInternet;
+String get serverDown => AppStrings.current.serverDown;
 String titleApp = "";
 String usernameApp = "";
 String passwordApp = "";
@@ -50,7 +51,7 @@ final username = TextEditingController();
 final password = TextEditingController();
 
 // Controller FORM
-String titleDataTool = 'Data Tool';
+String get titleDataTool => AppStrings.current.dataTool;
 String paramViewDataForm = 'VIEW DATA FORM';
 String paramDashboardCountForm = 'DASHBOARD COUNT FORM';
 String paramAddDataForm = 'ADD DATA FORM';
@@ -142,7 +143,7 @@ String paramEditDataRcvTool = 'EDIT DATA RCV TOOL';
 String paramDeleteDataRcvTool = 'DELETED DATA RCV TOOL';
 
 // Controller User
-String titleDataUser = 'Data User';
+String get titleDataUser => AppStrings.current.dataUser;
 String paramViewDataUser = 'VIEW DATA USER';
 String paramAddDataUser = 'ADD DATA USER';
 String paramEditDataUser = 'EDIT DATA USER';

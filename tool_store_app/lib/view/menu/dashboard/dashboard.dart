@@ -8,6 +8,7 @@ import 'package:tool_store_app/view/custom/tool_form_search_popup.dart';
 import 'package:tool_store_app/theme/app_theme.dart';
 import 'package:tool_store_app/view/custom/shimmer/app_shimmer.dart';
 import 'package:tool_store_app/view/custom/shimmer/skeletons.dart';
+import 'package:tool_store_app/l10n/l10n_ext.dart';
 import 'package:tool_store_app/view/menu/drawer/drawer.dart';
 import 'package:tool_store_app/view/var/var.dart';
 
@@ -38,7 +39,7 @@ class _DashboardState extends State<Dashboard> {
     if (!mounted || result == null) return;
     await PageRoutes.routeTool(
       context,
-      title: 'Search Results',
+      title: context.s.searchResults,
       initialSearchQuery: result.query,
       initialSearchField: result.searchField,
     );
@@ -58,6 +59,7 @@ class _DashboardState extends State<Dashboard> {
 
   @override
   Widget build(BuildContext context) {
+    final s = context.s;
     return SafeArea(
       bottom: true,
       child: Scaffold(
@@ -105,8 +107,8 @@ class _DashboardState extends State<Dashboard> {
                               );
                             },
                             builder: (context, vm) => _DashboardCard(
-                              title: 'Draft',
-                              subtitle: 'Request baru yang masih perlu dicek.',
+                              title: s.draft,
+                              subtitle: s.draftSubtitle,
                               icon: Icons.drafts_outlined,
                               value: vm.displayValue,
                               isLoading: vm.isLoading,
@@ -115,7 +117,7 @@ class _DashboardState extends State<Dashboard> {
                                   ? null
                                   : () => PageRoutes.routeTool(
                                       context,
-                                      title: 'Draft',
+                                      title: s.draft,
                                       formMilestoneFilter: '',
                                       filterBlankFormMilestone: true,
                                     ),
@@ -132,8 +134,8 @@ class _DashboardState extends State<Dashboard> {
                               );
                             },
                             builder: (context, vm) => _DashboardCard(
-                              title: 'Superior Approval',
-                              subtitle: 'Menunggu persetujuan atasan terkait.',
+                              title: s.superiorApproval,
+                              subtitle: s.superiorApprovalSubtitle,
                               icon: Icons.fact_check_outlined,
                               value: vm.displayValue,
                               isLoading: vm.isLoading,
@@ -142,7 +144,7 @@ class _DashboardState extends State<Dashboard> {
                                   ? null
                                   : () => PageRoutes.routeTool(
                                       context,
-                                      title: 'Superior Approval',
+                                      title: s.superiorApproval,
                                       formMilestoneFilter:
                                           _milestoneCheckByToolStore,
                                     ),
@@ -158,9 +160,8 @@ class _DashboardState extends State<Dashboard> {
                               );
                             },
                             builder: (context, vm) => _DashboardCard(
-                              title: 'Service Admin',
-                              subtitle:
-                                  'Masuk ke proses validasi admin service.',
+                              title: s.serviceAdmin,
+                              subtitle: s.serviceAdminSubtitle,
                               icon: Icons.playlist_add_check_circle_outlined,
                               value: vm.displayValue,
                               isLoading: vm.isLoading,
@@ -169,7 +170,7 @@ class _DashboardState extends State<Dashboard> {
                                   ? null
                                   : () => PageRoutes.routeTool(
                                       context,
-                                      title: 'Service Admin',
+                                      title: s.serviceAdmin,
                                       formMilestoneFilter:
                                           _milestoneSuperiorApproved,
                                     ),
@@ -185,9 +186,8 @@ class _DashboardState extends State<Dashboard> {
                               );
                             },
                             builder: (context, vm) => _DashboardCard(
-                              title: 'Dept. Head Approval',
-                              subtitle:
-                                  'Perlu persetujuan dari kepala departemen.',
+                              title: s.deptHeadApproval,
+                              subtitle: s.deptHeadApprovalSubtitle,
                               icon: Icons.approval_outlined,
                               value: vm.displayValue,
                               isLoading: vm.isLoading,
@@ -196,7 +196,7 @@ class _DashboardState extends State<Dashboard> {
                                   ? null
                                   : () => PageRoutes.routeTool(
                                       context,
-                                      title: 'Dept. Head Approval',
+                                      title: s.deptHeadApproval,
                                       formMilestoneFilter:
                                           _milestoneReviewedByServiceAdmin,
                                     ),
@@ -212,8 +212,8 @@ class _DashboardState extends State<Dashboard> {
                               );
                             },
                             builder: (context, vm) => _DashboardCard(
-                              title: 'Counter / GA Processing',
-                              subtitle: 'Menunggu Proses Counter atau GA.',
+                              title: s.counterGaProcessing,
+                              subtitle: s.counterGaProcessingSubtitle,
                               icon: Icons.inventory_2_outlined,
                               value: vm.displayValue,
                               isLoading: vm.isLoading,
@@ -222,7 +222,7 @@ class _DashboardState extends State<Dashboard> {
                                   ? null
                                   : () => PageRoutes.routeTool(
                                       context,
-                                      title: 'Counter / GA Processing',
+                                      title: s.counterGaProcessing,
                                       formMilestoneFilter:
                                           _milestoneApprovedByServiceDeptHead,
                                     ),
@@ -239,9 +239,8 @@ class _DashboardState extends State<Dashboard> {
                               );
                             },
                             builder: (context, vm) => _DashboardCard(
-                              title: 'Tool Received at Warehouse / GA',
-                              subtitle:
-                                  'Tool sudah tiba dan follow up ke Warehouse / GA.',
+                              title: s.toolReceivedWhGa,
+                              subtitle: s.toolReceivedWhGaSubtitle,
                               icon: Icons.task_alt_outlined,
                               value: vm.displayValue,
                               isLoading: vm.isLoading,
@@ -250,7 +249,7 @@ class _DashboardState extends State<Dashboard> {
                                   ? null
                                   : () => PageRoutes.routeTool(
                                       context,
-                                      title: 'Tool Received at Warehouse / GA',
+                                      title: s.toolReceivedWhGa,
                                       formMilestoneFilters:
                                           _milestonesToolReceivedWhGaMenu,
                                     ),
@@ -314,7 +313,7 @@ class _DashboardHeader extends StatelessWidget {
                   child: Material(
                     color: Colors.transparent,
                     child: Text(
-                      'Dashboard Tool Monitoring',
+                      context.s.dashboardTitle,
                       style: Theme.of(context).textTheme.headlineSmall
                           ?.copyWith(
                             color: Colors.white,
@@ -592,7 +591,7 @@ class _DashboardCard extends StatelessWidget {
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Text(
-                                  'Lihat detail',
+                                  context.s.viewDetail,
                                   style: Theme.of(context).textTheme.labelSmall
                                       ?.copyWith(
                                         color: iconColor.withValues(alpha: 0.9),

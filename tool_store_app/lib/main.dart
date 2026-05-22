@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_redux/flutter_redux.dart';
 import 'package:flutter/services.dart';
 import 'package:tool_store_app/controller/cont_crud/redux/state.dart';
 import 'package:tool_store_app/controller/cont_crud/redux/store.dart';
 import 'package:tool_store_app/model/post_get_data.dart';
+import 'package:tool_store_app/l10n/locale_controller.dart';
 import 'package:tool_store_app/theme/app_theme.dart';
 import 'package:tool_store_app/theme/theme_controller.dart';
 import 'package:tool_store_app/view/custom/mixin/mixin_pref.dart';
@@ -14,6 +16,7 @@ import 'package:tool_store_app/view/var/var.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await themeController.load();
+  await localeController.load();
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
@@ -149,16 +152,19 @@ class _MyAppState extends State<MyApp> with MixinPref {
   void initState() {
     super.initState();
     themeController.load();
-    themeController.addListener(_onThemeChanged);
+    localeController.load();
+    themeController.addListener(_onAppearanceChanged);
+    localeController.addListener(_onAppearanceChanged);
   }
 
   @override
   void dispose() {
-    themeController.removeListener(_onThemeChanged);
+    themeController.removeListener(_onAppearanceChanged);
+    localeController.removeListener(_onAppearanceChanged);
     super.dispose();
   }
 
-  void _onThemeChanged() {
+  void _onAppearanceChanged() {
     if (mounted) setState(() {});
   }
 
@@ -173,6 +179,16 @@ class _MyAppState extends State<MyApp> with MixinPref {
         theme: AppTheme.light,
         darkTheme: AppTheme.dark,
         themeMode: themeController.themeMode,
+        locale: localeController.locale,
+        supportedLocales: const [
+          LocaleController.localeId,
+          LocaleController.localeEn,
+        ],
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
         home: SplashScreen(),
       ),
     );
@@ -180,3 +196,4 @@ class _MyAppState extends State<MyApp> with MixinPref {
 }
 
 final themeController = ThemeController.instance;
+final localeController = LocaleController.instance;
