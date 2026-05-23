@@ -215,6 +215,10 @@ class AppStrings {
       _t('$n dari $t user dimuat', '$n of $t user(s) loaded');
   String usersLoadedCount(int n) =>
       _t('$n user dimuat', '$n user(s) loaded');
+  String superiorsLoadedSummary(int n, int t) =>
+      _t('$n dari $t superior dimuat', '$n of $t superior(s) loaded');
+  String superiorsLoadedCount(int n) =>
+      _t('$n superior dimuat', '$n superior(s) loaded');
   String loadMoreUsers(int size) =>
       _t('Muat $size lagi', 'Load $size more');
   String searchNotFound(String query) => '$query $searchNotFoundSuffix';
@@ -236,6 +240,12 @@ class AppStrings {
         'phone': fieldPhone,
         'level': fieldLevel,
         'status': searchFieldStatus,
+      };
+
+  Map<String, String> get superiorSearchFieldLabels => {
+        'all': searchFieldAll,
+        'name': fieldName,
+        'username': username,
       };
 
   // —— CRUD titles ——

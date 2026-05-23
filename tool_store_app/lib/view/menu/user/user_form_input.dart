@@ -49,13 +49,73 @@ List<PostList> _filterSuperiorRows(List<PostList> list, String query) {
   }).toList();
 }
 
+List<PostList> _applySuperiorPickerFieldFilter(
+  List<PostList> list,
+  String searchField,
+  String query,
+) {
+  final q = query.trim().toLowerCase();
+  if (q.isEmpty) return list;
+  switch (searchField) {
+    case 'username':
+      return list.where((s) => s.username.toLowerCase().contains(q)).toList();
+    case 'name':
+      return list
+          .where(
+            (s) =>
+                s.namaUser.toLowerCase().contains(q) ||
+                s.namaSuperior.toLowerCase().contains(q),
+          )
+          .toList();
+    default:
+      return _filterSuperiorRows(list, query);
+  }
+}
+
+List<PostList> _sortSuperiorsForPicker(List<PostList> list) {
+  final sorted = List<PostList>.from(list)
+    ..sort(
+      (a, b) => _labelSuperiorPick(
+        a,
+      ).toLowerCase().compareTo(_labelSuperiorPick(b).toLowerCase()),
+    );
+  return sorted;
+}
+
+List<PostList> _mergePickerSuperiors(
+  List<PostList> existing,
+  List<PostList> incoming,
+) {
+  if (incoming.isEmpty) return existing;
+  final keys = <String>{};
+  for (final s in existing) {
+    final id = s.idUsers.trim();
+    keys.add(
+      id.isNotEmpty
+          ? id
+          : '${s.namaUser.trim()}|${s.namaSuperior.trim()}|${s.username.trim()}',
+    );
+  }
+  final merged = List<PostList>.from(existing);
+  for (final s in incoming) {
+    final id = s.idUsers.trim();
+    final key = id.isNotEmpty
+        ? id
+        : '${s.namaUser.trim()}|${s.namaSuperior.trim()}|${s.username.trim()}';
+    if (key.replaceAll('|', '').trim().isEmpty || keys.contains(key)) continue;
+    merged.add(s);
+    keys.add(key);
+  }
+  return merged;
+}
+
 class _SuperiorPickerDialog extends StatefulWidget {
   const _SuperiorPickerDialog({
-    required this.superiors,
+    required this.initialSuperiors,
     required this.onSelected,
   });
 
-  final List<PostList> superiors;
+  final List<PostList> initialSuperiors;
   final ValueChanged<PostList> onSelected;
 
   @override
@@ -63,21 +123,416 @@ class _SuperiorPickerDialog extends StatefulWidget {
 }
 
 class _SuperiorPickerDialogState extends State<_SuperiorPickerDialog> {
-  final TextEditingController _search = TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  String _searchField = 'all';
+  List<PostList> _superiors = [];
+  int _currentPage = 1;
+  int? _totalSuperiors;
+  bool _hasMore = false;
+  bool _isLoading = false;
+  bool _isLoadingMore = false;
+  String? _error;
+
+  bool get _canSubmitSearch => _searchController.text.trim().isNotEmpty;
+
+  @override
+  void initState() {
+    super.initState();
+    _superiors = _sortSuperiorsForPicker(
+      _dedupeSuperiorRows(widget.initialSuperiors),
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) => _fetchSuperiors());
+  }
 
   @override
   void dispose() {
-    _search.dispose();
+    _searchController.dispose();
     super.dispose();
+  }
+
+  Future<void> _fetchSuperiors({bool append = false}) async {
+    if (!mounted) return;
+    if (append) {
+      if (_isLoadingMore || !_hasMore) return;
+      setState(() => _isLoadingMore = true);
+    } else {
+      setState(() {
+        _isLoading = true;
+        _error = null;
+        _currentPage = 1;
+      });
+    }
+    final page = append ? _currentPage + 1 : 1;
+    try {
+      final parsed = await fetchSuperiorsForPicker(
+        keyword: _searchQuery,
+        searchField: _searchField,
+        page: page,
+        limit: kUserPageSize,
+      );
+      var list = parsed.items;
+      if (_searchQuery.isNotEmpty && _searchField != 'all') {
+        list = _applySuperiorPickerFieldFilter(
+          list,
+          _searchField,
+          _searchQuery,
+        );
+      }
+      final merged = append
+          ? _mergePickerSuperiors(_superiors, list)
+          : list;
+      final deduped = _dedupeSuperiorRows(merged);
+      final total = parsed.total;
+      final hasMore = total != null
+          ? deduped.length < total
+          : list.length >= kUserPageSize;
+      if (!mounted) return;
+      setState(() {
+        _superiors = _sortSuperiorsForPicker(deduped);
+        _currentPage = page;
+        _totalSuperiors = total;
+        _hasMore = hasMore;
+        _isLoading = false;
+        _isLoadingMore = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString().replaceFirst(RegExp(r'^Exception:\s*'), '');
+        _isLoading = false;
+        _isLoadingMore = false;
+      });
+    }
+  }
+
+  Future<void> _loadMoreSuperiors() async {
+    await _fetchSuperiors(append: true);
+  }
+
+  String _pickerLoadSummary() {
+    final n = _superiors.length;
+    final t = _totalSuperiors;
+    if (t != null) {
+      return context.s.superiorsLoadedSummary(n, t);
+    }
+    return context.s.superiorsLoadedCount(n);
+  }
+
+  void _submitSearch() {
+    final query = _searchController.text.trim();
+    if (query.isEmpty) return;
+    setState(() => _searchQuery = query);
+    _fetchSuperiors();
+  }
+
+  void _clearSearch() {
+    _searchController.clear();
+    setState(() {
+      _searchQuery = '';
+      _searchField = 'all';
+    });
+    _fetchSuperiors();
+  }
+
+  void _onSearchTextEdited() => setState(() {});
+
+  Widget _buildSearchBar() {
+    final s = context.s;
+    final fieldLabels = s.superiorSearchFieldLabels;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: TextField(
+              controller: _searchController,
+              onChanged: (_) => _onSearchTextEdited(),
+              onSubmitted: _canSubmitSearch ? (_) => _submitSearch() : null,
+              textInputAction: TextInputAction.search,
+              decoration: InputDecoration(
+                hintText: s.searchNameOrUsernameHint,
+                hintStyle: TextStyle(color: context.iconMuted),
+                prefixIcon: IconButton(
+                  icon: Icon(
+                    Icons.search,
+                    color: _canSubmitSearch ? clrOrange : context.iconMuted,
+                  ),
+                  tooltip: s.search,
+                  onPressed: _canSubmitSearch ? _submitSearch : null,
+                ),
+                filled: true,
+                fillColor: context.searchAccentFill,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 12,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: context.searchAccentBorder),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: context.searchAccentBorder),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: clrOrange, width: 1.4),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            decoration: BoxDecoration(
+              color: context.searchAccentFill,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: context.searchAccentBorder),
+            ),
+            child: DropdownButton<String>(
+              value: _searchField,
+              underline: const SizedBox.shrink(),
+              iconEnabledColor: clrOrange,
+              borderRadius: BorderRadius.circular(12),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Colors.orange.shade900,
+                fontWeight: FontWeight.w600,
+              ),
+              items: fieldLabels.entries
+                  .map(
+                    (entry) => DropdownMenuItem<String>(
+                      value: entry.key,
+                      child: Text(entry.value),
+                    ),
+                  )
+                  .toList(),
+              onChanged: _isLoading
+                  ? null
+                  : (value) {
+                      if (value == null) return;
+                      setState(() => _searchField = value);
+                      if (_searchQuery.isNotEmpty) {
+                        _fetchSuperiors();
+                      }
+                    },
+            ),
+          ),
+          if (_searchController.text.trim().isNotEmpty)
+            Container(
+              margin: const EdgeInsets.only(left: 6),
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.red.shade100),
+              ),
+              child: IconButton(
+                onPressed: _isLoading ? null : _clearSearch,
+                icon: Icon(Icons.close_rounded, color: Colors.red.shade400),
+                tooltip: s.clearSearch,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSuperiorTile(PostList s, ThemeData theme) {
+    final title = _labelSuperiorPick(s);
+    final sub = s.namaUser.trim().isNotEmpty && s.namaUser.trim() != title
+        ? s.namaUser.trim()
+        : null;
+    final userLine = s.username.isEmpty ? null : '@${s.username}';
+    return Material(
+      color: context.cardSurface,
+      borderRadius: BorderRadius.circular(16),
+      elevation: 0,
+      child: InkWell(
+        onTap: () => widget.onSelected(s),
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: context.cardBorder),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          child: Row(
+            children: [
+              CircleAvatar(
+                backgroundColor: clrOrange.withValues(alpha: 0.14),
+                foregroundColor: clrOrange,
+                radius: 22,
+                child: Text(
+                  title.isNotEmpty
+                      ? title.characters.first.toUpperCase()
+                      : '?',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    if (sub != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        sub,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: context.textSecondary,
+                        ),
+                      ),
+                    ],
+                    if (userLine != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        userLine,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: context.iconMuted,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right_rounded, color: context.iconMuted),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildResults(ThemeData theme) {
+    if (_isLoading && _superiors.isEmpty) {
+      return Center(child: CircularProgressIndicator(color: clrOrange));
+    }
+    if (_error != null && _superiors.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Text(
+            _error!,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium?.copyWith(color: clrRed),
+          ),
+        ),
+      );
+    }
+    if (_superiors.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.person_search_rounded,
+                size: 48,
+                color: context.iconMuted,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                _searchQuery.isNotEmpty
+                    ? context.s.searchNotFound(_searchQuery)
+                    : context.s.noSuperiorData,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: context.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(
+          child: Stack(
+            children: [
+              ListView.separated(
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                itemCount: _superiors.length,
+                separatorBuilder: (_, _) => const SizedBox(height: 8),
+                itemBuilder: (context, i) =>
+                    _buildSuperiorTile(_superiors[i], theme),
+              ),
+              if (_isLoading && !_isLoadingMore)
+                Positioned(
+                  top: 8,
+                  right: 24,
+                  child: SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: clrOrange,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        if (_superiors.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 14),
+            child: Column(
+              children: [
+                Text(
+                  _pickerLoadSummary(),
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: context.textSecondary,
+                  ),
+                ),
+                if (_hasMore) ...[
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: _isLoadingMore ? null : _loadMoreSuperiors,
+                      icon: _isLoadingMore
+                          ? SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.orange.shade800,
+                              ),
+                            )
+                          : const Icon(Icons.expand_more),
+                      label: Text(
+                        _isLoadingMore
+                            ? context.s.loading
+                            : context.s.loadMoreUsers(kUserPageSize),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+      ],
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final filtered = _dedupeSuperiorRows(
-      _filterSuperiorRows(widget.superiors, _search.text),
-    );
-    final h = min(MediaQuery.sizeOf(context).height * 0.72, 520.0);
+    final h = min(MediaQuery.sizeOf(context).height * 0.72, 560.0);
 
     return Dialog(
       backgroundColor: Colors.transparent,
@@ -101,7 +556,7 @@ class _SuperiorPickerDialogState extends State<_SuperiorPickerDialog> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Container(
-              padding: const EdgeInsets.fromLTRB(18, 16, 8, 16),
+              padding: const EdgeInsets.fromLTRB(18, 16, 8, 12),
               decoration: BoxDecoration(
                 color: context.cardSurface,
                 border: Border(bottom: BorderSide(color: context.cardBorder)),
@@ -153,170 +608,8 @@ class _SuperiorPickerDialogState extends State<_SuperiorPickerDialog> {
                 ],
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
-              child: TextField(
-                controller: _search,
-                onChanged: (_) => setState(() {}),
-                textInputAction: TextInputAction.search,
-                decoration: InputDecoration(
-                  hintText: context.s.searchNameOrUsernameHint,
-                  prefixIcon: Icon(Icons.search_rounded, color: clrOrange),
-                  filled: true,
-                  fillColor: context.inputFill,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 14,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide(color: context.cardBorder),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide(color: context.cardBorder),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide(color: clrOrange, width: 1.6),
-                  ),
-                  suffixIcon: _search.text.isEmpty
-                      ? null
-                      : IconButton(
-                          icon: const Icon(Icons.clear_rounded, size: 20),
-                          onPressed: () {
-                            _search.clear();
-                            setState(() {});
-                          },
-                        ),
-                ),
-              ),
-            ),
-            Expanded(
-              child: filtered.isEmpty
-                  ? Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(24),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.person_search_rounded,
-                              size: 48,
-                              color: context.iconMuted,
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              widget.superiors.isEmpty
-                                  ? 'Belum ada data superior'
-                                  : 'Tidak ada hasil untuk pencarian ini',
-                              textAlign: TextAlign.center,
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: context.textSecondary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    )
-                  : ListView.separated(
-                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 18),
-                      itemCount: filtered.length,
-                      separatorBuilder: (_, _) => const SizedBox(height: 8),
-                      itemBuilder: (context, i) {
-                        final s = filtered[i];
-                        final title = _labelSuperiorPick(s);
-                        final sub =
-                            s.namaUser.trim().isNotEmpty &&
-                                s.namaUser.trim() != title
-                            ? s.namaUser.trim()
-                            : null;
-                        final userLine = s.username.isEmpty
-                            ? null
-                            : '@${s.username}';
-                        return Material(
-                          color: context.cardSurface,
-                          borderRadius: BorderRadius.circular(16),
-                          elevation: 0,
-                          child: InkWell(
-                            onTap: () => widget.onSelected(s),
-                            borderRadius: BorderRadius.circular(16),
-                            child: Container(
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(color: context.cardBorder),
-                              ),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 14,
-                                vertical: 12,
-                              ),
-                              child: Row(
-                                children: [
-                                  CircleAvatar(
-                                    backgroundColor: clrOrange.withValues(
-                                      alpha: 0.14,
-                                    ),
-                                    foregroundColor: clrOrange,
-                                    radius: 22,
-                                    child: Text(
-                                      title.isNotEmpty
-                                          ? title.characters.first.toUpperCase()
-                                          : '?',
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          title,
-                                          style: theme.textTheme.titleSmall
-                                              ?.copyWith(
-                                                fontWeight: FontWeight.w700,
-                                              ),
-                                        ),
-                                        if (sub != null) ...[
-                                          const SizedBox(height: 2),
-                                          Text(
-                                            sub,
-                                            style: theme.textTheme.bodySmall
-                                                ?.copyWith(
-                                                  color: context.textSecondary,
-                                                ),
-                                          ),
-                                        ],
-                                        if (userLine != null) ...[
-                                          const SizedBox(height: 2),
-                                          Text(
-                                            userLine,
-                                            style: theme.textTheme.bodySmall
-                                                ?.copyWith(
-                                                  color: context.iconMuted,
-                                                  fontStyle: FontStyle.italic,
-                                                ),
-                                          ),
-                                        ],
-                                      ],
-                                    ),
-                                  ),
-                                  Icon(
-                                    Icons.chevron_right_rounded,
-                                    color: context.iconMuted,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-            ),
+            _buildSearchBar(),
+            Expanded(child: _buildResults(theme)),
           ],
         ),
       ),
@@ -525,22 +818,16 @@ class _UserFormInputState extends State<UserFormInput> {
     superiorIdFormCont.text = s.superiorId.trim();
   }
 
-  Future<void> _openSuperiorPicker(
-    List<PostList> raw, {
+  Future<void> _openSuperiorPicker({
+    List<PostList> initialSuperiors = const [],
     void Function()? onSuperiorChanged,
   }) async {
     if (!mounted) return;
-    if (raw.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.s.superiorDataNotLoaded)),
-      );
-      return;
-    }
     await showDialog<void>(
       context: context,
       barrierColor: Colors.black.withValues(alpha: 0.4),
       builder: (ctx) => _SuperiorPickerDialog(
-        superiors: raw,
+        initialSuperiors: initialSuperiors,
         onSelected: (s) {
           Navigator.pop(ctx);
           if (!mounted) return;
@@ -798,7 +1085,8 @@ class _UserFormInputState extends State<UserFormInput> {
                                         color: Colors.transparent,
                                         child: InkWell(
                                           onTap: () => _openSuperiorPicker(
-                                            supState.superriorS,
+                                            initialSuperiors:
+                                                supState.superriorS,
                                             onSuperiorChanged: () =>
                                                 field.didChange(
                                                   superiorIdFormCont.text,

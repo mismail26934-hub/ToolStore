@@ -175,6 +175,34 @@ Future<ParsedUserListResult> fetchUsersForPicker({
   return parseUserListResponse(response.data);
 }
 
+/// Fetches superiors for picker dialogs without updating [SuperriorState] in Redux.
+Future<ParsedUserListResult> fetchSuperiorsForPicker({
+  String keyword = '',
+  String searchField = 'all',
+  int page = 1,
+  int limit = kUserPageSize,
+}) async {
+  final body = <String, dynamic>{
+    'param': paramViewDataSuperrior,
+    'superior_id': '',
+    'nama_superior': '',
+    'status_superior': '',
+    'user_id_input_superior': '',
+    'date_input_superior': '',
+    'page': page.toString(),
+    'limit': limit.toString(),
+  };
+  final kw = keyword.trim();
+  if (kw.isNotEmpty) {
+    body['keyword'] = kw;
+    body['search_field'] = searchField.trim().isEmpty
+        ? 'all'
+        : searchField.trim();
+  }
+  final response = await apiPost(ApiUrl.contSuperrior, body);
+  return parseSuperiorListResponse(response.data);
+}
+
 // DATA USER
 ThunkAction<AppState> getDataUser({
   required String param,
@@ -602,6 +630,42 @@ ParsedUserListResult parseUserListResponse(dynamic responseBody) {
 
   throw FormatException(
     'Unexpected user list response: ${decoded.runtimeType}',
+  );
+}
+
+/// Mem-parse respons [cont_superior] baik berupa array maupun objek dengan `total`.
+ParsedUserListResult parseSuperiorListResponse(dynamic responseBody) {
+  final dynamic decoded = responseBody is String
+      ? jsonDecode(responseBody)
+      : responseBody;
+
+  if (decoded is List) {
+    final list = decoded
+        .map((e) => PostList.fromJson(Map<String, dynamic>.from(e as Map)))
+        .toList();
+    return ParsedUserListResult(list, null);
+  }
+
+  if (decoded is Map) {
+    final m = Map<String, dynamic>.from(decoded);
+    final total = _readTotalFromMap(m);
+    for (final key in ['data', 'rows', 'superiors', 'users', 'records']) {
+      final v = m[key];
+      if (v is List) {
+        final list = <PostList>[];
+        for (final e in v) {
+          if (e is Map) {
+            list.add(PostList.fromJson(Map<String, dynamic>.from(e)));
+          }
+        }
+        return ParsedUserListResult(list, total);
+      }
+    }
+    return ParsedUserListResult([], total);
+  }
+
+  throw FormatException(
+    'Unexpected superior list response: ${decoded.runtimeType}',
   );
 }
 
