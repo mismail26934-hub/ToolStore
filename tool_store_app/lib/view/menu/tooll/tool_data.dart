@@ -82,6 +82,7 @@ class ToolData extends StatefulWidget {
     this.filterBlankFormMilestone = false,
     this.initialSearchQuery,
     this.initialSearchField = 'all',
+    this.initialExpandedFormId,
   });
 
   final String? title;
@@ -92,6 +93,9 @@ class ToolData extends StatefulWidget {
   final bool filterBlankFormMilestone;
   final String? initialSearchQuery;
   final String initialSearchField;
+
+  /// Keeps the matching form card expanded when opening the list (e.g. after edit).
+  final String? initialExpandedFormId;
 
   @override
   State<ToolData> createState() => _ToolDataState();
@@ -148,6 +152,10 @@ class _ToolDataState extends State<ToolData> with MixinPref {
           kToolFormSearchFieldKeys.contains(widget.initialSearchField)
           ? widget.initialSearchField
           : 'all';
+    }
+    final expandedId = widget.initialExpandedFormId?.trim() ?? '';
+    if (expandedId.isNotEmpty) {
+      _expandedForms.add(expandedId);
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _refreshData();
@@ -247,6 +255,10 @@ class _ToolDataState extends State<ToolData> with MixinPref {
       },
     );
     // #endregion
+    await _loadToolDetailsOnly();
+  }
+
+  Future<void> _loadToolDetailsOnly() async {
     await store.dispatch(
       getDataToolDetail(
         param: paramViewDataTool,
@@ -264,6 +276,12 @@ class _ToolDataState extends State<ToolData> with MixinPref {
         formDetailUser: '',
       ),
     );
+  }
+
+  void _rememberExpandedForm(String idForm) {
+    final id = idForm.trim();
+    if (id.isEmpty) return;
+    _expandedForms.add(id);
   }
 
   Future<void> _pickDateIntoController(
@@ -305,16 +323,17 @@ class _ToolDataState extends State<ToolData> with MixinPref {
   }
 
   /// After a successful save on a form, focus the list search on that form's number.
-  void _setSearchToFormNumber(PostList formHeader) {
+  Future<void> _setSearchToFormNumber(PostList formHeader) async {
     if (!mounted) return;
     final no = formHeader.formNo.trim();
     if (no.isEmpty) return;
+    _rememberExpandedForm(formHeader.idForm);
     _searchController.text = no;
     setState(() {
       _searchQuery = no;
       _searchField = 'formNo';
     });
-    _refreshData();
+    await _refreshData();
   }
 
   String _formLoadSummary(FormsState state, int visibleCount) {
@@ -550,8 +569,9 @@ class _ToolDataState extends State<ToolData> with MixinPref {
     return n.isEmpty || n == 'DRAFT';
   }
 
-  void _openAddToolForm(PostList forms) {
-    postMultipleToolCont(
+  Future<void> _openAddToolForm(PostList forms) async {
+    _rememberExpandedForm(forms.idForm);
+    await postMultipleToolCont(
       '',
       forms.idForm,
       '',
@@ -566,6 +586,64 @@ class _ToolDataState extends State<ToolData> with MixinPref {
       context,
       navigateAsAdd: true,
     );
+    if (!mounted) return;
+    setState(() {});
+  }
+
+  Future<void> _openEditRequestForm(PostList forms) async {
+    _rememberExpandedForm(forms.idForm);
+    final returnedId = await postContForm<String>(
+      forms.idForm,
+      forms.formNo,
+      forms.formServName,
+      forms.formServComment,
+      forms.formDateServName,
+      forms.formCheckBy,
+      forms.formDateCheckBy,
+      forms.formSuperiorAprd,
+      forms.formSuperiorComment,
+      forms.formSadminComment,
+      forms.formSheadAprd,
+      forms.formSheadComment,
+      forms.fromDateUpdate,
+      forms.formUserUpdate,
+      forms.formDateSuperiorAprd,
+      forms.formDateSadminComment,
+      forms.formDateSheadAprd,
+      forms.formMilestone,
+      forms.formStatusOrder,
+      context,
+    );
+    if (!mounted) return;
+    if (returnedId == null || returnedId.trim().isEmpty) return;
+    _rememberExpandedForm(returnedId);
+    await _refreshData();
+    if (!mounted) return;
+    setState(() {});
+  }
+
+  Future<void> _openEditToolDetail(
+    PostList forms,
+    PostList itemTool,
+    int index,
+  ) async {
+    _rememberExpandedForm(forms.idForm);
+    await postMultipleToolCont(
+      '${index + 1}',
+      itemTool.idForm,
+      itemTool.idFormDetail,
+      itemTool.formComment,
+      itemTool.pnGroup,
+      itemTool.pnDesc,
+      itemTool.qty,
+      itemTool.explan,
+      itemTool.actionNote,
+      itemTool.valType,
+      itemTool.partValue,
+      context,
+    );
+    if (!mounted) return;
+    setState(() {});
   }
 
   Widget _buildCheckByInfoTileTrailing(PostList forms) {
@@ -4818,22 +4896,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                     ? 'Edit data tool'
                     : 'Edit data tool Disabled',
                 onPressed: _canAddToolByMilestone(forms)
-                    ? () {
-                        postMultipleToolCont(
-                          '${index + 1}',
-                          itemTool.idForm,
-                          itemTool.idFormDetail,
-                          itemTool.formComment,
-                          itemTool.pnGroup,
-                          itemTool.pnDesc,
-                          itemTool.qty,
-                          itemTool.explan,
-                          itemTool.actionNote,
-                          itemTool.valType,
-                          itemTool.partValue,
-                          context,
-                        );
-                      }
+                    ? () => _openEditToolDetail(forms, itemTool, index)
                     : null,
                 icon: const Icon(Icons.edit_outlined),
               ),
@@ -5194,7 +5257,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
         child: Material(
           color: Colors.transparent,
           child: ExpansionTile(
-            key: ValueKey<String>('form_${forms.idForm}'),
+            key: ValueKey<String>('form_${forms.idForm}_$isExpandedLocal'),
             tilePadding: const EdgeInsets.fromLTRB(18, 18, 18, 8),
             childrenPadding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
             shape: const Border(),
@@ -5205,7 +5268,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
             onExpansionChanged: (expanded) {
               setState(() {
                 if (expanded) {
-                  _expandedForms.add(forms.idForm);
+                  _rememberExpandedForm(forms.idForm);
                   final formNo = forms.formNo.trim();
                   if (formNo.isNotEmpty) {
                     _searchController.value = TextEditingValue(
@@ -5214,13 +5277,20 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                     );
                     _searchQuery = formNo;
                     _searchField = 'formNo';
-                    _refreshData();
                   }
                 } else {
                   _expandedForms.remove(forms.idForm);
                   _clearSearch();
                 }
               });
+              if (expanded) {
+                final formNo = forms.formNo.trim();
+                if (formNo.isNotEmpty) {
+                  _refreshData();
+                } else {
+                  _loadToolDetailsOnly();
+                }
+              }
             },
             leading: Container(
               width: 35,
@@ -5335,30 +5405,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                 trailing: IconButton(
                   tooltip: 'Edit request',
                   icon: Icon(Icons.edit_document, color: clrOrange),
-                  onPressed: () {
-                    postContForm(
-                      forms.idForm,
-                      forms.formNo,
-                      forms.formServName,
-                      forms.formServComment,
-                      forms.formDateServName,
-                      forms.formCheckBy,
-                      forms.formDateCheckBy,
-                      forms.formSuperiorAprd,
-                      forms.formSuperiorComment,
-                      forms.formSadminComment,
-                      forms.formSheadAprd,
-                      forms.formSheadComment,
-                      forms.fromDateUpdate,
-                      forms.formUserUpdate,
-                      forms.formDateSuperiorAprd,
-                      forms.formDateSadminComment,
-                      forms.formDateSheadAprd,
-                      forms.formMilestone,
-                      forms.formStatusOrder,
-                      context,
-                    );
-                  },
+                  onPressed: () => _openEditRequestForm(forms),
                 ),
               ),
               GridView.count(
@@ -5729,7 +5776,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                     );
                   }
                   // #endregion
-                  if (state.isLoadingTool) {
+                  if (state.isLoadingTool && state.forms.isEmpty) {
                     return ShimmerListSliver(
                       itemCount: 6,
                       itemBuilder: _formCardSkeletonItem,

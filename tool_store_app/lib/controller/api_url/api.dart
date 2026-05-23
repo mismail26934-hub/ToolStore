@@ -1,10 +1,9 @@
 class ApiUrl {
-  static String server = 'http://192.168.1.31:8080/';
+  static String server = 'http://192.168.1.11:8080/';
   // static String server = 'http://10.157.164.69:8080/';
   static String fApiTool = 'api_tool';
   static String fApi = 'api_toolstore';
   static String fCnt = 'v1';
-  // static String folderUser = 'user';
   static String fUser = 'user';
   static String fForm = 'form';
   static String fFormDetail = 'form/detail';

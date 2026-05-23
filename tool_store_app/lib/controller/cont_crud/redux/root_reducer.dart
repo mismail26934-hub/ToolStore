@@ -28,6 +28,13 @@ final userReducer = combineReducers<UserState>([
       clearTotalUsers: true,
     ),
   ).call,
+  TypedReducer<UserState, FetchUsersRefreshAction>(
+    (state, action) => state.copyWith(
+      isLoading: true,
+      isLoadingMore: false,
+      error: null,
+    ),
+  ).call,
   TypedReducer<UserState, FetchUsersMoreAction>(
     (state, action) => state.copyWith(isLoadingMore: true, error: null),
   ).call,
@@ -83,6 +90,13 @@ final formReducer = combineReducers<FormsState>([
       clearTotalForms: true,
     ),
   ).call,
+  TypedReducer<FormsState, FetchDatasRefreshAction>(
+    (state, action) => state.copyWith(
+      isLoadingTool: true,
+      isLoadingMore: false,
+      error: null,
+    ),
+  ).call,
   TypedReducer<FormsState, FetchDatasMoreAction>(
     (state, action) => state.copyWith(isLoadingMore: true, error: null),
   ).call,
@@ -117,6 +131,12 @@ final formReducer = combineReducers<FormsState>([
       clearDashboardCountsError: true,
     ),
   ).call,
+  TypedReducer<FormsState, FetchDashboardCountsRefreshAction>(
+    (state, action) => state.copyWith(
+      isLoadingDashboardCounts: true,
+      clearDashboardCountsError: true,
+    ),
+  ).call,
   TypedReducer<FormsState, DashboardCountsLoadedAction>(
     (state, action) => state.copyWith(
       isLoadingDashboardCounts: false,
@@ -137,6 +157,10 @@ final formsDetailReducer = combineReducers<FormsDetailState>([
     (state, action) =>
         state.copyWith(formsDetail: [], isLoadingToolDetail: true, error: null),
   ).call,
+  TypedReducer<FormsDetailState, FetchDataToolsRefreshAction>(
+    (state, action) =>
+        state.copyWith(isLoadingToolDetail: true, error: null),
+  ).call,
   TypedReducer<FormsDetailState, DataToolsLoadedAction>(
     (state, action) => state.copyWith(
       isLoadingToolDetail: false,
@@ -154,6 +178,9 @@ final poReducer = combineReducers<PosDetailState>([
     (state, action) =>
         state.copyWith(posDetail: [], isLoadingPO: true, error: null),
   ).call,
+  TypedReducer<PosDetailState, FetchDataPORefresh>(
+    (state, action) => state.copyWith(isLoadingPO: true, error: null),
+  ).call,
   TypedReducer<PosDetailState, DataPOLoadedAction>(
     (state, action) =>
         state.copyWith(isLoadingPO: false, posDetail: action.poS),
@@ -168,6 +195,9 @@ final soReducer = combineReducers<SosDetailState>([
     (state, action) =>
         state.copyWith(sosDetail: [], isLoadingSO: true, error: null),
   ).call,
+  TypedReducer<SosDetailState, FetchDataSORefresh>(
+    (state, action) => state.copyWith(isLoadingSO: true, error: null),
+  ).call,
   TypedReducer<SosDetailState, DataSOLoadedAction>(
     (state, action) => state.copyWith(isLoadingSO: false, sosDetail: action.so),
   ).call,
@@ -180,6 +210,9 @@ final superriorReducer = combineReducers<SuperriorState>([
   TypedReducer<SuperriorState, FetchDataSuperrior>(
     (state, action) =>
         state.copyWith(superriorS: [], isLoadingSuperrior: true, error: null),
+  ).call,
+  TypedReducer<SuperriorState, FetchDataSuperriorRefresh>(
+    (state, action) => state.copyWith(isLoadingSuperrior: true, error: null),
   ).call,
   TypedReducer<SuperriorState, DataSuperriorLoadedAction>(
     (state, action) =>
@@ -196,6 +229,9 @@ final rcvWhReducer = combineReducers<RcvWhState>([
     (state, action) =>
         state.copyWith(rcvWhs: [], isLoadingrcvWh: true, error: null),
   ).call,
+  TypedReducer<RcvWhState, FetchDataRcvWhRefresh>(
+    (state, action) => state.copyWith(isLoadingrcvWh: true, error: null),
+  ).call,
   TypedReducer<RcvWhState, DataRcvWhLoadedAction>(
     (state, action) =>
         state.copyWith(isLoadingrcvWh: false, rcvWhs: action.rcvWh),
@@ -210,6 +246,9 @@ final rcvToolReducer = combineReducers<RcvToolState>([
   TypedReducer<RcvToolState, FetchDataRcvTool>(
     (state, action) =>
         state.copyWith(rcvTools: [], isLoadingrcvTool: true, error: null),
+  ).call,
+  TypedReducer<RcvToolState, FetchDataRcvToolRefresh>(
+    (state, action) => state.copyWith(isLoadingrcvTool: true, error: null),
   ).call,
   TypedReducer<RcvToolState, DataRcvToolLoadedAction>(
     (state, action) =>

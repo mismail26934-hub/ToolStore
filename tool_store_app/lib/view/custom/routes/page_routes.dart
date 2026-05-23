@@ -78,6 +78,7 @@ class PageRoutes {
     bool filterBlankFormMilestone = false,
     String? initialSearchQuery,
     String initialSearchField = 'all',
+    String? initialExpandedFormId,
   }) async {
     await Future.delayed(const Duration(milliseconds: 1));
     if (!context.mounted) return;
@@ -93,6 +94,7 @@ class PageRoutes {
               filterBlankFormMilestone: filterBlankFormMilestone,
               initialSearchQuery: initialSearchQuery,
               initialSearchField: initialSearchField,
+              initialExpandedFormId: initialExpandedFormId,
             ),
       ),
     );
@@ -109,7 +111,7 @@ class PageRoutes {
     ).pushReplacement(MaterialPageRoute(builder: (_) => const Login()));
   }
 
-  static Future<void> routeUserForm(
+  static Future<bool?> routeUserForm(
     BuildContext context,
     titles,
     onPressTailing, {
@@ -119,9 +121,9 @@ class PageRoutes {
     await Future.delayed(const Duration(milliseconds: 1));
 
     // Cek apakah context masih aktif/valid di layar
-    if (!context.mounted) return;
+    if (!context.mounted) return null;
 
-    Navigator.of(context).push(
+    return Navigator.of(context).push<bool>(
       MaterialPageRoute(
         builder: (_) => UserForm(
           title: titles,

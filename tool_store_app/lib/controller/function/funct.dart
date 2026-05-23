@@ -7,7 +7,7 @@ import 'package:tool_store_app/view/menu/tooll/tool_form.dart';
 import 'package:tool_store_app/l10n/app_strings.dart';
 import 'package:tool_store_app/view/var/var.dart';
 
-void postContUser(
+Future<bool?> postContUser(
   String idUsers,
   username,
   password,
@@ -19,7 +19,7 @@ void postContUser(
   String namaSuperior,
   BuildContext context, {
   bool levelReadOnly = false,
-  bool popOnSuccess = false,
+  bool popOnSuccess = true,
 }) {
   iduserFormCont.text = idUsers;
   usernameFormCont.text = username;
@@ -31,7 +31,7 @@ void postContUser(
   levelFormCont.text = level;
   superiorIdFormCont.text = superiorId;
   namaSuperiorFormCont.text = namaSuperior;
-  PageRoutes.routeUserForm(
+  return PageRoutes.routeUserForm(
     context,
     iduserFormCont.text.isEmpty
         ? AppStrings.current.addData
@@ -42,7 +42,7 @@ void postContUser(
   );
 }
 
-void postContForm(
+Future<T?> postContForm<T>(
   String idForm,
   dynamic formNo,
   dynamic servName,
@@ -106,7 +106,7 @@ void postContForm(
     'statusOrder': statusOrder,
   });
 
-  Navigator.push(
+  return Navigator.push<T>(
     context,
     MaterialPageRoute(
       builder: (context) => ToolForm(

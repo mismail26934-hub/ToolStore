@@ -26,6 +26,7 @@ class UserData extends StatefulWidget {
 class _UserDataState extends State<UserData> with MixinPref {
   // 1. Buat variabel key di sini
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  final ScrollController _scrollController = ScrollController();
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   String _searchField = 'all';
@@ -239,17 +240,16 @@ class _UserDataState extends State<UserData> with MixinPref {
               IconButton(
                 tooltip: context.s.editUserTooltip,
                 onPressed: () {
-                  postContUser(
-                    users.idUsers,
-                    users.username,
-                    users.password,
-                    users.namaUser,
-                    users.noTelp,
-                    users.idTU,
-                    users.level,
-                    users.superiorId,
-                    users.namaSuperior,
-                    context,
+                  _openUserForm(
+                    idUsers: users.idUsers,
+                    username: users.username,
+                    password: users.password,
+                    namaUser: users.namaUser,
+                    noTelp: users.noTelp,
+                    idTU: users.idTU,
+                    level: users.level,
+                    superiorId: users.superiorId,
+                    namaSuperior: users.namaSuperior,
                   );
                 },
                 icon: const Icon(Icons.edit_document),
@@ -309,13 +309,56 @@ class _UserDataState extends State<UserData> with MixinPref {
     );
   }
 
-  Future<void> _refreshUsers() async {
+  void _restoreScrollOffset(double offset) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_scrollController.hasClients) return;
+      final max = _scrollController.position.maxScrollExtent;
+      _scrollController.jumpTo(offset.clamp(0.0, max));
+    });
+  }
+
+  Future<void> _refreshUsers({bool preserveScroll = false}) async {
     if (!mounted) return;
+    final scrollOffset = preserveScroll && _scrollController.hasClients
+        ? _scrollController.offset
+        : null;
     setState(() => _currentPage = 1);
     try {
       await _fetchUsersPage(page: 1, append: false);
     } catch (_) {
       // Error already dispatched to Redux store.
+    }
+    if (scrollOffset != null && mounted) {
+      _restoreScrollOffset(scrollOffset);
+    }
+  }
+
+  Future<void> _openUserForm({
+    required String idUsers,
+    required String username,
+    required String password,
+    required String namaUser,
+    required String noTelp,
+    required String idTU,
+    required String level,
+    required String superiorId,
+    required String namaSuperior,
+  }) async {
+    final updated = await postContUser(
+      idUsers,
+      username,
+      password,
+      namaUser,
+      noTelp,
+      idTU,
+      level,
+      superiorId,
+      namaSuperior,
+      context,
+      popOnSuccess: true,
+    );
+    if (updated == true && mounted) {
+      await _refreshUsers(preserveScroll: true);
     }
   }
 
@@ -348,6 +391,7 @@ class _UserDataState extends State<UserData> with MixinPref {
   @override
   void dispose() {
     _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -509,11 +553,23 @@ class _UserDataState extends State<UserData> with MixinPref {
         body: RefreshIndicator(
           onRefresh: _refreshUsers,
           child: CustomScrollView(
+            key: const PageStorageKey<String>('user_data_scroll'),
+            controller: _scrollController,
             slivers: [
               SliverAppbars(
                 title: titleDataUser,
                 onPressTailing: () {
-                  postContUser("", "", "", "", "", "", "", "", "", context);
+                  _openUserForm(
+                    idUsers: '',
+                    username: '',
+                    password: '',
+                    namaUser: '',
+                    noTelp: '',
+                    idTU: '',
+                    level: '',
+                    superiorId: '',
+                    namaSuperior: '',
+                  );
                 },
                 onPressLeading: () => _scaffoldKey.currentState?.openDrawer(),
                 iconTailing: Icon(Icons.add),
@@ -524,7 +580,7 @@ class _UserDataState extends State<UserData> with MixinPref {
                 builder: (context, state) {
                   final hasMoreUsers = state.hasMore;
                   // 1. Tampilan saat Loading
-                  if (state.isLoading) {
+                  if (state.isLoading && state.users.isEmpty) {
                     return ShimmerListSliver(
                       itemCount: 6,
                       itemBuilder: (context, index) =>
@@ -575,7 +631,12 @@ class _UserDataState extends State<UserData> with MixinPref {
                       SliverList(
                         delegate: SliverChildBuilderDelegate((context, index) {
                           final users = state.users[index];
-                          return _buildUserCard(users, index);
+                          return KeyedSubtree(
+                            key: ValueKey<String>(
+                              'user_${users.idUsers.trim()}',
+                            ),
+                            child: _buildUserCard(users, index),
+                          );
                         }, childCount: state.users.length),
                       ),
                       if (state.totalUsers != null &&

@@ -17,6 +17,10 @@ const _milestoneSuperiorApproved = 'SUPERIOR APPROVED';
 const _milestoneReviewedByServiceAdmin = 'REVIEWED BY SERVICE ADMIN';
 const _milestoneApprovedByServiceDeptHead = 'APPROVED BY SERVICE DEPT. HEAD';
 
+/// Shimmer only on first load; pull-to-refresh keeps showing previous counts.
+bool _dashboardCountsShowLoading(FormsState fs) =>
+    fs.isLoadingDashboardCounts && fs.dashboardCounts == null;
+
 const _milestonesToolReceivedWhGaMenu = <String>[
   'RECEIVED BY WH/GA',
   'PARTIAL RECEIVED BY WH/GA',
@@ -103,7 +107,7 @@ class _DashboardState extends State<Dashboard> {
                               final fs = store.state.formsState;
                               return _ToolFormsCountVm(
                                 count: fs.dashboardCountsOrEmpty.draft,
-                                isLoading: fs.isLoadingDashboardCounts,
+                                isLoading: _dashboardCountsShowLoading(fs),
                               );
                             },
                             builder: (context, vm) => _DashboardCard(
@@ -130,7 +134,7 @@ class _DashboardState extends State<Dashboard> {
                               return _ToolFormsCountVm(
                                 count:
                                     fs.dashboardCountsOrEmpty.superiorApproval,
-                                isLoading: fs.isLoadingDashboardCounts,
+                                isLoading: _dashboardCountsShowLoading(fs),
                               );
                             },
                             builder: (context, vm) => _DashboardCard(
@@ -156,7 +160,7 @@ class _DashboardState extends State<Dashboard> {
                               final fs = store.state.formsState;
                               return _ToolFormsCountVm(
                                 count: fs.dashboardCountsOrEmpty.serviceAdmin,
-                                isLoading: fs.isLoadingDashboardCounts,
+                                isLoading: _dashboardCountsShowLoading(fs),
                               );
                             },
                             builder: (context, vm) => _DashboardCard(
@@ -182,7 +186,7 @@ class _DashboardState extends State<Dashboard> {
                               final fs = store.state.formsState;
                               return _ToolFormsCountVm(
                                 count: fs.dashboardCountsOrEmpty.deptHead,
-                                isLoading: fs.isLoadingDashboardCounts,
+                                isLoading: _dashboardCountsShowLoading(fs),
                               );
                             },
                             builder: (context, vm) => _DashboardCard(
@@ -208,7 +212,7 @@ class _DashboardState extends State<Dashboard> {
                               final fs = store.state.formsState;
                               return _ToolFormsCountVm(
                                 count: fs.dashboardCountsOrEmpty.counterGa,
-                                isLoading: fs.isLoadingDashboardCounts,
+                                isLoading: _dashboardCountsShowLoading(fs),
                               );
                             },
                             builder: (context, vm) => _DashboardCard(
@@ -235,7 +239,7 @@ class _DashboardState extends State<Dashboard> {
                               return _ToolFormsCountVm(
                                 count:
                                     fs.dashboardCountsOrEmpty.toolReceivedWhGa,
-                                isLoading: fs.isLoadingDashboardCounts,
+                                isLoading: _dashboardCountsShowLoading(fs),
                               );
                             },
                             builder: (context, vm) => _DashboardCard(
@@ -352,7 +356,7 @@ class _DashboardHeader extends StatelessWidget {
         final fs = store.state.formsState;
         return _ToolFormsCountVm(
           count: fs.dashboardCountsOrEmpty.notificationTotal,
-          isLoading: fs.isLoadingDashboardCounts,
+          isLoading: _dashboardCountsShowLoading(fs),
         );
       },
       builder: (context, vm) => Container(

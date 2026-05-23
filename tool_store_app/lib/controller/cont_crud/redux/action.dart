@@ -4,6 +4,9 @@ import 'package:tool_store_app/controller/cont_crud/redux/state.dart';
 // Dipanggil saat mulai loading
 class FetchUsersAction {}
 
+/// Reload user list without clearing existing rows (keeps scroll position).
+class FetchUsersRefreshAction {}
+
 class FetchUsersMoreAction {}
 
 class UsersLoadedAction {
@@ -44,6 +47,9 @@ class UsersErrorAction {
 // TOOL
 class FetchDatasAction {}
 
+/// Reload form list without clearing existing rows (keeps scroll position).
+class FetchDatasRefreshAction {}
+
 class FetchDatasMoreAction {}
 
 class DatasLoadedAction {
@@ -83,6 +89,9 @@ class DatasErrorAction {
 
 class FetchDashboardCountsAction {}
 
+/// Reload dashboard counts without clearing cached values.
+class FetchDashboardCountsRefreshAction {}
+
 class DashboardCountsLoadedAction {
   final FormDashboardCounts counts;
   DashboardCountsLoadedAction(this.counts);
@@ -95,6 +104,9 @@ class DashboardCountsErrorAction {
 
 // TOOL DETAIL
 class FetchDataToolsAction {}
+
+/// Reload tool details without clearing existing rows.
+class FetchDataToolsRefreshAction {}
 
 class DataToolsLoadedAction {
   // Dipanggil saat data berhasil didapat
@@ -111,6 +123,8 @@ class DataToolsErrorAction {
 // PO
 class FetchDataPO {}
 
+class FetchDataPORefresh {}
+
 class DataPOLoadedAction {
   final List<PostList> poS;
   DataPOLoadedAction(this.poS);
@@ -123,6 +137,8 @@ class DataPOErrorAction {
 
 // SO
 class FetchDataSO {}
+
+class FetchDataSORefresh {}
 
 class DataSOLoadedAction {
   final List<PostList> so;
@@ -137,6 +153,8 @@ class DataSOErrorAction {
 // SUPERRIOR
 class FetchDataSuperrior {}
 
+class FetchDataSuperriorRefresh {}
+
 class DataSuperriorLoadedAction {
   final List<PostList> superrior;
   DataSuperriorLoadedAction(this.superrior);
@@ -150,6 +168,8 @@ class DataSuperriorErrorAction {
 // RCV WH
 class FetchDataRcvWh {}
 
+class FetchDataRcvWhRefresh {}
+
 class DataRcvWhLoadedAction {
   final List<PostList> rcvWh;
   DataRcvWhLoadedAction(this.rcvWh);
@@ -162,6 +182,8 @@ class DataRcvWhErrorAction {
 
 // RCV TOOL ROOM
 class FetchDataRcvTool {}
+
+class FetchDataRcvToolRefresh {}
 
 class DataRcvToolLoadedAction {
   final List<PostList> rcvTool;

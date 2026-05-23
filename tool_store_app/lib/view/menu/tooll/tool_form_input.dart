@@ -48,6 +48,52 @@ List<PostList> _filterUserPickerRows(List<PostList> list, String query) {
   }).toList();
 }
 
+List<PostList> _applyUserPickerFieldFilter(
+  List<PostList> list,
+  String searchField,
+  String query,
+) {
+  final q = query.trim().toLowerCase();
+  if (q.isEmpty) return list;
+  switch (searchField) {
+    case 'username':
+      return list.where((u) => u.username.toLowerCase().contains(q)).toList();
+    case 'name':
+      return list.where((u) => u.namaUser.toLowerCase().contains(q)).toList();
+    case 'phone':
+      return list.where((u) => u.noTelp.toLowerCase().contains(q)).toList();
+    case 'level':
+      return list.where((u) => u.level.toLowerCase().contains(q)).toList();
+    case 'status':
+      return list.where((u) => u.status.toLowerCase().contains(q)).toList();
+    default:
+      return _filterUserPickerRows(list, query);
+  }
+}
+
+List<PostList> _sortUsersForPicker(List<PostList> list) {
+  final sorted = List<PostList>.from(list)
+    ..sort(
+      (a, b) => _userPickLabel(
+        a,
+      ).toLowerCase().compareTo(_userPickLabel(b).toLowerCase()),
+    );
+  return sorted;
+}
+
+List<PostList> _mergePickerUsers(List<PostList> existing, List<PostList> incoming) {
+  if (incoming.isEmpty) return existing;
+  final ids = existing.map((u) => u.idUsers.trim()).toSet();
+  final merged = List<PostList>.from(existing);
+  for (final user in incoming) {
+    final id = user.idUsers.trim();
+    if (id.isEmpty || ids.contains(id)) continue;
+    merged.add(user);
+    ids.add(id);
+  }
+  return merged;
+}
+
 List<PostList> _filterUsersByLevel(List<PostList> list, String level) {
   final target = level.trim().toUpperCase();
   if (target.isEmpty) return list;
@@ -66,12 +112,14 @@ bool _currentFormHasToolListItems(AppState state) {
 
 class _ToolUserPickerDialog extends StatefulWidget {
   const _ToolUserPickerDialog({
-    required this.users,
+    required this.userLevel,
+    required this.initialUsers,
     required this.title,
     required this.onSelected,
   });
 
-  final List<PostList> users;
+  final String userLevel;
+  final List<PostList> initialUsers;
   final String title;
   final ValueChanged<PostList> onSelected;
 
@@ -80,26 +128,402 @@ class _ToolUserPickerDialog extends StatefulWidget {
 }
 
 class _ToolUserPickerDialogState extends State<_ToolUserPickerDialog> {
-  final TextEditingController _search = TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  String _searchField = 'all';
+  List<PostList> _users = [];
+  int _currentPage = 1;
+  int? _totalUsers;
+  bool _hasMore = false;
+  bool _isLoading = false;
+  bool _isLoadingMore = false;
+  String? _error;
+
+  bool get _canSubmitSearch => _searchController.text.trim().isNotEmpty;
+
+  @override
+  void initState() {
+    super.initState();
+    _users = _sortUsersForPicker(
+      _filterUsersByLevel(_dedupeUsersById(widget.initialUsers), widget.userLevel),
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) => _fetchUsers());
+  }
 
   @override
   void dispose() {
-    _search.dispose();
+    _searchController.dispose();
     super.dispose();
+  }
+
+  Future<void> _fetchUsers({bool append = false}) async {
+    if (!mounted) return;
+    if (append) {
+      if (_isLoadingMore || !_hasMore) return;
+      setState(() => _isLoadingMore = true);
+    } else {
+      setState(() {
+        _isLoading = true;
+        _error = null;
+        _currentPage = 1;
+      });
+    }
+    final page = append ? _currentPage + 1 : 1;
+    try {
+      final parsed = await fetchUsersForPicker(
+        keyword: _searchQuery,
+        searchField: _searchField,
+        levelFilter: widget.userLevel,
+        page: page,
+        limit: kUserPageSize,
+      );
+      var list = parsed.items;
+      if (_searchQuery.isNotEmpty && _searchField != 'all') {
+        list = _applyUserPickerFieldFilter(list, _searchField, _searchQuery);
+      }
+      final merged = append
+          ? _mergePickerUsers(_users, list)
+          : list;
+      final deduped = _dedupeUsersById(merged);
+      final total = parsed.total;
+      final hasMore = total != null
+          ? deduped.length < total
+          : list.length >= kUserPageSize;
+      if (!mounted) return;
+      setState(() {
+        _users = _sortUsersForPicker(deduped);
+        _currentPage = page;
+        _totalUsers = total;
+        _hasMore = hasMore;
+        _isLoading = false;
+        _isLoadingMore = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString().replaceFirst(RegExp(r'^Exception:\s*'), '');
+        _isLoading = false;
+        _isLoadingMore = false;
+      });
+    }
+  }
+
+  Future<void> _loadMoreUsers() async {
+    await _fetchUsers(append: true);
+  }
+
+  String _pickerLoadSummary() {
+    final n = _users.length;
+    final t = _totalUsers;
+    if (t != null) {
+      return context.s.usersLoadedSummary(n, t);
+    }
+    return context.s.usersLoadedCount(n);
+  }
+
+  void _submitSearch() {
+    final query = _searchController.text.trim();
+    if (query.isEmpty) return;
+    setState(() => _searchQuery = query);
+    _fetchUsers();
+  }
+
+  void _clearSearch() {
+    _searchController.clear();
+    setState(() {
+      _searchQuery = '';
+      _searchField = 'all';
+    });
+    _fetchUsers();
+  }
+
+  void _onSearchTextEdited() => setState(() {});
+
+  Widget _buildSearchBar() {
+    final s = context.s;
+    final fieldLabels = s.userSearchFieldLabels;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: TextField(
+              controller: _searchController,
+              onChanged: (_) => _onSearchTextEdited(),
+              onSubmitted: _canSubmitSearch ? (_) => _submitSearch() : null,
+              textInputAction: TextInputAction.search,
+              decoration: InputDecoration(
+                hintText: s.searchUserHint,
+                hintStyle: TextStyle(color: context.iconMuted),
+                prefixIcon: IconButton(
+                  icon: Icon(
+                    Icons.search,
+                    color: _canSubmitSearch ? clrOrange : context.iconMuted,
+                  ),
+                  tooltip: s.search,
+                  onPressed: _canSubmitSearch ? _submitSearch : null,
+                ),
+                filled: true,
+                fillColor: context.searchAccentFill,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 12,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: context.searchAccentBorder),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: context.searchAccentBorder),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: clrOrange, width: 1.4),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            decoration: BoxDecoration(
+              color: context.searchAccentFill,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: context.searchAccentBorder),
+            ),
+            child: DropdownButton<String>(
+              value: _searchField,
+              underline: const SizedBox.shrink(),
+              iconEnabledColor: clrOrange,
+              borderRadius: BorderRadius.circular(12),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Colors.orange.shade900,
+                fontWeight: FontWeight.w600,
+              ),
+              items: fieldLabels.entries
+                  .map(
+                    (entry) => DropdownMenuItem<String>(
+                      value: entry.key,
+                      child: Text(entry.value),
+                    ),
+                  )
+                  .toList(),
+              onChanged: _isLoading
+                  ? null
+                  : (value) {
+                      if (value == null) return;
+                      setState(() => _searchField = value);
+                      if (_searchQuery.isNotEmpty) {
+                        _fetchUsers();
+                      }
+                    },
+            ),
+          ),
+          if (_searchController.text.trim().isNotEmpty)
+            Container(
+              margin: const EdgeInsets.only(left: 6),
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.red.shade100),
+              ),
+              child: IconButton(
+                onPressed: _isLoading ? null : _clearSearch,
+                icon: Icon(Icons.close_rounded, color: Colors.red.shade400),
+                tooltip: s.clearSearch,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUserTile(PostList u, ThemeData theme) {
+    final title = _userPickLabel(u);
+    final un = u.username.trim();
+    final showUserLine =
+        un.isNotEmpty && un.toLowerCase() != title.toLowerCase();
+    return Material(
+      color: context.cardSurface,
+      borderRadius: BorderRadius.circular(16),
+      elevation: 0,
+      child: InkWell(
+        onTap: () => widget.onSelected(u),
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: context.cardBorder),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          child: Row(
+            children: [
+              CircleAvatar(
+                backgroundColor: clrOrange.withValues(alpha: 0.14),
+                foregroundColor: clrOrange,
+                radius: 22,
+                child: Text(
+                  title.isNotEmpty
+                      ? title.characters.first.toUpperCase()
+                      : '?',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    if (showUserLine) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        '@$un',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: context.iconMuted,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right_rounded, color: context.iconMuted),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildResults(ThemeData theme) {
+    if (_isLoading && _users.isEmpty) {
+      return Center(child: CircularProgressIndicator(color: clrOrange));
+    }
+    if (_error != null && _users.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Text(
+            _error!,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium?.copyWith(color: clrRed),
+          ),
+        ),
+      );
+    }
+    if (_users.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.person_search_rounded,
+                size: 48,
+                color: context.iconMuted,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                _searchQuery.isNotEmpty
+                    ? context.s.searchNotFound(_searchQuery)
+                    : context.s.noSearchResults,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: context.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(
+          child: Stack(
+            children: [
+              ListView.separated(
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                itemCount: _users.length,
+                separatorBuilder: (_, _) => const SizedBox(height: 8),
+                itemBuilder: (context, i) => _buildUserTile(_users[i], theme),
+              ),
+              if (_isLoading && !_isLoadingMore)
+                Positioned(
+                  top: 8,
+                  right: 24,
+                  child: SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: clrOrange,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        if (_users.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 14),
+            child: Column(
+              children: [
+                Text(
+                  _pickerLoadSummary(),
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: context.textSecondary,
+                  ),
+                ),
+                if (_hasMore) ...[
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: _isLoadingMore ? null : _loadMoreUsers,
+                      icon: _isLoadingMore
+                          ? SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.orange.shade800,
+                              ),
+                            )
+                          : const Icon(Icons.expand_more),
+                      label: Text(
+                        _isLoadingMore
+                            ? context.s.loading
+                            : context.s.loadMoreUsers(kUserPageSize),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+      ],
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final deduped = _dedupeUsersById(widget.users);
-    final filtered = List<PostList>.from(
-      _filterUserPickerRows(deduped, _search.text),
-    )..sort(
-        (a, b) => _userPickLabel(
-          a,
-        ).toLowerCase().compareTo(_userPickLabel(b).toLowerCase()),
-      );
-    final h = min(MediaQuery.sizeOf(context).height * 0.72, 520.0);
+    final h = min(MediaQuery.sizeOf(context).height * 0.72, 560.0);
 
     return Dialog(
       backgroundColor: Colors.transparent,
@@ -123,7 +547,7 @@ class _ToolUserPickerDialogState extends State<_ToolUserPickerDialog> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Container(
-              padding: const EdgeInsets.fromLTRB(18, 16, 8, 16),
+              padding: const EdgeInsets.fromLTRB(18, 16, 8, 12),
               decoration: BoxDecoration(
                 color: context.cardSurface,
                 border: Border(bottom: BorderSide(color: context.cardBorder)),
@@ -175,155 +599,8 @@ class _ToolUserPickerDialogState extends State<_ToolUserPickerDialog> {
                 ],
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
-              child: TextField(
-                controller: _search,
-                onChanged: (_) => setState(() {}),
-                textInputAction: TextInputAction.search,
-                decoration: InputDecoration(
-                  hintText: context.s.searchNameOrUsernameHint,
-                  prefixIcon: Icon(Icons.search_rounded, color: clrOrange),
-                  filled: true,
-                  fillColor: context.inputFill,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 14,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide(color: context.cardBorder),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide(color: context.cardBorder),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide(color: clrOrange, width: 1.6),
-                  ),
-                  suffixIcon: _search.text.isEmpty
-                      ? null
-                      : IconButton(
-                          icon: const Icon(Icons.clear_rounded, size: 20),
-                          onPressed: () {
-                            _search.clear();
-                            setState(() {});
-                          },
-                        ),
-                ),
-              ),
-            ),
-            Expanded(
-              child: filtered.isEmpty
-                  ? Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(24),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.person_search_rounded,
-                              size: 48,
-                              color: context.iconMuted,
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              widget.users.isEmpty
-                                  ? context.s.noUserData
-                                  : context.s.noSearchResults,
-                              textAlign: TextAlign.center,
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: context.textSecondary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    )
-                  : ListView.separated(
-                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 18),
-                      itemCount: filtered.length,
-                      separatorBuilder: (_, _) => const SizedBox(height: 8),
-                      itemBuilder: (context, i) {
-                        final u = filtered[i];
-                        final title = _userPickLabel(u);
-                        final un = u.username.trim();
-                        final showUserLine = un.isNotEmpty &&
-                            un.toLowerCase() != title.toLowerCase();
-                        return Material(
-                          color: context.cardSurface,
-                          borderRadius: BorderRadius.circular(16),
-                          elevation: 0,
-                          child: InkWell(
-                            onTap: () => widget.onSelected(u),
-                            borderRadius: BorderRadius.circular(16),
-                            child: Container(
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(color: context.cardBorder),
-                              ),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 14,
-                                vertical: 12,
-                              ),
-                              child: Row(
-                                children: [
-                                  CircleAvatar(
-                                    backgroundColor: clrOrange.withValues(
-                                      alpha: 0.14,
-                                    ),
-                                    foregroundColor: clrOrange,
-                                    radius: 22,
-                                    child: Text(
-                                      title.isNotEmpty
-                                          ? title.characters.first.toUpperCase()
-                                          : '?',
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          title,
-                                          style: theme.textTheme.titleSmall
-                                              ?.copyWith(
-                                                fontWeight: FontWeight.w700,
-                                              ),
-                                        ),
-                                        if (showUserLine) ...[
-                                          const SizedBox(height: 2),
-                                          Text(
-                                            '@$un',
-                                            style: theme.textTheme.bodySmall
-                                                ?.copyWith(
-                                                  color: context.iconMuted,
-                                                  fontStyle: FontStyle.italic,
-                                                ),
-                                          ),
-                                        ],
-                                      ],
-                                    ),
-                                  ),
-                                  Icon(
-                                    Icons.chevron_right_rounded,
-                                    color: context.iconMuted,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-            ),
+            _buildSearchBar(),
+            Expanded(child: _buildResults(theme)),
           ],
         ),
       ),
@@ -348,7 +625,7 @@ class ToolFormInputState extends State<ToolFormInput> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final st = store.state.userState;
-      if (st.users.isEmpty && !st.isLoading) {
+      if (!st.isLoading) {
         store.dispatch(
           getDataUser(
             param: paramViewDataUser,
@@ -497,25 +774,20 @@ class ToolFormInputState extends State<ToolFormInput> {
     );
   }
 
-  Future<void> _openToolUserPicker(
-    List<PostList> raw, {
+  Future<void> _openToolUserPicker({
+    required String userLevel,
+    required List<PostList> initialUsers,
     required TextEditingController targetCont,
     required String dialogTitle,
-    required String emptyDataMessage,
     VoidCallback? onPicked,
   }) async {
     if (!mounted) return;
-    if (raw.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(emptyDataMessage)),
-      );
-      return;
-    }
     await showDialog<void>(
       context: context,
       barrierColor: Colors.black.withValues(alpha: 0.4),
       builder: (ctx) => _ToolUserPickerDialog(
-        users: raw,
+        userLevel: userLevel,
+        initialUsers: initialUsers,
         title: dialogTitle,
         onSelected: (u) {
           Navigator.pop(ctx);
@@ -531,12 +803,12 @@ class ToolFormInputState extends State<ToolFormInput> {
 
   Widget _buildToolUserPickerField({
     required BuildContext context,
+    required String userLevel,
     required List<PostList> users,
     required TextEditingController controller,
     required String label,
     required String placeholder,
     required String dialogTitle,
-    required String emptyDataMessage,
   }) {
     return ListenableBuilder(
       listenable: controller,
@@ -557,10 +829,10 @@ class ToolFormInputState extends State<ToolFormInput> {
                   color: Colors.transparent,
                   child: InkWell(
                     onTap: () => _openToolUserPicker(
-                      users,
+                      userLevel: userLevel,
+                      initialUsers: users,
                       targetCont: controller,
                       dialogTitle: dialogTitle,
-                      emptyDataMessage: emptyDataMessage,
                       onPicked: () => field.didChange(
                         controller.text.trim().isNotEmpty
                             ? controller.text
@@ -709,6 +981,21 @@ class ToolFormInputState extends State<ToolFormInput> {
     );
   }
 
+  Future<void> _returnToToolList(BuildContext context) async {
+    final formId = idFormCont.text.trim();
+    final formNo = formNoCont.text.trim();
+    if (Navigator.canPop(context)) {
+      Navigator.pop(context, formId);
+      return;
+    }
+    await PageRoutes.routeTool(
+      context,
+      initialExpandedFormId: formId.isNotEmpty ? formId : null,
+      initialSearchQuery: formNo.isNotEmpty ? formNo : null,
+      initialSearchField: 'formNo',
+    );
+  }
+
   void _showDeleteDialog() {
     ShowDialogBox.show(
       context: context,
@@ -723,6 +1010,10 @@ class ToolFormInputState extends State<ToolFormInput> {
         if (!mounted) return;
         final isSuccess = await _submitFormData(paramDeleteDataForm);
         if (!mounted || !isSuccess) return;
+        if (Navigator.canPop(context)) {
+          Navigator.pop(context);
+          return;
+        }
         await PageRoutes.routeTool(context);
       },
       textNo: AppStrings.current.cancel,
@@ -1022,14 +1313,12 @@ class ToolFormInputState extends State<ToolFormInput> {
                               ),
                               child: _buildToolUserPickerField(
                                 context: context,
+                                userLevel: 'MECHANIC',
                                 users: mechanicUsers,
                                 controller: servNameCont,
                                 label: context.s.searchFieldServiceman,
                                 placeholder: context.s.tapToPickServiceman,
                                 dialogTitle: context.s.pickServicemanTitle,
-                                emptyDataMessage: userState.isLoading
-                                    ? context.s.userDataNotLoaded
-                                    : context.s.noMechanicUsers,
                               ),
                             ),
                             const SizedBox(height: 10),
@@ -1042,14 +1331,12 @@ class ToolFormInputState extends State<ToolFormInput> {
                               ),
                               child: _buildToolUserPickerField(
                                 context: context,
+                                userLevel: 'TOOL_KEEPER',
                                 users: toolKeeperUsers,
                                 controller: checkedByCont,
                                 label: context.s.checkBy,
                                 placeholder: context.s.tapToPickCheckBy,
                                 dialogTitle: context.s.pickCheckByTitle,
-                                emptyDataMessage: userState.isLoading
-                                    ? context.s.userDataNotLoaded
-                                    : context.s.noToolKeeperUsers,
                               ),
                             ),
                           ],
@@ -1101,7 +1388,7 @@ class ToolFormInputState extends State<ToolFormInput> {
                             );
                             if (!mounted || !isSuccess) return;
                             if (!context.mounted) return;
-                            await PageRoutes.routeTool(context);
+                            await _returnToToolList(context);
                           }
                         },
                         textNo: context.s.cancel,

@@ -343,7 +343,7 @@ class UserFormInput extends StatefulWidget {
 
 class _UserFormInputState extends State<UserFormInput> {
   final _formKey = GlobalKey<FormState>();
-  bool _isLoading = false;
+  bool _isSubmitting = false;
   bool get _isEditMode => iduserFormCont.text.isNotEmpty;
 
   Future<void> _clearSessionAndRouteLogin() async {
@@ -353,32 +353,12 @@ class _UserFormInputState extends State<UserFormInput> {
     PageRoutes.routeLoginFast(context);
   }
 
-  Future<void> _refreshUserList() async {
-    await store.dispatch(
-      getDataUser(
-        param: paramViewDataUser,
-        idUsers: '',
-        username: '',
-        password: '',
-        namaUser: '',
-        foto: '',
-        idTU: '',
-        noTelp: '',
-        token: '',
-        level: '',
-        status: '',
-        superiorId: '',
-        limit: kUserFullFetchLimit,
-      ),
-    );
-  }
-
   Future<void> submitData(String params) async {
     final isDelete = params == paramDeleteDataUser;
     if (!isDelete && !_formKey.currentState!.validate()) return;
 
     setState(() {
-      _isLoading = true;
+      _isSubmitting = true;
     });
 
     try {
@@ -420,7 +400,6 @@ class _UserFormInputState extends State<UserFormInput> {
       final bool isSuccess = responseValue == '1';
 
       if (isSuccess) {
-        await _refreshUserList();
         if (!mounted) return;
         final msg = responseMessage.isNotEmpty
             ? responseMessage
@@ -442,14 +421,13 @@ class _UserFormInputState extends State<UserFormInput> {
             return;
           }
         }
-        if (widget.popOnSuccess) {
-          if (!mounted) return;
-          Navigator.of(context).pop();
+        if (!mounted) return;
+        if (widget.popOnSuccess || Navigator.canPop(context)) {
+          Navigator.of(context).pop(true);
         } else {
           await PageRoutes.routeUser(context);
         }
       } else {
-        await _refreshUserList();
         if (!mounted) return;
         final msg = responseMessage.isNotEmpty
             ? responseMessage
@@ -464,7 +442,7 @@ class _UserFormInputState extends State<UserFormInput> {
         context,
       ).showSnackBar(SnackBar(content: Text(e.toString())));
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) setState(() => _isSubmitting = false);
     }
   }
 
@@ -702,11 +680,7 @@ class _UserFormInputState extends State<UserFormInput> {
           ),
         ),
       ),
-      body: _isLoading
-          ? const SafeArea(
-              child: AppShimmer(child: FormPageSkeleton(sectionCount: 2)),
-            )
-          : SafeArea(
+      body: SafeArea(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(16, 14, 16, 18),
                 child: Form(
@@ -908,7 +882,9 @@ class _UserFormInputState extends State<UserFormInput> {
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
-                          onPressed: () {
+                          onPressed: _isSubmitting
+                              ? null
+                              : () {
                             if (_formKey.currentState!.validate()) {
                               ShowDialogBox.show(
                                 context: context,
@@ -949,7 +925,16 @@ class _UserFormInputState extends State<UserFormInput> {
                               borderRadius: BorderRadius.circular(16),
                             ),
                           ),
-                          child: Row(
+                          child: _isSubmitting
+                              ? const SizedBox(
+                                  height: 22,
+                                  width: 22,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(

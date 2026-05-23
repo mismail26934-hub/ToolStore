@@ -26,7 +26,7 @@ Future<void> preloadAuthenticatedData() async {
   store.dispatch(
     getDataUser(
       param: paramViewDataUser,
-      idUsers: creds.idUsers,
+      idUsers: '',
       username: '',
       password: '',
       namaUser: '',
@@ -141,6 +141,38 @@ Future<void> preloadAuthenticatedData() async {
   store.dispatch(getDashboardFormCounts());
 }
 
+/// Fetches users for picker dialogs without updating [UserState] in Redux.
+Future<ParsedUserListResult> fetchUsersForPicker({
+  String keyword = '',
+  String searchField = 'all',
+  String levelFilter = '',
+  int page = 1,
+  int limit = kUserPageSize,
+}) async {
+  final body = <String, dynamic>{
+    'param': paramViewDataUser,
+    'username': '',
+    'password': '',
+    'nama_user': '',
+    'foto': '',
+    'id_tu': '',
+    'no_telp': '',
+    'token': '',
+    'level': levelFilter.trim(),
+    'status': '',
+    'superior_id': '',
+    'page': page.toString(),
+    'limit': limit.toString(),
+  };
+  final kw = keyword.trim();
+  if (kw.isNotEmpty) {
+    body['keyword'] = kw;
+    body['search_field'] = searchField.trim().isEmpty ? 'all' : searchField.trim();
+  }
+  final response = await apiPost(ApiUrl.contDataUser, body);
+  return parseUserListResponse(response.data);
+}
+
 // DATA USER
 ThunkAction<AppState> getDataUser({
   required String param,
@@ -165,14 +197,17 @@ ThunkAction<AppState> getDataUser({
 }) {
   return (Store<AppState> store) async {
     final isView = param == paramViewDataUser;
-    if (append && isView) {
-      store.dispatch(FetchUsersMoreAction());
-    } else {
-      store.dispatch(FetchUsersAction());
+    if (isView) {
+      if (append) {
+        store.dispatch(FetchUsersMoreAction());
+      } else if (store.state.userState.users.isNotEmpty) {
+        store.dispatch(FetchUsersRefreshAction());
+      } else {
+        store.dispatch(FetchUsersAction());
+      }
     }
     final body = <String, dynamic>{
       'param': param,
-      'id_users': idUsers,
       'username': username,
       'password': password,
       'nama_user': namaUser,
@@ -186,6 +221,10 @@ ThunkAction<AppState> getDataUser({
       'page': page.toString(),
       'limit': limit.toString(),
     };
+    final idUsersTrim = idUsers.trim();
+    if (idUsersTrim.isNotEmpty) {
+      body['id_users'] = idUsersTrim;
+    }
     final kw = viewKeyword.trim();
     if (isView && kw.isNotEmpty) {
       body['keyword'] = kw;
@@ -213,22 +252,24 @@ ThunkAction<AppState> getDataUser({
         hasMore = false;
       }
 
-      if (append && isView) {
-        store.dispatch(
-          UsersAppendAction(listUser, hasMore: hasMore, totalUsers: apiTotal),
-        );
-      } else {
-        store.dispatch(
-          UsersLoadedAction(listUser, hasMore: hasMore, totalUsers: apiTotal),
-        );
+      if (isView) {
+        if (append) {
+          store.dispatch(
+            UsersAppendAction(listUser, hasMore: hasMore, totalUsers: apiTotal),
+          );
+        } else {
+          store.dispatch(
+            UsersLoadedAction(listUser, hasMore: hasMore, totalUsers: apiTotal),
+          );
+        }
       }
       return listUser;
     } on DioException catch (e) {
       final msg = applyDioError(e);
-      store.dispatch(UsersErrorAction(errors));
+      if (isView) store.dispatch(UsersErrorAction(msg));
       throw Exception(msg);
     } catch (e) {
-      store.dispatch(UsersErrorAction(e.toString()));
+      if (isView) store.dispatch(UsersErrorAction(e.toString()));
       throw Exception(e);
     }
   };
@@ -255,7 +296,11 @@ FormDashboardCounts parseDashboardCountsResponse(dynamic responseBody) {
 /// COUNT milestone dashboard dari `cont_form.php` (param DASHBOARD COUNT FORM).
 ThunkAction<AppState> getDashboardFormCounts() {
   return (Store<AppState> store) async {
-    store.dispatch(FetchDashboardCountsAction());
+    if (store.state.formsState.dashboardCounts != null) {
+      store.dispatch(FetchDashboardCountsRefreshAction());
+    } else {
+      store.dispatch(FetchDashboardCountsAction());
+    }
     try {
       final response = await apiPost(ApiUrl.contDataTool, {
         'param': paramDashboardCountForm,
@@ -303,10 +348,14 @@ ThunkAction<AppState> getDataTool({
 }) {
   return (Store<AppState> store) async {
     final isView = param == paramViewDataForm;
-    if (append && isView) {
-      store.dispatch(FetchDatasMoreAction());
-    } else {
-      store.dispatch(FetchDatasAction());
+    if (isView) {
+      if (append) {
+        store.dispatch(FetchDatasMoreAction());
+      } else if (store.state.formsState.forms.isNotEmpty) {
+        store.dispatch(FetchDatasRefreshAction());
+      } else {
+        store.dispatch(FetchDatasAction());
+      }
     }
     final body = <String, dynamic>{
       'param': param,
@@ -379,22 +428,24 @@ ThunkAction<AppState> getDataTool({
         hasMore = false;
       }
 
-      if (append && isView) {
-        store.dispatch(
-          DatasAppendAction(listTool, hasMore: hasMore, totalForms: apiTotal),
-        );
-      } else {
-        store.dispatch(
-          DatasLoadedAction(listTool, hasMore: hasMore, totalForms: apiTotal),
-        );
+      if (isView) {
+        if (append) {
+          store.dispatch(
+            DatasAppendAction(listTool, hasMore: hasMore, totalForms: apiTotal),
+          );
+        } else {
+          store.dispatch(
+            DatasLoadedAction(listTool, hasMore: hasMore, totalForms: apiTotal),
+          );
+        }
       }
       return listTool;
     } on DioException catch (e) {
       final msg = applyDioError(e);
-      store.dispatch(DatasErrorAction(errors));
+      if (isView) store.dispatch(DatasErrorAction(msg));
       throw Exception(msg);
     } catch (e) {
-      store.dispatch(DatasErrorAction(e.toString()));
+      if (isView) store.dispatch(DatasErrorAction(e.toString()));
       throw Exception(e);
     }
   };
@@ -614,7 +665,12 @@ ThunkAction<AppState> getDataToolDetail({
   required String formDetailUser,
 }) {
   return (Store<AppState> store) async {
-    store.dispatch(FetchDataToolsAction());
+    final isView = param == paramViewDataTool;
+    if (isView && store.state.formsDetailState.formsDetail.isNotEmpty) {
+      store.dispatch(FetchDataToolsRefreshAction());
+    } else if (isView) {
+      store.dispatch(FetchDataToolsAction());
+    }
     final body = <String, dynamic>{
       'param': param,
       'id_form_detail': idFormDetail,
@@ -940,7 +996,12 @@ ThunkAction<AppState> getDataPO({
   required String userUpdatePO,
 }) {
   return (Store<AppState> store) async {
-    store.dispatch(FetchDataPO());
+    final isView = param == paramViewDataPO;
+    if (isView && store.state.posDetailState.posDetail.isNotEmpty) {
+      store.dispatch(FetchDataPORefresh());
+    } else if (isView) {
+      store.dispatch(FetchDataPO());
+    }
     final body = <String, dynamic>{
       'param': param,
       'id_po': idPO,
@@ -979,7 +1040,12 @@ ThunkAction<AppState> getDataSO({
   required String idUpdateSo,
 }) {
   return (Store<AppState> store) async {
-    store.dispatch(FetchDataSO());
+    final isView = param == paramViewDataSO;
+    if (isView && store.state.sosDetailState.sosDetail.isNotEmpty) {
+      store.dispatch(FetchDataSORefresh());
+    } else if (isView) {
+      store.dispatch(FetchDataSO());
+    }
     final body = <String, dynamic>{
       'param': param,
       'id_so': idSo,
@@ -994,7 +1060,7 @@ ThunkAction<AppState> getDataSO({
     try {
       final response = await apiPost(ApiUrl.contSO, body);
       final SoFetchResult result = _parseSoFetchResponse(response.data, param);
-      print('response.data: ${response.data}');
+      // print('response.data: ${response.data}');
       store.dispatch(DataSOLoadedAction(result.list));
       return result;
     } on DioException catch (e) {
@@ -1019,7 +1085,12 @@ ThunkAction<AppState> getDataSuperrior({
   required String dateInputSuperior,
 }) {
   return (Store<AppState> store) async {
-    store.dispatch(FetchDataSuperrior());
+    final isView = param == paramViewDataSuperrior;
+    if (isView && store.state.superriorState.superriorS.isNotEmpty) {
+      store.dispatch(FetchDataSuperriorRefresh());
+    } else if (isView) {
+      store.dispatch(FetchDataSuperrior());
+    }
     final body = <String, dynamic>{
       'param': param,
       'superior_id': superiorId,
@@ -1056,7 +1127,12 @@ ThunkAction<AppState> getDataRcvWh({
   required String rcvWhDateInput,
 }) {
   return (Store<AppState> store) async {
-    store.dispatch(FetchDataRcvWh());
+    final isView = param == paramViewDataRcvWh;
+    if (isView && store.state.rcvWhState.rcvWhs.isNotEmpty) {
+      store.dispatch(FetchDataRcvWhRefresh());
+    } else if (isView) {
+      store.dispatch(FetchDataRcvWh());
+    }
     final body = <String, dynamic>{
       'param': param,
       'id_rcv_wh': idRcvWh,
@@ -1096,7 +1172,12 @@ ThunkAction<AppState> getDataRcvTool({
   required String rcvToolDateInput,
 }) {
   return (Store<AppState> store) async {
-    store.dispatch(FetchDataRcvTool());
+    final isView = param == paramViewDataRcvTool;
+    if (isView && store.state.rcvToolState.rcvTools.isNotEmpty) {
+      store.dispatch(FetchDataRcvToolRefresh());
+    } else if (isView) {
+      store.dispatch(FetchDataRcvTool());
+    }
     final body = <String, dynamic>{
       'param': param,
       'id_rcv_tool': idRcvTool,

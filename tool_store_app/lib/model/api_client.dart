@@ -48,12 +48,15 @@ void _applyAuthField(
   }
 }
 
-/// Merges session token / user id into POST bodies (PHP API convention).
+/// Merges session credentials into POST bodies (PHP `api_auth.php` convention).
+///
+/// Uses [auth_id_users] for token validation. Do not auto-fill [id_users]: on
+/// `VIEW DATA USER` that field is the row filter (non-empty → single user).
 Future<Map<String, dynamic>> withAuthFields(Map<String, dynamic> body) async {
   final creds = await loadAuthCredentials();
   final merged = Map<String, dynamic>.from(body);
   _applyAuthField(merged, 'token', creds.token);
-  _applyAuthField(merged, 'id_users', creds.idUsers);
+  _applyAuthField(merged, 'auth_id_users', creds.idUsers);
   _applyAuthField(merged, 'id_users_app', creds.idUsers);
   return merged;
 }
