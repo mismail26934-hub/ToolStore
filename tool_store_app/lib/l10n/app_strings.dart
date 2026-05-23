@@ -217,7 +217,7 @@ class AppStrings {
       _t('$n user dimuat', '$n user(s) loaded');
   String loadMoreUsers(int size) =>
       _t('Muat $size lagi', 'Load $size more');
-  String searchNotFound(String query) => '$query ${searchNotFoundSuffix}';
+  String searchNotFound(String query) => '$query $searchNotFoundSuffix';
 
   Map<String, String> get searchFieldLabels => {
         'all': searchFieldAll,

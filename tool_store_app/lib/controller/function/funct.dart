@@ -182,9 +182,9 @@ Future<void> postMultipleToolCont(
   valTypeCont.add(TextEditingController(text: valType ?? ""));
   partValueCont.add(TextEditingController(text: partValue ?? ""));
   itemCont.text = ii.toString();
-  formDetailDateCont.text = DateFormat('yyyy-MM-dd HH:mm:ss').format(
-    DateTime.now(),
-  );
+  formDetailDateCont.text = DateFormat(
+    'yyyy-MM-dd HH:mm:ss',
+  ).format(DateTime.now());
   var detailUser = idUsersApp.trim();
   if (detailUser.isEmpty) {
     final prefs = await SharedPreferences.getInstance();
@@ -195,6 +195,7 @@ Future<void> postMultipleToolCont(
   }
   formDetailUserCont.text = detailUser;
 
+  if (!context.mounted) return;
   await PageRoutes.routeUserFormDetail(
     context,
     navigateAsAdd ? AppStrings.current.addData : AppStrings.current.editData,

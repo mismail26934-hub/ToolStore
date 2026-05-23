@@ -29,19 +29,20 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
     final upper = widget.subtitle.trim().toUpperCase();
     return upper.contains('ADD') || upper.contains('TAMBAH');
   }
+
   bool _isSubmitting = false;
 
   List<String> get _actionNoteOptions => [
-        AppStrings.current.actionNoteA,
-        AppStrings.current.actionNoteB,
-        AppStrings.current.actionNoteC,
-        AppStrings.current.actionNoteD,
-      ];
+    AppStrings.current.actionNoteA,
+    AppStrings.current.actionNoteB,
+    AppStrings.current.actionNoteC,
+    AppStrings.current.actionNoteD,
+  ];
 
   List<String> get _actionTypeOptions => [
-        AppStrings.current.actionTypeCat,
-        AppStrings.current.actionTypeVendor,
-      ];
+    AppStrings.current.actionTypeCat,
+    AppStrings.current.actionTypeVendor,
+  ];
 
   Widget _buildSectionCard({
     required BuildContext context,
@@ -299,30 +300,30 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
     required String param,
   }) async {
     final submitIndex = _resolveSubmitIndex(index);
+    final store = StoreProvider.of<AppState>(context);
     final meta = await _resolveToolDetailMeta(index);
     idFormToolCont[submitIndex].text = meta['idForm']!;
     formDetailDateCont.text = meta['formDetailDate']!;
     formDetailUserCont.text = meta['formDetailUser']!;
-    final ToolDetailFetchResult result =
-        await StoreProvider.of<AppState>(context).dispatch(
-          getDataToolDetail(
-            param: param,
-            idFormDetail: idFormDetailCont[submitIndex].text.trim(),
-            idFrom: meta['idForm']!,
-            formComment: formCommentCont[submitIndex].text.trim(),
-            pnGroup: pnGroupCont[submitIndex].text.trim(),
-            pnDesc: pnDescCont[submitIndex].text.trim(),
-            qty: qtyCont[submitIndex].text.trim(),
-            explan: explanCont[submitIndex].text.trim(),
-            actionNote: actionNoteCont[submitIndex].text.trim().isEmpty
-                ? ''
-                : actionNoteCont[submitIndex].text.trim().substring(0, 1),
-            valType: valTypeCont[submitIndex].text.trim(),
-            partValue: partValueCont[submitIndex].text.trim(),
-            formDetailDate: meta['formDetailDate']!,
-            formDetailUser: meta['formDetailUser']!,
-          ),
-        );
+    final ToolDetailFetchResult result = await store.dispatch(
+      getDataToolDetail(
+        param: param,
+        idFormDetail: idFormDetailCont[submitIndex].text.trim(),
+        idFrom: meta['idForm']!,
+        formComment: formCommentCont[submitIndex].text.trim(),
+        pnGroup: pnGroupCont[submitIndex].text.trim(),
+        pnDesc: pnDescCont[submitIndex].text.trim(),
+        qty: qtyCont[submitIndex].text.trim(),
+        explan: explanCont[submitIndex].text.trim(),
+        actionNote: actionNoteCont[submitIndex].text.trim().isEmpty
+            ? ''
+            : actionNoteCont[submitIndex].text.trim().substring(0, 1),
+        valType: valTypeCont[submitIndex].text.trim(),
+        partValue: partValueCont[submitIndex].text.trim(),
+        formDetailDate: meta['formDetailDate']!,
+        formDetailUser: meta['formDetailUser']!,
+      ),
+    );
 
     if (result.statusValue != null && result.statusValue != '1') {
       throw Exception(result.serverMessage ?? AppStrings.current.processFailed);
@@ -750,8 +751,9 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
                           Navigator.pop(dialogContext);
                         },
                         onPressedYes: (dialogContext) async {
-                          if (dialogContext.mounted)
+                          if (dialogContext.mounted) {
                             Navigator.pop(dialogContext);
+                          }
                           await _submitData();
                           if (!mounted) return;
                         },
@@ -771,10 +773,10 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
                         const SizedBox(width: 8),
                         Text(
                           _isSubmitting
-                                      ? context.s.processing
-                                      : (_isAddMode
-                                            ? context.s.saveData
-                                            : context.s.updateData),
+                              ? context.s.processing
+                              : (_isAddMode
+                                    ? context.s.saveData
+                                    : context.s.updateData),
                           style: TextStyle(
                             fontWeight: FontWeight.w700,
                             fontSize: btnFontSize,

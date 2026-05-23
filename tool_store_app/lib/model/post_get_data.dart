@@ -167,7 +167,9 @@ Future<ParsedUserListResult> fetchUsersForPicker({
   final kw = keyword.trim();
   if (kw.isNotEmpty) {
     body['keyword'] = kw;
-    body['search_field'] = searchField.trim().isEmpty ? 'all' : searchField.trim();
+    body['search_field'] = searchField.trim().isEmpty
+        ? 'all'
+        : searchField.trim();
   }
   final response = await apiPost(ApiUrl.contDataUser, body);
   return parseUserListResponse(response.data);

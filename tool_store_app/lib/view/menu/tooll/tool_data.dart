@@ -510,16 +510,14 @@ class _ToolDataState extends State<ToolData> with MixinPref {
     return !salesOrderExists;
   }
 
-  String get _poActionsBlockedTooltip =>
-      AppStrings.current.poLockedBeforeSo;
+  String get _poActionsBlockedTooltip => AppStrings.current.poLockedBeforeSo;
 
   /// SO Add/Edit/Delete hanya saat belum ada Date WH Received untuk baris tool ini.
   bool _canManageSalesOrderWhenWhReceivedBlank(bool whReceivedExists) {
     return !whReceivedExists;
   }
 
-  String get _soActionsBlockedTooltip =>
-      AppStrings.current.soLockedBeforeWh;
+  String get _soActionsBlockedTooltip => AppStrings.current.soLockedBeforeWh;
 
   /// Date WH Received Add/Edit/Delete hanya saat belum ada Date Tool Room Received.
   bool _canManageWhReceivedWhenToolRoomBlank(bool toolRoomReceivedExists) {
@@ -667,9 +665,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
             icon: Icons.local_mall_outlined,
             label: s.requestOrder,
             backgroundColor: Colors.deepOrange.shade600,
-            tooltip: canRequest
-                ? s.requestOrderTool
-                : s.requestOrderDisabled,
+            tooltip: canRequest ? s.requestOrderTool : s.requestOrderDisabled,
             onPressed: canRequest
                 ? () => _showRequestOrderToolDialog(forms)
                 : null,
@@ -1071,7 +1067,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
               ),
             ),
           ),
-          if (centerChild != null) centerChild,
+          ?centerChild,
         ],
       ),
     );
@@ -1601,7 +1597,10 @@ class _ToolDataState extends State<ToolData> with MixinPref {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(confirmContext, false),
-              child: Text(_s.cancel, style: TextStyle(color: context.bodyMuted)),
+              child: Text(
+                _s.cancel,
+                style: TextStyle(color: context.bodyMuted),
+              ),
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(confirmContext, true),
@@ -1887,7 +1886,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     DropdownButtonFormField<String>(
-                      value: selectedApproval,
+                      initialValue: selectedApproval,
                       decoration: InputDecoration(
                         labelText: _s.supervisorApproval,
                         border: OutlineInputBorder(),
@@ -1903,9 +1902,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                         ),
                       ],
                       onChanged: (value) {
-                        setStateDialog(() {
-                          selectedApproval = value;
-                        });
+                        selectedApproval = value;
                       },
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
@@ -1997,8 +1994,9 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                                 apiResponse?.messageResponse.toString() ?? "";
                             final isSuccess = responseValue == "1";
 
-                            if (!mounted) return;
+                            if (!dialogContext.mounted) return;
                             Navigator.pop(dialogContext);
+                            if (!mounted) return;
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 backgroundColor: isSuccess
@@ -2037,10 +2035,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                           width: 16,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : Text(
-                          _s.submit,
-                          style: TextStyle(color: Colors.white),
-                        ),
+                      : Text(_s.submit, style: TextStyle(color: Colors.white)),
                 ),
               ],
             );
@@ -2107,7 +2102,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     DropdownButtonFormField<String>(
-                      value: selectedApproval,
+                      initialValue: selectedApproval,
                       decoration: InputDecoration(
                         labelText: _s.serviceDeptHeadApproval,
                         border: OutlineInputBorder(),
@@ -2218,8 +2213,9 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                                 apiResponse?.messageResponse.toString() ?? "";
                             final isSuccess = responseValue == "1";
 
-                            if (!mounted) return;
+                            if (!dialogContext.mounted) return;
                             Navigator.pop(dialogContext);
+                            if (!mounted) return;
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 backgroundColor: isSuccess
@@ -2242,9 +2238,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 backgroundColor: Colors.red,
-                                content: Text(
-                                  _s.failedDeptHeadApproval,
-                                ),
+                                content: Text(_s.failedDeptHeadApproval),
                               ),
                             );
                           } finally {
@@ -2260,10 +2254,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                           width: 16,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : Text(
-                          _s.submit,
-                          style: TextStyle(color: Colors.white),
-                        ),
+                      : Text(_s.submit, style: TextStyle(color: Colors.white)),
                 ),
               ],
             );
@@ -2326,7 +2317,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     DropdownButtonFormField<String>(
-                      value: selectedContinueHold,
+                      initialValue: selectedContinueHold,
                       decoration: InputDecoration(
                         labelText: _s.continueOrHold,
                         border: OutlineInputBorder(),
@@ -2386,8 +2377,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                           final confirmed = await _showSubmitConfirmationDialog(
                             dialogContext: dialogContext,
                             title: _s.confirmServiceAdminReview,
-                            message:
-                                _s.confirmServiceAdminReviewMsg,
+                            message: _s.confirmServiceAdminReviewMsg,
                             icon: Icons.rate_review_outlined,
                           );
                           if (confirmed != true) return;
@@ -2437,8 +2427,9 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                                 apiResponse?.messageResponse.toString() ?? "";
                             final isSuccess = responseValue == "1";
 
-                            if (!mounted) return;
+                            if (!dialogContext.mounted) return;
                             Navigator.pop(dialogContext);
+                            if (!mounted) return;
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 backgroundColor: isSuccess
@@ -2461,9 +2452,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 backgroundColor: Colors.red,
-                                content: Text(
-                                  _s.failedServiceAdminReview,
-                                ),
+                                content: Text(_s.failedServiceAdminReview),
                               ),
                             );
                           } finally {
@@ -2479,10 +2468,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                           width: 16,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : Text(
-                          _s.submit,
-                          style: TextStyle(color: Colors.white),
-                        ),
+                      : Text(_s.submit, style: TextStyle(color: Colors.white)),
                 ),
               ],
             );
@@ -2606,8 +2592,9 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                                 apiResponse?.messageResponse.toString() ?? "";
                             final isSuccess = responseValue == "1";
 
-                            if (!mounted) return;
+                            if (!dialogContext.mounted) return;
                             Navigator.pop(dialogContext);
+                            if (!mounted) return;
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 backgroundColor: isSuccess
@@ -2646,10 +2633,7 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                           width: 16,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : Text(
-                          _s.submit,
-                          style: TextStyle(color: Colors.white),
-                        ),
+                      : Text(_s.submit, style: TextStyle(color: Colors.white)),
                 ),
               ],
             );
@@ -2717,7 +2701,10 @@ class _ToolDataState extends State<ToolData> with MixinPref {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: Text(_s.cancel, style: TextStyle(color: context.bodyMuted)),
+              child: Text(
+                _s.cancel,
+                style: TextStyle(color: context.bodyMuted),
+              ),
             ),
             TextButton(
               onPressed: () async {
@@ -3169,7 +3156,10 @@ class _ToolDataState extends State<ToolData> with MixinPref {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, false),
-              child: Text(_s.cancel, style: TextStyle(color: context.bodyMuted)),
+              child: Text(
+                _s.cancel,
+                style: TextStyle(color: context.bodyMuted),
+              ),
             ),
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, true),
@@ -3336,7 +3326,10 @@ class _ToolDataState extends State<ToolData> with MixinPref {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: Text(_s.cancel, style: TextStyle(color: context.bodyMuted)),
+              child: Text(
+                _s.cancel,
+                style: TextStyle(color: context.bodyMuted),
+              ),
             ),
             TextButton(
               onPressed: () async {
@@ -3655,7 +3648,10 @@ class _ToolDataState extends State<ToolData> with MixinPref {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, false),
-              child: Text(_s.cancel, style: TextStyle(color: context.bodyMuted)),
+              child: Text(
+                _s.cancel,
+                style: TextStyle(color: context.bodyMuted),
+              ),
             ),
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, true),
@@ -4089,7 +4085,10 @@ class _ToolDataState extends State<ToolData> with MixinPref {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, false),
-              child: Text(_s.cancel, style: TextStyle(color: context.bodyMuted)),
+              child: Text(
+                _s.cancel,
+                style: TextStyle(color: context.bodyMuted),
+              ),
             ),
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, true),
@@ -4521,7 +4520,10 @@ class _ToolDataState extends State<ToolData> with MixinPref {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, false),
-              child: Text(_s.cancel, style: TextStyle(color: context.bodyMuted)),
+              child: Text(
+                _s.cancel,
+                style: TextStyle(color: context.bodyMuted),
+              ),
             ),
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, true),
@@ -4613,8 +4615,9 @@ class _ToolDataState extends State<ToolData> with MixinPref {
     required VoidCallback? onDelete,
     String? disabledTooltip,
   }) {
-    final editTooltip =
-        onEdit != null ? _s.editLabel : (disabledTooltip ?? _s.editUnavailable);
+    final editTooltip = onEdit != null
+        ? _s.editLabel
+        : (disabledTooltip ?? _s.editUnavailable);
     final deleteTooltip = onDelete != null
         ? _s.deleteLabel
         : (disabledTooltip ?? _s.deleteUnavailable);
@@ -4941,7 +4944,8 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                     (itemPO) => itemPO.idFormDetail == itemTool.idFormDetail,
                   )
                   .toList();
-              final salesOrderExists = idFormDetail.isNotEmpty &&
+              final salesOrderExists =
+                  idFormDetail.isNotEmpty &&
                   store.state.sosDetailState.sosDetail.any(
                     (itemSO) => itemSO.idFormDetail.trim() == idFormDetail,
                   );
@@ -4999,10 +5003,8 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                       )
                     else
                       ...vm.items.map(
-                        (itemPO) => _buildPoCard(
-                          itemPO,
-                          canManageActions: canManagePo,
-                        ),
+                        (itemPO) =>
+                            _buildPoCard(itemPO, canManageActions: canManagePo),
                       ),
                   ],
                 ),
@@ -5018,7 +5020,8 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                     (itemSO) => itemSO.idFormDetail == itemTool.idFormDetail,
                   )
                   .toList();
-              final whReceivedExists = idFormDetail.isNotEmpty &&
+              final whReceivedExists =
+                  idFormDetail.isNotEmpty &&
                   store.state.rcvWhState.rcvWhs.any(
                     (itemRcvWh) =>
                         itemRcvWh.idFormDetail.trim() == idFormDetail,
@@ -5075,10 +5078,8 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                       )
                     else
                       ...vm.items.map(
-                        (itemSO) => _buildSoCard(
-                          itemSO,
-                          canManageActions: canManageSo,
-                        ),
+                        (itemSO) =>
+                            _buildSoCard(itemSO, canManageActions: canManageSo),
                       ),
                   ],
                 ),
@@ -5096,7 +5097,8 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                         itemRcvWh.idFormDetail == itemTool.idFormDetail,
                   )
                   .toList();
-              final toolRoomReceivedExists = idFormDetail.isNotEmpty &&
+              final toolRoomReceivedExists =
+                  idFormDetail.isNotEmpty &&
                   store.state.rcvToolState.rcvTools.any(
                     (itemRcvTool) =>
                         itemRcvTool.idFormDetail.trim() == idFormDetail,
