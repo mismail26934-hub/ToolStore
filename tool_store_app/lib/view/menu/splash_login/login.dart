@@ -320,6 +320,7 @@ class _LoginState extends State<Login> {
                                                   );
                                                   username.clear();
                                                   password.clear();
+                                                  await preloadAuthenticatedData();
                                                   if (!mounted) return;
                                                   navigator.pushReplacement(
                                                     MaterialPageRoute(

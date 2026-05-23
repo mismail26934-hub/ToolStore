@@ -43,6 +43,10 @@ class AppStrings {
   String get checkInternet =>
       _t('Periksa koneksi internet', 'Check internet connection');
   String get serverDown => _t('Server tidak tersedia', 'Server is down');
+  String get sessionExpired => _t(
+        'Sesi habis atau tidak sah. Silakan login ulang.',
+        'Session expired or invalid. Please sign in again.',
+      );
   String get splashPreparing =>
       _t('Menyiapkan data sesi dan dashboard...', 'Preparing session and dashboard...');
 

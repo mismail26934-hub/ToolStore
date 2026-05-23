@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:tool_store_app/l10n/l10n_ext.dart';
 import 'package:tool_store_app/theme/app_theme.dart';
+import 'package:tool_store_app/model/post_get_data.dart';
 import 'package:tool_store_app/view/custom/mixin/mixin_pref.dart';
 import 'package:tool_store_app/view/custom/routes/page_routes.dart';
 import 'package:tool_store_app/view/custom/shimmer/app_shimmer.dart';
@@ -58,6 +61,7 @@ class _SplashScreenState extends State<SplashScreen>
     if (idUsersApp == "" || idUsersApp == "null" || idUsersApp.isEmpty) {
       PageRoutes.routeLogin(context);
     } else {
+      unawaited(preloadAuthenticatedData());
       PageRoutes.routeDashboards(context);
     }
   }

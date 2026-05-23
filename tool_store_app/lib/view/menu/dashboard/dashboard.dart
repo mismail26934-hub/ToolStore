@@ -562,7 +562,7 @@ class _DashboardCard extends StatelessWidget {
                     const SizedBox(height: 8),
                     Expanded(
                       child: Column(
-                        mainAxisAlignment: MainAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           Column(
@@ -585,7 +585,6 @@ class _DashboardCard extends StatelessWidget {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 8),
                           if (compactMode)
                             Row(
                               mainAxisAlignment: MainAxisAlignment.center,

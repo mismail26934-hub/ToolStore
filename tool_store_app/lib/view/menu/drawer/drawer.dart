@@ -549,11 +549,14 @@ class _DrawerMenuState extends State<DrawerMenu> {
   Widget build(BuildContext context) {
     return Drawer(
       backgroundColor: context.pageBackground,
-      child: ListView(
-        padding: EdgeInsets.zero,
+      child: Column(
         children: [
           _buildHeader(context),
-          _buildInfoCard(context),
+          Expanded(
+            child: ListView(
+              padding: EdgeInsets.zero,
+              children: [
+                _buildInfoCard(context),
           _buildSectionTitle(context, context.s.mainMenu),
           _buildMenuTile(
             context: context,
@@ -732,6 +735,9 @@ class _DrawerMenuState extends State<DrawerMenu> {
                   ),
                 ),
               ),
+            ),
+          ),
+              ],
             ),
           ),
         ],

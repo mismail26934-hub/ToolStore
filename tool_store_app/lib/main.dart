@@ -4,7 +4,6 @@ import 'package:flutter_redux/flutter_redux.dart';
 import 'package:flutter/services.dart';
 import 'package:tool_store_app/controller/cont_crud/redux/state.dart';
 import 'package:tool_store_app/controller/cont_crud/redux/store.dart';
-import 'package:tool_store_app/model/post_get_data.dart';
 import 'package:tool_store_app/l10n/locale_controller.dart';
 import 'package:tool_store_app/theme/app_theme.dart';
 import 'package:tool_store_app/theme/theme_controller.dart';
@@ -23,121 +22,6 @@ Future<void> main() async {
   ]).then((_) {
     runApp(const MyApp());
   });
-
-  store.dispatch(
-    getDataUser(
-      param: paramViewDataUser,
-      idUsers: '',
-      username: '',
-      password: '',
-      namaUser: '',
-      foto: '',
-      idTU: '',
-      noTelp: '',
-      token: '',
-      level: '',
-      status: '',
-      superiorId: '',
-      limit: kUserFullFetchLimit,
-    ),
-  );
-
-  store.dispatch(
-    getDataTool(
-      param: paramViewDataForm,
-      idForm: '',
-      formNo: '',
-      formServName: '',
-      formCheckBy: '',
-      formDateCheckBy: '',
-      formDateServName: '',
-      formServComment: '',
-      formSuperiorAprd: '',
-      formSuperiorComment: '',
-      formSadminComment: '',
-      formMilestone: '',
-      formStatusOrder: '',
-      formSheadAprd: '',
-      formSheadComment: '',
-      fromDateUpdate: '',
-      formUserUpdate: '',
-    ),
-  );
-
-  store.dispatch(
-    getDataToolDetail(
-      param: paramViewDataTool,
-      idFormDetail: '',
-      idFrom: '',
-      formComment: '',
-      pnGroup: '',
-      pnDesc: '',
-      qty: '',
-      explan: '',
-      actionNote: '',
-      valType: '',
-      partValue: '',
-      formDetailDate: '',
-      formDetailUser: '',
-    ),
-  );
-
-  store.dispatch(
-    getDataPO(
-      param: paramViewDataPO,
-      idPO: '',
-      idFormDetail: '',
-      poNO: '',
-      dateUpdatePO: '',
-      userUpdatePO: '',
-    ),
-  );
-
-  store.dispatch(
-    getDataSO(
-      param: paramViewDataSO,
-      idSo: '',
-      idFormDetail: '',
-      so: '',
-      eta: '',
-      noteSo: '',
-      dateUpdateSo: '',
-      idUpdateSo: '',
-    ),
-  );
-
-  store.dispatch(
-    getDataSuperrior(
-      param: paramViewDataSuperrior,
-      superiorId: '',
-      namaSuperior: '',
-      statusSuperior: '',
-      userIdInputSuperior: '',
-      dateInputSuperior: '',
-    ),
-  );
-
-  store.dispatch(
-    getDataRcvWh(
-      param: paramViewDataRcvWh,
-      idRcvWh: '',
-      idFormDetail: '',
-      rcvWhDate: '',
-      rcvWhIdInput: '',
-      rcvWhDateInput: '',
-    ),
-  );
-
-  store.dispatch(
-    getDataRcvTool(
-      param: paramViewDataRcvTool,
-      idRcvTool: '',
-      idFormDetail: '',
-      rcvToolDate: '',
-      rcvToolIdInput: '',
-      rcvToolDateInput: '',
-    ),
-  );
 }
 
 class MyApp extends StatefulWidget {

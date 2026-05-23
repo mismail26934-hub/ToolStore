@@ -1,14 +1,15 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:redux/redux.dart';
 import 'package:redux_thunk/redux_thunk.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tool_store_app/controller/api_url/api.dart';
 import 'package:tool_store_app/controller/api_url/post_list.dart';
+import 'package:tool_store_app/model/api_client.dart';
 import 'package:tool_store_app/controller/cont_crud/redux/action.dart';
 import 'package:tool_store_app/debug/agent_log.dart';
 import 'package:tool_store_app/controller/cont_crud/redux/state.dart';
+import 'package:tool_store_app/controller/cont_crud/redux/store.dart';
 import 'package:tool_store_app/view/var/var.dart';
 
 /// Page size for user list lazy loading (matches PHP default in cont_user.php).
@@ -16,6 +17,129 @@ const int kUserPageSize = 20;
 
 /// Larger fetch when the full user list is needed (dropdowns, app preload).
 const int kUserFullFetchLimit = 1000;
+
+/// Preloads Redux data after login. Skips when no session token is stored.
+Future<void> preloadAuthenticatedData() async {
+  final creds = await loadAuthCredentials();
+  if (!creds.isAuthenticated) return;
+
+  store.dispatch(
+    getDataUser(
+      param: paramViewDataUser,
+      idUsers: creds.idUsers,
+      username: '',
+      password: '',
+      namaUser: '',
+      foto: '',
+      idTU: '',
+      noTelp: '',
+      token: creds.token,
+      level: '',
+      status: '',
+      superiorId: '',
+      limit: kUserFullFetchLimit,
+    ),
+  );
+
+  store.dispatch(
+    getDataTool(
+      param: paramViewDataForm,
+      idForm: '',
+      formNo: '',
+      formServName: '',
+      formCheckBy: '',
+      formDateCheckBy: '',
+      formDateServName: '',
+      formServComment: '',
+      formSuperiorAprd: '',
+      formSuperiorComment: '',
+      formSadminComment: '',
+      formMilestone: '',
+      formStatusOrder: '',
+      formSheadAprd: '',
+      formSheadComment: '',
+      fromDateUpdate: '',
+      formUserUpdate: '',
+    ),
+  );
+
+  store.dispatch(
+    getDataToolDetail(
+      param: paramViewDataTool,
+      idFormDetail: '',
+      idFrom: '',
+      formComment: '',
+      pnGroup: '',
+      pnDesc: '',
+      qty: '',
+      explan: '',
+      actionNote: '',
+      valType: '',
+      partValue: '',
+      formDetailDate: '',
+      formDetailUser: '',
+    ),
+  );
+
+  store.dispatch(
+    getDataPO(
+      param: paramViewDataPO,
+      idPO: '',
+      idFormDetail: '',
+      poNO: '',
+      dateUpdatePO: '',
+      userUpdatePO: '',
+    ),
+  );
+
+  store.dispatch(
+    getDataSO(
+      param: paramViewDataSO,
+      idSo: '',
+      idFormDetail: '',
+      so: '',
+      eta: '',
+      noteSo: '',
+      dateUpdateSo: '',
+      idUpdateSo: '',
+    ),
+  );
+
+  store.dispatch(
+    getDataSuperrior(
+      param: paramViewDataSuperrior,
+      superiorId: '',
+      namaSuperior: '',
+      statusSuperior: '',
+      userIdInputSuperior: '',
+      dateInputSuperior: '',
+    ),
+  );
+
+  store.dispatch(
+    getDataRcvWh(
+      param: paramViewDataRcvWh,
+      idRcvWh: '',
+      idFormDetail: '',
+      rcvWhDate: '',
+      rcvWhIdInput: '',
+      rcvWhDateInput: '',
+    ),
+  );
+
+  store.dispatch(
+    getDataRcvTool(
+      param: paramViewDataRcvTool,
+      idRcvTool: '',
+      idFormDetail: '',
+      rcvToolDate: '',
+      rcvToolIdInput: '',
+      rcvToolDateInput: '',
+    ),
+  );
+
+  store.dispatch(getDashboardFormCounts());
+}
 
 // DATA USER
 ThunkAction<AppState> getDataUser({
@@ -69,13 +193,8 @@ ThunkAction<AppState> getDataUser({
           ? 'all'
           : viewSearchField.trim();
     }
-    var map = FormData.fromMap(body);
-
-    var dio = Dio();
     try {
-      dio.options.connectTimeout = const Duration(seconds: 20);
-      dio.options.receiveTimeout = const Duration(seconds: 20);
-      final response = await dio.post(ApiUrl.contDataUser, data: map);
+      final response = await apiPost(ApiUrl.contDataUser, body);
       final parsed = parseUserListResponse(response.data);
       final listUser = parsed.items;
       final int? apiTotal = parsed.total;
@@ -105,24 +224,11 @@ ThunkAction<AppState> getDataUser({
       }
       return listUser;
     } on DioException catch (e) {
-      if (e.type == DioExceptionType.connectionError ||
-          e.error is SocketException ||
-          e.type == DioExceptionType.connectionTimeout) {
-        // Anda bisa melempar error agar ditangkap oleh UI (FutureBuilder/Provider)
-        errors = cekInternet;
-        messages = "(${e.message})";
-        store.dispatch(UsersErrorAction(errors));
-        throw Exception(cekInternet);
-      } else {
-        errors = serverDown;
-        messages = "(${e.message})";
-        store.dispatch(UsersErrorAction(errors));
-        throw Exception("Server Down ($messages)");
-      }
+      final msg = applyDioError(e);
+      store.dispatch(UsersErrorAction(errors));
+      throw Exception(msg);
     } catch (e) {
-      // Pastikan kirim action error agar state.isLoading jadi false
       store.dispatch(UsersErrorAction(e.toString()));
-      // Lempar error agar RefreshIndicator tahu ini sudah selesai
       throw Exception(e);
     }
   };
@@ -135,12 +241,11 @@ const int kToolFormPageSize = 20;
 const int kToolFormDashboardFetchLimit = 1000;
 
 FormDashboardCounts parseDashboardCountsResponse(dynamic responseBody) {
-  final dynamic decoded =
-      responseBody is String ? jsonDecode(responseBody) : responseBody;
+  final dynamic decoded = responseBody is String
+      ? jsonDecode(responseBody)
+      : responseBody;
   if (decoded is Map) {
-    return FormDashboardCounts.fromJson(
-      Map<String, dynamic>.from(decoded),
-    );
+    return FormDashboardCounts.fromJson(Map<String, dynamic>.from(decoded));
   }
   throw FormatException(
     'Unexpected dashboard counts response: ${decoded.runtimeType}',
@@ -151,29 +256,17 @@ FormDashboardCounts parseDashboardCountsResponse(dynamic responseBody) {
 ThunkAction<AppState> getDashboardFormCounts() {
   return (Store<AppState> store) async {
     store.dispatch(FetchDashboardCountsAction());
-    final map = FormData.fromMap({'param': paramDashboardCountForm});
-    final dio = Dio();
     try {
-      dio.options.connectTimeout = const Duration(seconds: 20);
-      dio.options.receiveTimeout = const Duration(seconds: 20);
-      final response = await dio.post(ApiUrl.contDataTool, data: map);
+      final response = await apiPost(ApiUrl.contDataTool, {
+        'param': paramDashboardCountForm,
+      });
       final counts = parseDashboardCountsResponse(response.data);
       store.dispatch(DashboardCountsLoadedAction(counts));
       return counts;
     } on DioException catch (e) {
-      if (e.type == DioExceptionType.connectionError ||
-          e.error is SocketException ||
-          e.type == DioExceptionType.connectionTimeout) {
-        errors = cekInternet;
-        messages = "(${e.message})";
-        store.dispatch(DashboardCountsErrorAction(errors));
-        throw Exception(cekInternet);
-      } else {
-        errors = serverDown;
-        messages = "(${e.message})";
-        store.dispatch(DashboardCountsErrorAction(errors));
-        throw Exception("Server Down ($messages)");
-      }
+      final msg = applyDioError(e);
+      store.dispatch(DashboardCountsErrorAction(errors));
+      throw Exception(msg);
     } catch (e) {
       store.dispatch(DashboardCountsErrorAction(e.toString()));
       throw Exception(e);
@@ -243,13 +336,8 @@ ThunkAction<AppState> getDataTool({
           ? 'all'
           : viewSearchField.trim();
     }
-    var map = FormData.fromMap(body);
-
-    var dio = Dio();
     try {
-      dio.options.connectTimeout = const Duration(seconds: 20);
-      dio.options.receiveTimeout = const Duration(seconds: 20);
-      final response = await dio.post(ApiUrl.contDataTool, data: map);
+      final response = await apiPost(ApiUrl.contDataTool, body);
       final parsed = parseFormListResponse(response.data);
       final listTool = parsed.items;
       final int? apiTotal = parsed.total;
@@ -293,41 +381,20 @@ ThunkAction<AppState> getDataTool({
 
       if (append && isView) {
         store.dispatch(
-          DatasAppendAction(
-            listTool,
-            hasMore: hasMore,
-            totalForms: apiTotal,
-          ),
+          DatasAppendAction(listTool, hasMore: hasMore, totalForms: apiTotal),
         );
       } else {
         store.dispatch(
-          DatasLoadedAction(
-            listTool,
-            hasMore: hasMore,
-            totalForms: apiTotal,
-          ),
+          DatasLoadedAction(listTool, hasMore: hasMore, totalForms: apiTotal),
         );
       }
       return listTool;
     } on DioException catch (e) {
-      if (e.type == DioExceptionType.connectionError ||
-          e.error is SocketException ||
-          e.type == DioExceptionType.connectionTimeout) {
-        // Anda bisa melempar error agar ditangkap oleh UI (FutureBuilder/Provider)
-        errors = cekInternet;
-        messages = "(${e.message})";
-        store.dispatch(DatasErrorAction(errors));
-        throw Exception(cekInternet);
-      } else {
-        errors = serverDown;
-        messages = "(${e.message})";
-        store.dispatch(DatasErrorAction(errors));
-        throw Exception("Server Down ($messages)");
-      }
+      final msg = applyDioError(e);
+      store.dispatch(DatasErrorAction(errors));
+      throw Exception(msg);
     } catch (e) {
-      // Pastikan kirim action error agar state.isLoading jadi false
       store.dispatch(DatasErrorAction(e.toString()));
-      // Lempar error agar RefreshIndicator tahu ini sudah selesai
       throw Exception(e);
     }
   };
@@ -339,7 +406,10 @@ List<PostList> parseResponse(String responseBody) {
   return parsed.map<PostList>((e) => PostList.fromJson(e)).toList();
 }
 
-List<PostList> _mergeFormsPreview(List<PostList> existing, List<PostList> incoming) {
+List<PostList> _mergeFormsPreview(
+  List<PostList> existing,
+  List<PostList> incoming,
+) {
   if (incoming.isEmpty) return existing;
   final ids = existing.map((f) => f.idForm.trim()).toSet();
   final merged = List<PostList>.from(existing);
@@ -363,8 +433,9 @@ class ParsedFormListResult {
 
 /// Mem-parse respons [cont_form.php] baik berupa array maupun objek dengan `total`.
 ParsedFormListResult parseFormListResponse(dynamic responseBody) {
-  final dynamic decoded =
-      responseBody is String ? jsonDecode(responseBody) : responseBody;
+  final dynamic decoded = responseBody is String
+      ? jsonDecode(responseBody)
+      : responseBody;
 
   if (decoded is List) {
     final list = decoded
@@ -391,7 +462,9 @@ ParsedFormListResult parseFormListResponse(dynamic responseBody) {
     return ParsedFormListResult([], total);
   }
 
-  throw FormatException('Unexpected form list response: ${decoded.runtimeType}');
+  throw FormatException(
+    'Unexpected form list response: ${decoded.runtimeType}',
+  );
 }
 
 /// Hasil parse list user dari `cont_user.php`.
@@ -409,7 +482,10 @@ class ParsedUserListResult {
   const ParsedUserListResult(this.items, this.total);
 }
 
-List<PostList> _mergeUsersPreview(List<PostList> existing, List<PostList> incoming) {
+List<PostList> _mergeUsersPreview(
+  List<PostList> existing,
+  List<PostList> incoming,
+) {
   if (incoming.isEmpty) return existing;
   final ids = existing.map((u) => u.idUsers.trim()).toSet();
   final merged = List<PostList>.from(existing);
@@ -424,7 +500,13 @@ List<PostList> _mergeUsersPreview(List<PostList> existing, List<PostList> incomi
 }
 
 int? _readTotalFromMap(Map<String, dynamic> m) {
-  for (final key in ['total', 'total_users', 'total_count', 'recordsTotal', 'count']) {
+  for (final key in [
+    'total',
+    'total_users',
+    'total_count',
+    'recordsTotal',
+    'count',
+  ]) {
     if (!m.containsKey(key)) continue;
     final v = m[key];
     if (v is int) return v;
@@ -436,7 +518,9 @@ int? _readTotalFromMap(Map<String, dynamic> m) {
 
 /// Mem-parse respons [cont_user.php] baik berupa array maupun objek dengan `total`.
 ParsedUserListResult parseUserListResponse(dynamic responseBody) {
-  final dynamic decoded = responseBody is String ? jsonDecode(responseBody) : responseBody;
+  final dynamic decoded = responseBody is String
+      ? jsonDecode(responseBody)
+      : responseBody;
 
   if (decoded is List) {
     final list = decoded
@@ -463,19 +547,19 @@ ParsedUserListResult parseUserListResponse(dynamic responseBody) {
     return ParsedUserListResult([], total);
   }
 
-  throw FormatException('Unexpected user list response: ${decoded.runtimeType}');
+  throw FormatException(
+    'Unexpected user list response: ${decoded.runtimeType}',
+  );
 }
 
 // LOGIN
 Future login(String usernameApp, String passwordApp) async {
   try {
-    var map = FormData.fromMap({
+    final response = await apiPost(ApiUrl.contLogin, {
       'param': 'LOGIN',
       'username': usernameApp.toString(),
       'password': passwordApp.toString(),
-    });
-    var dio = Dio();
-    final response = await dio.post(ApiUrl.contLogin, data: map);
+    }, attachAuth: false);
     if (response.statusCode == 200) {
       final listUser = response.data;
       if (listUser is String) {
@@ -531,7 +615,7 @@ ThunkAction<AppState> getDataToolDetail({
 }) {
   return (Store<AppState> store) async {
     store.dispatch(FetchDataToolsAction());
-    var map = FormData.fromMap({
+    final body = <String, dynamic>{
       'param': param,
       'id_form_detail': idFormDetail,
       'id_form': idFrom,
@@ -549,13 +633,10 @@ ThunkAction<AppState> getDataToolDetail({
       'formDetailDate': formDetailDate,
       'form_detail_user': formDetailUser,
       'formDetailUser': formDetailUser,
-    });
+    };
 
-    var dio = Dio();
     try {
-      dio.options.connectTimeout = const Duration(seconds: 20);
-      dio.options.receiveTimeout = const Duration(seconds: 20);
-      final response = await dio.post(ApiUrl.contDataToolDetail, data: map);
+      final response = await apiPost(ApiUrl.contDataToolDetail, body);
       final ToolDetailFetchResult result = _parseToolDetailFetchResponse(
         response.data,
         param,
@@ -563,20 +644,9 @@ ThunkAction<AppState> getDataToolDetail({
       store.dispatch(DataToolsLoadedAction(result.list));
       return result;
     } on DioException catch (e) {
-      if (e.type == DioExceptionType.connectionError ||
-          e.error is SocketException ||
-          e.type == DioExceptionType.connectionTimeout) {
-        // Anda bisa melempar error agar ditangkap oleh UI (FutureBuilder/Provider)
-        errors = cekInternet;
-        messages = "(${e.message})";
-        store.dispatch(DataToolsErrorAction(errors));
-        throw Exception(cekInternet);
-      } else {
-        errors = serverDown;
-        messages = "(${e.message})";
-        store.dispatch(DataToolsErrorAction(errors));
-        throw Exception("Server Down ($messages)");
-      }
+      final msg = applyDioError(e);
+      store.dispatch(DataToolsErrorAction(errors));
+      throw Exception(msg);
     } catch (e) {
       final msg = e.toString().replaceFirst(RegExp(r'^Exception:\s*'), '');
       store.dispatch(DataToolsErrorAction(msg));
@@ -871,38 +941,24 @@ ThunkAction<AppState> getDataPO({
 }) {
   return (Store<AppState> store) async {
     store.dispatch(FetchDataPO());
-    var map = FormData.fromMap({
+    final body = <String, dynamic>{
       'param': param,
       'id_po': idPO,
       'id_form_detail': idFormDetail,
       'po_no': poNO,
       'date_update_po': dateUpdatePO,
       'user_update_po': userUpdatePO,
-    });
+    };
 
-    var dio = Dio();
     try {
-      dio.options.connectTimeout = const Duration(seconds: 20);
-      dio.options.receiveTimeout = const Duration(seconds: 20);
-      final response = await dio.post(ApiUrl.contPO, data: map);
+      final response = await apiPost(ApiUrl.contPO, body);
       final PoFetchResult result = _parsePoFetchResponse(response.data, param);
       store.dispatch(DataPOLoadedAction(result.list));
       return result;
     } on DioException catch (e) {
-      if (e.type == DioExceptionType.connectionError ||
-          e.error is SocketException ||
-          e.type == DioExceptionType.connectionTimeout) {
-        // Anda bisa melempar error agar ditangkap oleh UI (FutureBuilder/Provider)
-        errors = cekInternet;
-        messages = "(${e.message})";
-        store.dispatch(DataPOErrorAction(errors));
-        throw Exception(cekInternet);
-      } else {
-        errors = serverDown;
-        messages = "(${e.message})";
-        store.dispatch(DataPOErrorAction(errors));
-        throw Exception("Server Down ($messages)");
-      }
+      final msg = applyDioError(e);
+      store.dispatch(DataPOErrorAction(errors));
+      throw Exception(msg);
     } catch (e) {
       final msg = e.toString().replaceFirst(RegExp(r'^Exception:\s*'), '');
       store.dispatch(DataPOErrorAction(msg));
@@ -924,7 +980,7 @@ ThunkAction<AppState> getDataSO({
 }) {
   return (Store<AppState> store) async {
     store.dispatch(FetchDataSO());
-    var map = FormData.fromMap({
+    final body = <String, dynamic>{
       'param': param,
       'id_so': idSo,
       'id_form_detail': idFormDetail,
@@ -933,32 +989,18 @@ ThunkAction<AppState> getDataSO({
       'note_so': noteSo,
       'date_update_so': dateUpdateSo,
       'id_update_so': idUpdateSo,
-    });
+    };
 
-    var dio = Dio();
     try {
-      dio.options.connectTimeout = const Duration(seconds: 20);
-      dio.options.receiveTimeout = const Duration(seconds: 20);
-      final response = await dio.post(ApiUrl.contSO, data: map);
+      final response = await apiPost(ApiUrl.contSO, body);
       final SoFetchResult result = _parseSoFetchResponse(response.data, param);
       print('response.data: ${response.data}');
       store.dispatch(DataSOLoadedAction(result.list));
       return result;
     } on DioException catch (e) {
-      if (e.type == DioExceptionType.connectionError ||
-          e.error is SocketException ||
-          e.type == DioExceptionType.connectionTimeout) {
-        // Anda bisa melempar error agar ditangkap oleh UI (FutureBuilder/Provider)
-        errors = cekInternet;
-        messages = "(${e.message})";
-        store.dispatch(DataSOErrorAction(errors));
-        throw Exception(cekInternet);
-      } else {
-        errors = serverDown;
-        messages = "(${e.message})";
-        store.dispatch(DataSOErrorAction(errors));
-        throw Exception("Server Down ($messages)");
-      }
+      final msg = applyDioError(e);
+      store.dispatch(DataSOErrorAction(errors));
+      throw Exception(msg);
     } catch (e) {
       final msg = e.toString().replaceFirst(RegExp(r'^Exception:\s*'), '');
       store.dispatch(DataSOErrorAction(msg));
@@ -978,40 +1020,26 @@ ThunkAction<AppState> getDataSuperrior({
 }) {
   return (Store<AppState> store) async {
     store.dispatch(FetchDataSuperrior());
-    var map = FormData.fromMap({
+    final body = <String, dynamic>{
       'param': param,
       'superior_id': superiorId,
       'nama_superior': namaSuperior,
       'status_superior': statusSuperior,
       'user_id_input_superior': userIdInputSuperior,
       'date_input_superior': dateInputSuperior,
-    });
+    };
 
-    var dio = Dio();
     try {
-      dio.options.connectTimeout = const Duration(seconds: 20);
-      dio.options.receiveTimeout = const Duration(seconds: 20);
-      final response = await dio.post(ApiUrl.contSuperrior, data: map);
+      final response = await apiPost(ApiUrl.contSuperrior, body);
       List<PostList> listSuperrior = parseResponse(response.data);
       // print(response.data);
       // Dispatch ke store (Redux)
       store.dispatch(DataSuperriorLoadedAction(listSuperrior));
       return listSuperrior;
     } on DioException catch (e) {
-      if (e.type == DioExceptionType.connectionError ||
-          e.error is SocketException ||
-          e.type == DioExceptionType.connectionTimeout) {
-        // Anda bisa melempar error agar ditangkap oleh UI (FutureBuilder/Provider)
-        errors = cekInternet;
-        messages = "(${e.message})";
-        store.dispatch(DataSuperriorErrorAction(errors));
-        throw Exception(cekInternet);
-      } else {
-        errors = serverDown;
-        messages = "(${e.message})";
-        store.dispatch(DataSuperriorErrorAction(errors));
-        throw Exception("Server Down ($messages)");
-      }
+      applyDioError(e);
+      store.dispatch(DataSuperriorErrorAction(errors));
+      return [];
     } catch (e) {
       return [];
     }
@@ -1029,20 +1057,17 @@ ThunkAction<AppState> getDataRcvWh({
 }) {
   return (Store<AppState> store) async {
     store.dispatch(FetchDataRcvWh());
-    var map = FormData.fromMap({
+    final body = <String, dynamic>{
       'param': param,
       'id_rcv_wh': idRcvWh,
       'id_form_detail': idFormDetail,
       'rcv_wh_date': rcvWhDate,
       'rcv_wh_id_input': rcvWhIdInput,
       'rcv_wh_date_input': rcvWhDateInput,
-    });
+    };
 
-    var dio = Dio();
     try {
-      dio.options.connectTimeout = const Duration(seconds: 20);
-      dio.options.receiveTimeout = const Duration(seconds: 20);
-      final response = await dio.post(ApiUrl.contRcvWh, data: map);
+      final response = await apiPost(ApiUrl.contRcvWh, body);
       final RcvWhFetchResult result = _parseRcvWhFetchResponse(
         response.data,
         param,
@@ -1050,20 +1075,9 @@ ThunkAction<AppState> getDataRcvWh({
       store.dispatch(DataRcvWhLoadedAction(result.list));
       return result;
     } on DioException catch (e) {
-      if (e.type == DioExceptionType.connectionError ||
-          e.error is SocketException ||
-          e.type == DioExceptionType.connectionTimeout) {
-        // Anda bisa melempar error agar ditangkap oleh UI (FutureBuilder/Provider)
-        errors = cekInternet;
-        messages = "(${e.message})";
-        store.dispatch(DataRcvWhErrorAction(errors));
-        throw Exception(cekInternet);
-      } else {
-        errors = serverDown;
-        messages = "(${e.message})";
-        store.dispatch(DataRcvWhErrorAction(errors));
-        throw Exception("Server Down ($messages)");
-      }
+      final msg = applyDioError(e);
+      store.dispatch(DataRcvWhErrorAction(errors));
+      throw Exception(msg);
     } catch (e) {
       final msg = e.toString().replaceFirst(RegExp(r'^Exception:\s*'), '');
       store.dispatch(DataRcvWhErrorAction(msg));
@@ -1083,20 +1097,17 @@ ThunkAction<AppState> getDataRcvTool({
 }) {
   return (Store<AppState> store) async {
     store.dispatch(FetchDataRcvTool());
-    var map = FormData.fromMap({
+    final body = <String, dynamic>{
       'param': param,
       'id_rcv_tool': idRcvTool,
       'id_form_detail': idFormDetail,
       'rcv_tool_date': rcvToolDate,
       'rcv_tool_id_input': rcvToolIdInput,
       'rcv_tool_date_input': rcvToolDateInput,
-    });
+    };
 
-    var dio = Dio();
     try {
-      dio.options.connectTimeout = const Duration(seconds: 20);
-      dio.options.receiveTimeout = const Duration(seconds: 20);
-      final response = await dio.post(ApiUrl.contRcvTool, data: map);
+      final response = await apiPost(ApiUrl.contRcvTool, body);
       final RcvToolFetchResult result = _parseRcvToolFetchResponse(
         response.data,
         param,
@@ -1104,20 +1115,9 @@ ThunkAction<AppState> getDataRcvTool({
       store.dispatch(DataRcvToolLoadedAction(result.list));
       return result;
     } on DioException catch (e) {
-      if (e.type == DioExceptionType.connectionError ||
-          e.error is SocketException ||
-          e.type == DioExceptionType.connectionTimeout) {
-        // Anda bisa melempar error agar ditangkap oleh UI (FutureBuilder/Provider)
-        errors = cekInternet;
-        messages = "(${e.message})";
-        store.dispatch(DataRcvToolErrorAction(errors));
-        throw Exception(cekInternet);
-      } else {
-        errors = serverDown;
-        messages = "(${e.message})";
-        store.dispatch(DataRcvToolErrorAction(errors));
-        throw Exception("Server Down ($messages)");
-      }
+      final msg = applyDioError(e);
+      store.dispatch(DataRcvToolErrorAction(errors));
+      throw Exception(msg);
     } catch (e) {
       final msg = e.toString().replaceFirst(RegExp(r'^Exception:\s*'), '');
       store.dispatch(DataRcvToolErrorAction(msg));

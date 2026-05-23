@@ -16,6 +16,7 @@ String errors = "";
 String messages = "";
 String get cekInternet => AppStrings.current.checkInternet;
 String get serverDown => AppStrings.current.serverDown;
+String get sessionExpired => AppStrings.current.sessionExpired;
 String titleApp = "";
 String usernameApp = "";
 String passwordApp = "";
