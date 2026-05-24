@@ -1,5 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tool_store_app/services/push_notification_service.dart';
+import 'package:tool_store_app/model/api_client.dart';
 import 'package:tool_store_app/model/post_get_data.dart';
 import 'package:tool_store_app/l10n/l10n_ext.dart';
 import 'package:tool_store_app/theme/app_theme.dart';
@@ -321,6 +325,11 @@ class _LoginState extends State<Login> {
                                                   username.clear();
                                                   password.clear();
                                                   await preloadAuthenticatedData();
+                                                  unawaited(
+                                                    PushNotificationService
+                                                        .instance
+                                                        .syncTokenWithBackend(),
+                                                  );
                                                   if (!mounted) return;
                                                   navigator.pushReplacement(
                                                     MaterialPageRoute(
@@ -349,10 +358,16 @@ class _LoginState extends State<Login> {
                                                   scaffoldMessenger
                                                       .showSnackBar(
                                                         SnackBar(
+                                                          duration:
+                                                              const Duration(
+                                                                seconds: 4,
+                                                              ),
                                                           backgroundColor:
                                                               clrRed,
                                                           content: Text(
-                                                            s.checkInternet,
+                                                            messageForApiError(
+                                                              e,
+                                                            ),
                                                           ),
                                                         ),
                                                       );

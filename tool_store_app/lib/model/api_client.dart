@@ -132,3 +132,25 @@ String applyDioError(DioException e) {
   messages = resolved.detail.isEmpty ? '' : ' (${resolved.detail})';
   return resolved.throwMessage;
 }
+
+/// User-facing message for login and other API calls (not only network errors).
+String messageForApiError(Object e) {
+  if (e is DioException) {
+    return applyDioError(e);
+  }
+  if (e is FormatException) {
+    return serverDown;
+  }
+  if (e is Exception) {
+    final text = e.toString();
+    const prefix = 'Exception: ';
+    if (text.startsWith(prefix)) {
+      final msg = text.substring(prefix.length);
+      if (msg.startsWith('Server Error:')) {
+        return serverDown;
+      }
+      return msg;
+    }
+  }
+  return serverDown;
+}

@@ -13,10 +13,12 @@ class ApiUrl {
   static String fReceiveTool = 'receive/tool';
   static String fSuperior = 'superior';
   static String fAlogin = 'auth/login';
+  static String fFcm = 'device/fcm';
 
   static String contDataUser = "$serv/$fApiTool/$fApi/$fCnt/$fUser";
   static String contDataTool = "$serv/$fApiTool/$fApi/$fCnt/$fForm";
   static String contLogin = "$serv/$fApiTool/$fApi/$fCnt/$fAlogin";
+  static String contFcmToken = "$serv/$fApiTool/$fApi/$fCnt/$fFcm";
   static String contDataToolDetail = "$serv/$fApiTool/$fApi/$fCnt/$fFormDetail";
 
   static String contPO = "$serv/$fApiTool/$fApi/$fCnt/$fPo";

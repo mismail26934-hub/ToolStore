@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "264867704267",
+    "project_id": "toolmonitoring",
+    "storage_bucket": "toolmonitoring.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:264867704267:android:6735a652aba177b18a5a4e",
+        "android_client_info": {
+          "package_name": "com.example.tool_store_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCsM7cS0PE0WKupDsu6SsQ_9M66l_0jeSM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

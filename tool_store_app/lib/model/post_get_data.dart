@@ -684,11 +684,12 @@ Future login(String usernameApp, String passwordApp) async {
       }
       return listUser;
     } else {
-      throw Exception("Server Error: ${response.statusCode}");
+      throw Exception('Server Error: ${response.statusCode}');
     }
-  } catch (e) {
-    // Re-throw agar ditangkap oleh catch di onPressed (cekInternet)
-    rethrow;
+  } on DioException catch (e) {
+    throw Exception(applyDioError(e));
+  } on FormatException {
+    throw Exception(serverDown);
   }
 }
 
@@ -1168,16 +1169,17 @@ ThunkAction<AppState> getDataSuperrior({
 
     try {
       final response = await apiPost(ApiUrl.contSuperrior, body);
-      List<PostList> listSuperrior = parseResponse(response.data);
-      // print(response.data);
-      // Dispatch ke store (Redux)
+      final parsed = parseSuperiorListResponse(response.data);
+      final listSuperrior = parsed.items;
       store.dispatch(DataSuperriorLoadedAction(listSuperrior));
       return listSuperrior;
     } on DioException catch (e) {
-      applyDioError(e);
-      store.dispatch(DataSuperriorErrorAction(errors));
+      final msg = applyDioError(e);
+      store.dispatch(DataSuperriorErrorAction(msg));
       return [];
     } catch (e) {
+      final msg = e.toString().replaceFirst(RegExp(r'^Exception:\s*'), '');
+      store.dispatch(DataSuperriorErrorAction(msg));
       return [];
     }
   };

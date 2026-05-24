@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:tool_store_app/l10n/l10n_ext.dart';
 import 'package:tool_store_app/theme/app_theme.dart';
 import 'package:tool_store_app/model/post_get_data.dart';
+import 'package:tool_store_app/services/push_notification_service.dart';
 import 'package:tool_store_app/view/custom/mixin/mixin_pref.dart';
 import 'package:tool_store_app/view/custom/routes/page_routes.dart';
 import 'package:tool_store_app/view/custom/shimmer/app_shimmer.dart';
@@ -49,20 +50,32 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   Future<void> _handleSplash() async {
-    // 1. Ambil data dari SharedPreferences via Mixin
     await refreshPref();
-
-    // 2. Durasi splash screen (2-3 detik)
     await Future.delayed(const Duration(seconds: 2));
 
     if (!mounted) return;
 
-    // 3. Logika Navigasi: Jika idUsersApp kosong/null lari ke Login, jika ada lari ke Home
-    if (idUsersApp == "" || idUsersApp == "null" || idUsersApp.isEmpty) {
-      PageRoutes.routeLogin(context);
-    } else {
+    final hasSession =
+        idUsersApp.isNotEmpty && idUsersApp != 'null';
+
+    try {
+      if (!hasSession) {
+        await PageRoutes.routeLogin(context);
+        return;
+      }
+
       unawaited(preloadAuthenticatedData());
-      PageRoutes.routeDashboards(context);
+      unawaited(PushNotificationService.instance.syncTokenWithBackend());
+      if (!mounted) return;
+      await PageRoutes.routeDashboards(context);
+    } catch (e, st) {
+      debugPrint('SplashScreen navigasi gagal: $e\n$st');
+      if (!mounted) return;
+      if (hasSession) {
+        await PageRoutes.routeDashboards(context);
+      } else {
+        await PageRoutes.routeLogin(context);
+      }
     }
   }
 

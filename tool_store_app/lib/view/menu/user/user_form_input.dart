@@ -10,8 +10,6 @@ import 'package:tool_store_app/model/post_get_data.dart';
 import 'package:tool_store_app/view/custom/routes/page_routes.dart';
 import 'package:tool_store_app/view/custom/show_dialog/show_dialog.dart';
 import 'package:tool_store_app/theme/app_theme.dart';
-import 'package:tool_store_app/view/custom/shimmer/app_shimmer.dart';
-import 'package:tool_store_app/view/custom/shimmer/skeletons.dart';
 import 'package:tool_store_app/l10n/app_strings.dart';
 import 'package:tool_store_app/l10n/l10n_ext.dart';
 import 'package:tool_store_app/view/var/var.dart';
@@ -1060,10 +1058,6 @@ class _UserFormInputState extends State<UserFormInput> {
                           StoreConnector<AppState, SuperriorState>(
                             converter: (s) => s.state.superriorState,
                             builder: (context, supState) {
-                              if (supState.isLoadingSuperrior &&
-                                  supState.superriorS.isEmpty) {
-                                return const AppShimmer(child: FieldSkeleton());
-                              }
                               final hasValue = namaSuperiorFormCont.text
                                   .trim()
                                   .isNotEmpty;

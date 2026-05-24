@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_redux/flutter_redux.dart';
@@ -9,6 +11,7 @@ import 'package:tool_store_app/theme/app_theme.dart';
 import 'package:tool_store_app/theme/theme_controller.dart';
 import 'package:tool_store_app/view/custom/mixin/mixin_pref.dart';
 import 'package:tool_store_app/view/custom/web_custom/web_custom_berhaviour.dart';
+import 'package:tool_store_app/services/push_notification_service.dart';
 import 'package:tool_store_app/view/menu/splash_login/splash.dart';
 import 'package:tool_store_app/view/var/var.dart';
 
@@ -16,12 +19,20 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await themeController.load();
   await localeController.load();
-  SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-    DeviceOrientation.portraitDown,
-  ]).then((_) {
-    runApp(const MyApp());
+
+  runApp(const MyApp());
+
+  // Firebase + local notifications after first frame so Android can draw UI.
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    unawaited(PushNotificationService.instance.initialize());
   });
+
+  unawaited(
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]),
+  );
 }
 
 class MyApp extends StatefulWidget {
