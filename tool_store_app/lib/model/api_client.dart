@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tool_store_app/view/var/var.dart';
 
@@ -61,7 +62,15 @@ Future<Map<String, dynamic>> withAuthFields(Map<String, dynamic> body) async {
   return merged;
 }
 
+Dio? _sharedApiDio;
+
+/// Shared [Dio] for app API calls (20s connect/receive, Bearer from session).
+///
+/// Reuses one client instance instead of allocating per [apiPost].
 Dio createApiDio() {
+  final existing = _sharedApiDio;
+  if (existing != null) return existing;
+
   final dio = Dio();
   dio.options.connectTimeout = const Duration(seconds: 20);
   dio.options.receiveTimeout = const Duration(seconds: 20);
@@ -76,7 +85,14 @@ Dio createApiDio() {
       },
     ),
   );
+  _sharedApiDio = dio;
   return dio;
+}
+
+/// Clears the cached client (unit/widget tests only).
+@visibleForTesting
+void resetSharedApiDio() {
+  _sharedApiDio = null;
 }
 
 /// POST [FormData] with auth fields and optional Bearer header.
@@ -86,8 +102,7 @@ Future<Response<dynamic>> apiPost(
   bool attachAuth = true,
 }) async {
   final payload = attachAuth ? await withAuthFields(body) : body;
-  final dio = createApiDio();
-  return dio.post(url, data: FormData.fromMap(payload));
+  return createApiDio().post(url, data: FormData.fromMap(payload));
 }
 
 DioErrorResolution resolveDioException(DioException e) {

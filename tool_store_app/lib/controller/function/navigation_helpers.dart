@@ -3,7 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tool_store_app/controller/cont_crud/redux/action.dart';
 import 'package:tool_store_app/view/custom/routes/page_routes.dart';
-import 'package:tool_store_app/view/menu/tooll/tool_form.dart';
+import 'package:tool_store_app/view/menu/tool/tool_form.dart';
 import 'package:tool_store_app/l10n/app_strings.dart';
 import 'package:tool_store_app/view/var/var.dart';
 
@@ -119,12 +119,10 @@ Future<T?> postContForm<T>(
   );
 }
 
-// Tambahkan BuildContext context sebagai parameter
 Future<void> selectDate(
   BuildContext context,
   TextEditingController controller,
   VoidCallback onSelected,
-  // Gunakan callback untuk menggantikan setState
 ) async {
   DateTime? pickedDate = await showDatePicker(
     context: context,
@@ -134,9 +132,7 @@ Future<void> selectDate(
   );
 
   if (pickedDate != null) {
-    // Set value ke controller
     controller.text = "${pickedDate.toLocal()}".split(' ')[0];
-    // Panggil callback untuk memicu UI update di widget
     onSelected();
   }
 }
@@ -154,9 +150,6 @@ Future<void> postMultipleToolCont(
   valType,
   partValue,
   BuildContext context, {
-
-  /// True when opening the form to add new tool rows (API ADD) while still
-  /// pre-filling parent [idFormTool] / [idFormDetail] from the list context.
   bool navigateAsAdd = false,
 }) async {
   parentIdFormForToolDetail = (idFormTool ?? '').toString().trim();

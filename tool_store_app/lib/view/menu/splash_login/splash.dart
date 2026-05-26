@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:tool_store_app/l10n/l10n_ext.dart';
 import 'package:tool_store_app/theme/app_theme.dart';
-import 'package:tool_store_app/model/post_get_data.dart';
+import 'package:tool_store_app/model/app_preload.dart';
 import 'package:tool_store_app/services/push_notification_service.dart';
 import 'package:tool_store_app/view/custom/mixin/mixin_pref.dart';
 import 'package:tool_store_app/view/custom/routes/page_routes.dart';

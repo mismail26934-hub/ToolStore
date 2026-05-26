@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:tool_store_app/view/menu/drawer/drawer.dart';
-import 'package:tool_store_app/view/menu/tooll/tool_form_input.dart';
+import 'package:tool_store_app/view/menu/tool/tool_form_input.dart';
 import 'package:tool_store_app/view/var/var.dart';
 
 class ToolForm extends StatefulWidget {

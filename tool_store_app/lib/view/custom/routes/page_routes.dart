@@ -4,9 +4,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tool_store_app/view/menu/dashboard/dashboard.dart';
 import 'package:tool_store_app/view/menu/home/home.dart';
 import 'package:tool_store_app/view/menu/splash_login/login.dart';
-import 'package:tool_store_app/view/menu/tooll/tool_data.dart';
+import 'package:tool_store_app/view/menu/tool/tool_data.dart';
 import 'package:tool_store_app/l10n/l10n_ext.dart';
-import 'package:tool_store_app/view/menu/tooll/tool_form_multiple_input.dart';
+import 'package:tool_store_app/view/menu/tool/tool_form_multiple_input.dart';
 import 'package:tool_store_app/view/menu/user/user_data.dart';
 import 'package:tool_store_app/view/menu/user/user_form.dart';
 

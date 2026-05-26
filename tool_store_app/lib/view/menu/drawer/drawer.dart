@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:tool_store_app/controller/function/funct.dart';
+import 'package:tool_store_app/controller/function/navigation_helpers.dart';
 import 'package:tool_store_app/l10n/l10n_ext.dart';
 import 'package:tool_store_app/l10n/locale_controller.dart';
 import 'package:tool_store_app/theme/app_theme.dart';

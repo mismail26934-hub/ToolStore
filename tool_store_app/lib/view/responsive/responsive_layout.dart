@@ -3,12 +3,12 @@ import 'package:tool_store_app/view/var/var.dart';
 
 class ResponsiveLayout extends StatelessWidget {
   final Widget mobileLayout;
-  final Widget dekstopLayout;
+  final Widget desktopLayout;
 
   const ResponsiveLayout({
     super.key,
     required this.mobileLayout,
-    required this.dekstopLayout,
+    required this.desktopLayout,
   });
 
   @override
@@ -18,7 +18,7 @@ class ResponsiveLayout extends StatelessWidget {
         if (constraints.maxWidth < mobileWidth) {
           return mobileLayout;
         } else {
-          return dekstopLayout;
+          return desktopLayout;
         }
       },
     );

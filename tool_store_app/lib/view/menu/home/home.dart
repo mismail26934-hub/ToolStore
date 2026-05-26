@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:tool_store_app/view/responsive/dekstop_layout.dart';
-import 'package:tool_store_app/view/responsive/mobil_layout.dart';
-import 'package:tool_store_app/view/responsive/resposive_layout.dart';
+import 'package:tool_store_app/view/responsive/desktop_layout.dart';
+import 'package:tool_store_app/view/responsive/mobile_layout.dart';
+import 'package:tool_store_app/view/responsive/responsive_layout.dart';
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -16,7 +16,7 @@ class _HomeState extends State<Home> {
     return Scaffold(
       body: ResponsiveLayout(
         mobileLayout: MobilLayout(),
-        dekstopLayout: DekstopLayout(),
+        desktopLayout: DesktopLayout(),
       ),
     );
   }
