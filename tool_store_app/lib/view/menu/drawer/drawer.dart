@@ -7,6 +7,7 @@ import 'package:tool_store_app/theme/app_theme.dart';
 import 'package:tool_store_app/theme/theme_controller.dart';
 import 'package:tool_store_app/view/custom/routes/page_routes.dart';
 import 'package:tool_store_app/view/custom/show_dialog/show_dialog.dart';
+import 'package:tool_store_app/view/custom/mixin/mixin_pref.dart';
 import 'package:tool_store_app/view/var/var.dart';
 
 Future<String> _drawerReadPrefLevel() async {
@@ -14,8 +15,7 @@ Future<String> _drawerReadPrefLevel() async {
   return prefs.getString('level') ?? '';
 }
 
-bool _drawerIsSuperAdmin(String raw) =>
-    raw.trim().toUpperCase() == 'SUPERADMIN';
+bool _drawerIsSuperAdmin(String raw) => isSuperAdminLevel(raw);
 
 class DrawerMenu extends StatefulWidget {
   const DrawerMenu({super.key, required this.title});

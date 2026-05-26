@@ -1,5 +1,5 @@
 class ApiUrl {
-  static String serv = 'http://192.168.1.11:8080/';
+  static String serv = 'http://192.168.1.35:8080/';
   // static String serv = 'http://10.157.164.69:8080/';
   static String fApiTool = 'api_tool';
   static String fApi = 'api_toolstore';

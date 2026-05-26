@@ -403,6 +403,8 @@ class AppStrings {
       _t('TAMBAH DATA TOOL BERHASIL', 'ADD DATA TOOL SUCCESS');
   String get editToolSuccess =>
       _t('UBAH DATA TOOL BERHASIL', 'EDIT DATA TOOL SUCCESS');
+  String get deleteToolSuccess =>
+      _t('HAPUS DATA TOOL BERHASIL', 'DELETE DATA TOOL SUCCESS');
   String get dataAddedSuccess =>
       _t('Data berhasil ditambahkan', 'Data added successfully');
   String get dataUpdatedSuccess =>

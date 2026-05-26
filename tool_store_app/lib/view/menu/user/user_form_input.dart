@@ -1028,6 +1028,7 @@ class _UserFormInputState extends State<UserFormInput> {
                                       "TOOL_KEEPER",
                                       "COUNTER",
                                       "GA",
+                                      "WH",
                                     ]
                                     .map(
                                       (e) => DropdownMenuItem<String>(

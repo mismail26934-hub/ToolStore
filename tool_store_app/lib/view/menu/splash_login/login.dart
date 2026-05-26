@@ -7,6 +7,7 @@ import 'package:tool_store_app/model/api_client.dart';
 import 'package:tool_store_app/model/post_get_data.dart';
 import 'package:tool_store_app/l10n/l10n_ext.dart';
 import 'package:tool_store_app/theme/app_theme.dart';
+import 'package:tool_store_app/view/custom/mixin/mixin_pref.dart';
 import 'package:tool_store_app/view/menu/dashboard/dashboard.dart';
 import 'package:tool_store_app/view/var/var.dart';
 
@@ -324,6 +325,7 @@ class _LoginState extends State<Login> {
                                                   );
                                                   username.clear();
                                                   password.clear();
+                                                  await syncSessionFromPreferences();
                                                   await preloadAuthenticatedData();
                                                   unawaited(
                                                     PushNotificationService

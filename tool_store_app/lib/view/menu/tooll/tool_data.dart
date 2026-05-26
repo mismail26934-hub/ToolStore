@@ -561,11 +561,21 @@ class _ToolDataState extends State<ToolData> with MixinPref {
     return n.isEmpty || n == 'DRAFT';
   }
 
-  /// Add Tool hanya saat milestone kosong (blank) atau DRAFT.
+  bool get _isSuperAdmin => isSuperAdminLevel(level);
+
+  /// Add / edit tool item: SUPERADMIN atau TOOL_KEEPER; milestone kosong/DRAFT
+  /// (SUPERADMIN boleh di milestone mana pun).
   bool _canAddToolByMilestone(PostList forms) {
+    if (!_canAddToolToForm) return false;
+    if (_isSuperAdmin) return true;
     final n = _normFormMilestone(forms.formMilestone);
     return n.isEmpty || n == 'DRAFT';
   }
+
+  bool _canEditToolDetail(PostList forms) => _canAddToolByMilestone(forms);
+
+  /// Tambah form request (+) dan edit Request Summary.
+  bool get _canAddOrEditDataToolForm => _canAddToolToForm;
 
   Future<void> _openAddToolForm(PostList forms) async {
     _rememberExpandedForm(forms.idForm);
@@ -4895,10 +4905,10 @@ class _ToolDataState extends State<ToolData> with MixinPref {
                 ),
               ),
               IconButton(
-                tooltip: _canAddToolByMilestone(forms)
+                tooltip: _canEditToolDetail(forms)
                     ? 'Edit data tool'
                     : 'Edit data tool Disabled',
-                onPressed: _canAddToolByMilestone(forms)
+                onPressed: _canEditToolDetail(forms)
                     ? () => _openEditToolDetail(forms, itemTool, index)
                     : null,
                 icon: const Icon(Icons.edit_outlined),
@@ -5404,11 +5414,13 @@ class _ToolDataState extends State<ToolData> with MixinPref {
               _buildSectionHeader(
                 'Request Summary',
                 icon: Icons.description_outlined,
-                trailing: IconButton(
-                  tooltip: 'Edit request',
-                  icon: Icon(Icons.edit_document, color: clrOrange),
-                  onPressed: () => _openEditRequestForm(forms),
-                ),
+                trailing: _canAddOrEditDataToolForm
+                    ? IconButton(
+                        tooltip: 'Edit request',
+                        icon: Icon(Icons.edit_document, color: clrOrange),
+                        onPressed: () => _openEditRequestForm(forms),
+                      )
+                    : null,
               ),
               GridView.count(
                 crossAxisCount: MediaQuery.sizeOf(context).width < mobileWidth
@@ -5713,30 +5725,32 @@ class _ToolDataState extends State<ToolData> with MixinPref {
             slivers: [
               SliverAppbars(
                 title: _pageTitle,
-                onPressTailing: () {
-                  postContForm(
-                    "",
-                    "",
-                    "",
-                    "",
-                    "",
-                    "",
-                    "",
-                    "",
-                    "",
-                    "",
-                    "",
-                    "",
-                    "",
-                    "",
-                    "",
-                    "",
-                    "",
-                    "",
-                    "",
-                    context,
-                  );
-                },
+                onPressTailing: _canAddOrEditDataToolForm
+                    ? () {
+                        postContForm(
+                          "",
+                          "",
+                          "",
+                          "",
+                          "",
+                          "",
+                          "",
+                          "",
+                          "",
+                          "",
+                          "",
+                          "",
+                          "",
+                          "",
+                          "",
+                          "",
+                          "",
+                          "",
+                          "",
+                          context,
+                        );
+                      }
+                    : null,
                 onPressLeading: () => _scaffoldKey.currentState?.openDrawer(),
                 iconTailing: Icon(Icons.add),
                 iconLeading: Icon(Icons.menu),

@@ -108,12 +108,65 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
       onPressedYes: (dialogContext) async {
         if (dialogContext.mounted) Navigator.pop(dialogContext);
         if (!mounted) return;
+        await _deleteToolRowAt(i);
       },
       textNo: AppStrings.current.cancel,
       textYes: AppStrings.current.yes,
       textColorNo: clrBlack,
       textColorYes: clrOrange,
     );
+  }
+
+  Future<void> _refreshToolDetailList() async {
+    await StoreProvider.of<AppState>(context).dispatch(
+      getDataToolDetail(
+        param: paramViewDataTool,
+        idFormDetail: '',
+        idFrom: '',
+        formComment: '',
+        pnGroup: '',
+        pnDesc: '',
+        qty: '',
+        explan: '',
+        actionNote: '',
+        valType: '',
+        partValue: '',
+        formDetailDate: '',
+        formDetailUser: '',
+      ),
+    );
+  }
+
+  Future<void> _deleteToolRowAt(int index) async {
+    if (_isSubmitting) return;
+    setState(() => _isSubmitting = true);
+
+    try {
+      final successMessage = await _submitRowToApi(
+        index: index,
+        param: paramDeleteDataTool,
+      );
+      if (!mounted) return;
+      await _refreshToolDetailList();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(backgroundColor: clrGreen, content: Text(successMessage)),
+      );
+      Navigator.maybePop(context, true);
+    } catch (e) {
+      if (!mounted) return;
+      final msg = e.toString().replaceFirst(RegExp(r'^Exception:\s*'), '');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: clrRed,
+          content: Text(msg.isNotEmpty ? msg : AppStrings.current.deleteFailed),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
   }
 
   Future<void> _seedToolDetailMeta() async {
@@ -328,10 +381,17 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
     if (result.statusValue != null && result.statusValue != '1') {
       throw Exception(result.serverMessage ?? AppStrings.current.processFailed);
     }
-    return result.serverMessage ??
-        (_isAddMode
-            ? AppStrings.current.addToolSuccess
-            : AppStrings.current.editToolSuccess);
+    if (result.serverMessage != null &&
+        result.serverMessage!.trim().isNotEmpty) {
+      return result.serverMessage!.trim();
+    }
+    if (param == paramAddDataTool) {
+      return AppStrings.current.addToolSuccess;
+    }
+    if (param == paramDeleteDataTool) {
+      return AppStrings.current.deleteToolSuccess;
+    }
+    return AppStrings.current.editToolSuccess;
   }
 
   Future<void> _submitData() async {
@@ -350,23 +410,7 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
       }
 
       if (!mounted) return;
-      await StoreProvider.of<AppState>(context).dispatch(
-        getDataToolDetail(
-          param: paramViewDataTool,
-          idFormDetail: '',
-          idFrom: '',
-          formComment: '',
-          pnGroup: '',
-          pnDesc: '',
-          qty: '',
-          explan: '',
-          actionNote: '',
-          valType: '',
-          partValue: '',
-          formDetailDate: '',
-          formDetailUser: '',
-        ),
-      );
+      await _refreshToolDetailList();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(backgroundColor: clrGreen, content: Text(successMessage)),
@@ -542,7 +586,9 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
                                 Icons.delete_outline_rounded,
                                 color: Colors.red,
                               ),
-                              onPressed: _isAddMode
+                              onPressed: _isSubmitting
+                                  ? null
+                                  : _isAddMode
                                   ? () => _removeRow(i)
                                   : () => _showDeleteDialog(i),
                             ),

@@ -9,6 +9,7 @@ import 'package:tool_store_app/theme/app_theme.dart';
 import 'package:tool_store_app/view/custom/shimmer/app_shimmer.dart';
 import 'package:tool_store_app/view/custom/shimmer/skeletons.dart';
 import 'package:tool_store_app/l10n/l10n_ext.dart';
+import 'package:tool_store_app/view/custom/mixin/mixin_pref.dart';
 import 'package:tool_store_app/view/menu/drawer/drawer.dart';
 import 'package:tool_store_app/view/var/var.dart';
 
@@ -35,7 +36,7 @@ class Dashboard extends StatefulWidget {
   State<Dashboard> createState() => _DashboardState();
 }
 
-class _DashboardState extends State<Dashboard> {
+class _DashboardState extends State<Dashboard> with MixinPref {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   Future<void> _openToolSearch() async {
@@ -56,6 +57,7 @@ class _DashboardState extends State<Dashboard> {
   @override
   void initState() {
     super.initState();
+    refreshPref();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _refreshDashboardData();
     });
