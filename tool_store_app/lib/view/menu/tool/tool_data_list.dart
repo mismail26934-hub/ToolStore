@@ -10,9 +10,7 @@ import 'tool_data_state_base.dart';
 
 mixin ToolDataListMixin on ToolDataStateBase {
   Widget buildToolDataFormsListSliver(FormsState state) {
-    final filteredForms = state.forms
-        .where(matchesMilestoneFilter)
-        .toList();
+    final filteredForms = state.forms.where(matchesMilestoneFilter).toList();
     final hasMoreForms = state.hasMore;
     // #region agent log
     if (!state.isLoadingTool) {
@@ -36,8 +34,7 @@ mixin ToolDataListMixin on ToolDataStateBase {
           'filteredCount': filteredForms.length,
           'searchQuery': searchQuery,
           'hasMilestoneFilters': hasMilestoneFilters,
-          'milestoneFiltersNorms': milestoneFiltersNorms
-              .toList(),
+          'milestoneFiltersNorms': milestoneFiltersNorms.toList(),
           'filterBlank': widget.filterBlankFormMilestone,
           'excludeFilters': widget.excludeFormMilestoneFilters,
         },
@@ -117,8 +114,9 @@ mixin ToolDataListMixin on ToolDataStateBase {
               child: Text(
                 formLoadSummary(state, filteredForms.length),
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodySmall
-                    ?.copyWith(color: context.textSecondary),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: context.textSecondary),
               ),
             ),
           ),
@@ -130,16 +128,15 @@ mixin ToolDataListMixin on ToolDataStateBase {
                 children: [
                   Text(
                     formLoadSummary(state, filteredForms.length),
-                    style: Theme.of(context).textTheme.bodySmall
-                        ?.copyWith(color: context.textSecondary),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: context.textSecondary,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton.icon(
-                      onPressed: state.isLoadingMore
-                          ? null
-                          : loadMoreForms,
+                      onPressed: state.isLoadingMore ? null : loadMoreForms,
                       icon: state.isLoadingMore
                           ? SizedBox(
                               width: 18,

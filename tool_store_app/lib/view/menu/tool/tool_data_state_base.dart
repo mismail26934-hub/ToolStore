@@ -37,6 +37,7 @@ abstract class ToolDataStateBase extends State<ToolData> with MixinPref {
   Widget buildRcvToolCard(PostList itemRcvTool);
   Widget buildToolItemCard(PostList itemTool, int index, PostList forms);
   Widget buildFormCard(PostList forms, int index);
+
   Widget buildSearchBar();
   Widget buildSearchNotFoundContent();
 
