@@ -31,6 +31,8 @@ class ApiUrl {
   static String get contFcmToken => '$serv$fApiTool/$fApi/$fCnt/$fFcm';
   static String get contDataToolDetail =>
       '$serv$fApiTool/$fApi/$fCnt/$fFormDetail';
+  static String get contFormDetailExport =>
+      '$serv$fApiTool/$fApi/$fCnt/$fFormDetail/export';
 
   static String get contPO => '$serv$fApiTool/$fApi/$fCnt/$fPo';
   static String get contSO => '$serv$fApiTool/$fApi/$fCnt/$fSo';

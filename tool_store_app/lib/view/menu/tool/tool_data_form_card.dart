@@ -238,7 +238,7 @@ mixin ToolDataFormCardMixin on ToolDataStateBase {
               .toList();
           return DetailSectionVm(
             items: items,
-            isLoading: store.state.formsDetailState.isLoadingToolDetail,
+            isLoading: isLoadingFormDetails(forms.idForm) && items.isEmpty,
           );
         },
         builder: (context, vm) {

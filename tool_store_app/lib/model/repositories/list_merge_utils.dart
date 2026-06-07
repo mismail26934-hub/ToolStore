@@ -33,3 +33,43 @@ List<PostList> mergeUsersPreview(
   }
   return merged;
 }
+
+/// Replaces tool rows for [idForm] with [incoming] (server + client scoped).
+List<PostList> mergeToolsForForm({
+  required List<PostList> existing,
+  required List<PostList> incoming,
+  required String idForm,
+}) {
+  final id = idForm.trim();
+  if (id.isEmpty) return incoming;
+  final kept = existing.where((t) => t.idForm.trim() != id).toList();
+  final scoped = incoming.where((t) => t.idForm.trim() == id).toList();
+  return [...kept, ...scoped];
+}
+
+Set<String> toolDetailIdsForForm(List<PostList> tools, String idForm) {
+  final id = idForm.trim();
+  if (id.isEmpty) return const {};
+  return tools
+      .where((t) => t.idForm.trim() == id)
+      .map((t) => t.idFormDetail.trim())
+      .where((s) => s.isNotEmpty)
+      .toSet();
+}
+
+/// Replaces child rows (PO/SO/Rcv) linked to [toolDetailIds].
+List<PostList> mergeChildRowsForToolDetails({
+  required List<PostList> existing,
+  required List<PostList> incoming,
+  required Set<String> toolDetailIds,
+  required String Function(PostList) childDetailId,
+}) {
+  if (toolDetailIds.isEmpty) return existing;
+  final kept = existing
+      .where((row) => !toolDetailIds.contains(childDetailId(row).trim()))
+      .toList();
+  final scoped = incoming
+      .where((row) => toolDetailIds.contains(childDetailId(row).trim()))
+      .toList();
+  return [...kept, ...scoped];
+}

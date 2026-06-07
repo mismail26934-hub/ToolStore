@@ -118,11 +118,16 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
   }
 
   Future<void> _refreshToolDetailList() async {
+    final parentId = widget.parentIdForm.trim().isNotEmpty
+        ? widget.parentIdForm.trim()
+        : idFormToolCont.isNotEmpty
+        ? idFormToolCont.first.text.trim()
+        : '';
     await StoreProvider.of<AppState>(context).dispatch(
       getDataToolDetail(
         param: paramViewDataTool,
         idFormDetail: '',
-        idFrom: '',
+        idFrom: parentId,
         formComment: '',
         pnGroup: '',
         pnDesc: '',
@@ -133,6 +138,7 @@ class _ToolFormMultipleInputState extends State<ToolFormMultipleInput> {
         partValue: '',
         formDetailDate: '',
         formDetailUser: '',
+        mergeForForm: parentId.isNotEmpty,
       ),
     );
   }

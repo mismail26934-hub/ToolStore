@@ -4,6 +4,7 @@ import 'package:redux_thunk/redux_thunk.dart';
 import 'package:tool_store_app/controller/cont_crud/redux/action.dart';
 import 'package:tool_store_app/controller/cont_crud/redux/state.dart';
 import 'package:tool_store_app/model/api_client.dart';
+import 'package:tool_store_app/model/repositories/list_merge_utils.dart';
 import 'package:tool_store_app/model/repositories/mutating_list_fetch_result.dart';
 import 'package:tool_store_app/model/repositories/tool_detail_repository.dart';
 import 'package:tool_store_app/view/var/var.dart';
@@ -22,13 +23,21 @@ ThunkAction<AppState> getDataToolDetail({
   required String partValue,
   required String formDetailDate,
   required String formDetailUser,
+  bool mergeForForm = false,
 }) {
   return (Store<AppState> store) async {
     final isView = param == paramViewDataTool;
-    if (isView && store.state.formsDetailState.formsDetail.isNotEmpty) {
-      store.dispatch(FetchDataToolsRefreshAction());
-    } else if (isView) {
-      store.dispatch(FetchDataToolsAction());
+    final scopedFormId = idFrom.trim();
+    final scopedView = isView && mergeForForm && scopedFormId.isNotEmpty;
+
+    if (isView) {
+      if (scopedView) {
+        store.dispatch(FetchDataToolsRefreshAction());
+      } else if (store.state.formsDetailState.formsDetail.isNotEmpty) {
+        store.dispatch(FetchDataToolsRefreshAction());
+      } else {
+        store.dispatch(FetchDataToolsAction());
+      }
     }
     final body = <String, dynamic>{
       'param': param,
@@ -55,11 +64,20 @@ ThunkAction<AppState> getDataToolDetail({
         body,
         param,
       );
-      store.dispatch(DataToolsLoadedAction(result.list));
+      if (isView) {
+        final list = scopedView
+            ? mergeToolsForForm(
+                existing: store.state.formsDetailState.formsDetail,
+                incoming: result.list,
+                idForm: scopedFormId,
+              )
+            : result.list;
+        store.dispatch(DataToolsLoadedAction(list));
+      }
       return result;
     } on DioException catch (e) {
       final msg = applyDioError(e);
-      store.dispatch(DataToolsErrorAction(errors));
+      store.dispatch(DataToolsErrorAction(msg));
       throw Exception(msg);
     } catch (e) {
       final msg = e.toString().replaceFirst(RegExp(r'^Exception:\s*'), '');

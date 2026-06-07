@@ -333,7 +333,7 @@ mixin ToolDataToolItemCardMixin on ToolDataStateBase {
                                 itemTool.idFormDetail,
                               ),
                               icon: const Icon(Icons.add, size: 18),
-                              label: const Text('Add'),
+                              label: Text(strings.addButton),
                               style: TextButton.styleFrom(
                                 foregroundColor: clrOrange,
                               ),

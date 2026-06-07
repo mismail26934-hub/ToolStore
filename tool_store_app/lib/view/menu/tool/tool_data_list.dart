@@ -68,6 +68,23 @@ mixin ToolDataListMixin on ToolDataStateBase {
       );
     }
     if (state.forms.isEmpty) {
+      if ((hasDateFilter || hasExcelFilter) && searchQuery.isEmpty) {
+        return SliverMainAxisGroup(
+          slivers: [
+            SliverPersistentHeader(
+              pinned: true,
+              delegate: PinnedSearchHeaderDelegate(
+                backgroundColor: context.pageBackground,
+                child: buildSearchBar(),
+              ),
+            ),
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: buildSearchNotFoundContent(),
+            ),
+          ],
+        );
+      }
       return SliverFillRemaiings(
         errors: state.error ?? "No Record Data Found",
         hasScrollBodys: false,

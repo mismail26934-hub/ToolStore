@@ -2,6 +2,7 @@ import 'package:tool_store_app/l10n/app_strings.dart';
 
 String get titleDataTool => AppStrings.current.dataTool;
 String paramViewDataForm = 'VIEW DATA FORM';
+String paramExportDataFormDetail = 'EXPORT DATA FORM DETAIL';
 String paramDashboardCountForm = 'DASHBOARD COUNT FORM';
 String paramAddDataForm = 'ADD DATA FORM';
 String paramEditDataForm = 'EDIT DATA FORM';

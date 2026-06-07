@@ -35,6 +35,8 @@ Gunakan checklist ini setelah **setiap PR refactor** (atau sebelum release) untu
 |---|---------|----------|
 | 3.1 | Buka list tool default | Data tampil, shimmer lalu konten |
 | 3.2 | Ketik di search + ganti field search | Hasil filter benar |
+| 3.2b | Tap icon filter → pilih rentang tanggal | List terfilter by `from_date_update`, total pagination benar |
+| 3.2c | Tap filter lagi → Hapus filter tanggal | List kembali normal |
 | 3.3 | Scroll ke bawah (load more jika ada) | Baris tambahan append, tidak duplikat aneh |
 | 3.4 | Expand satu form card | Detail section (PO/SO/WH/Tool) load |
 | 3.5 | Collapse / expand lain | State expand independen |

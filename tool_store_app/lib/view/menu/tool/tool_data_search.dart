@@ -116,9 +116,15 @@ Widget buildToolDataSearchNotFoundContent({
   required BuildContext context,
   required String searchQuery,
   required bool hasMilestoneFilters,
+  required bool hasDateFilter,
+  bool hasExcelFilter = false,
 }) {
   final s = AppStrings.current;
-  final message = searchQuery.isEmpty && hasMilestoneFilters
+  final message = searchQuery.isEmpty && hasExcelFilter
+      ? s.noFormsExcelFilter
+      : searchQuery.isEmpty && hasDateFilter
+      ? s.noFormsDateFilter
+      : searchQuery.isEmpty && hasMilestoneFilters
       ? s.noFormsMilestoneFilter
       : searchQuery.isEmpty
       ? s.searchNotFoundSuffix

@@ -49,6 +49,7 @@ ThunkAction<AppState> getDataTool({
   required String formSheadComment,
   required String fromDateUpdate,
   required String formUserUpdate,
+  String toDateUpdate = '',
   int page = 1,
   int limit = kToolFormPageSize,
   bool append = false,
@@ -82,11 +83,20 @@ ThunkAction<AppState> getDataTool({
       'form_status_order': formStatusOrder,
       'form_shead_aprd': formSheadAprd,
       'form_shead_comment': formSheadComment,
-      'from_date_update': fromDateUpdate,
       'form_user_update': formUserUpdate,
       'page': page.toString(),
       'limit': limit.toString(),
     };
+    if (isView) {
+      final from = fromDateUpdate.trim();
+      if (from.isNotEmpty) {
+        body['from_date_update'] = from;
+        final to = toDateUpdate.trim();
+        body['to_date_update'] = to.isNotEmpty ? to : from;
+      }
+    } else {
+      body['from_date_update'] = fromDateUpdate;
+    }
     final kw = viewKeyword.trim();
     if (isView && kw.isNotEmpty) {
       body['keyword'] = kw;
@@ -112,6 +122,8 @@ ThunkAction<AppState> getDataTool({
             'apiTotal': apiTotal,
             'viewKeyword': viewKeyword,
             'viewSearchField': viewSearchField,
+            'fromDateUpdate': fromDateUpdate,
+            'toDateUpdate': toDateUpdate,
             'sampleMilestones': listTool
                 .take(5)
                 .map((f) => f.formMilestone.trim())

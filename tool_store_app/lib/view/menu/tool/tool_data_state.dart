@@ -150,6 +150,8 @@ class ToolDataState extends ToolDataStateBase
       context: context,
       searchQuery: searchQuery,
       hasMilestoneFilters: hasMilestoneFilters,
+      hasDateFilter: hasDateFilter,
+      hasExcelFilter: hasExcelFilter,
     );
   }
 
@@ -194,6 +196,14 @@ class ToolDataState extends ToolDataStateBase
                       }
                     : null,
                 onPressLeading: () => scaffoldKey.currentState?.openDrawer(),
+                onPressExcelFilter: showExcelFilter,
+                iconExcelFilter: const Icon(Icons.filter_alt_outlined),
+                excelFilterActive: hasExcelFilter,
+                excelFilterTooltip: strings.excelFilterTooltip,
+                onPressFilter: showDateRangeFilter,
+                iconFilter: const Icon(Icons.filter_list),
+                filterActive: hasDateFilter,
+                filterTooltip: strings.dateUpdateFilterTooltip,
                 iconTailing: Icon(Icons.add),
                 iconLeading: Icon(Icons.menu),
               ),

@@ -10,11 +10,28 @@ class SliverAppbars extends StatefulWidget {
     required this.iconTailing,
     required this.onPressLeading,
     required this.iconLeading,
+    this.onPressFilter,
+    this.iconFilter,
+    this.filterActive = false,
+    this.filterTooltip,
+    this.onPressExcelFilter,
+    this.iconExcelFilter,
+    this.excelFilterActive = false,
+    this.excelFilterTooltip,
   });
 
   final String title;
-  final void Function()? onPressTailing, onPressLeading;
+  final void Function()? onPressTailing,
+      onPressLeading,
+      onPressFilter,
+      onPressExcelFilter;
   final Icon iconTailing, iconLeading;
+  final Icon? iconFilter;
+  final bool filterActive;
+  final String? filterTooltip;
+  final Icon? iconExcelFilter;
+  final bool excelFilterActive;
+  final String? excelFilterTooltip;
 
   @override
   State<SliverAppbars> createState() => _SliverAppbarsState();
@@ -67,22 +84,65 @@ class _SliverAppbarsState extends State<SliverAppbars> {
         ),
       ),
       actions: [
-        Padding(
-          padding: const EdgeInsets.only(right: 16, top: 10, bottom: 10),
-          child: Material(
-            color: Colors.white.withValues(alpha: 0.16),
-            borderRadius: BorderRadius.circular(_buttonRadius),
-            child: InkWell(
+        if (widget.onPressExcelFilter != null)
+          Padding(
+            padding: const EdgeInsets.only(right: 8, top: 10, bottom: 10),
+            child: Material(
+              color: widget.excelFilterActive
+                  ? Colors.white.withValues(alpha: 0.35)
+                  : Colors.white.withValues(alpha: 0.16),
               borderRadius: BorderRadius.circular(_buttonRadius),
-              onTap: widget.onPressTailing,
-              child: IconButton(
-                onPressed: widget.onPressTailing,
-                icon: widget.iconTailing,
-                color: Colors.white,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(_buttonRadius),
+                onTap: widget.onPressExcelFilter,
+                child: IconButton(
+                  onPressed: widget.onPressExcelFilter,
+                  icon:
+                      widget.iconExcelFilter ??
+                      const Icon(Icons.filter_alt_outlined),
+                  color: Colors.white,
+                  tooltip: widget.excelFilterTooltip,
+                ),
               ),
             ),
           ),
-        ),
+        if (widget.onPressFilter != null)
+          Padding(
+            padding: const EdgeInsets.only(right: 8, top: 10, bottom: 10),
+            child: Material(
+              color: widget.filterActive
+                  ? Colors.white.withValues(alpha: 0.35)
+                  : Colors.white.withValues(alpha: 0.16),
+              borderRadius: BorderRadius.circular(_buttonRadius),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(_buttonRadius),
+                onTap: widget.onPressFilter,
+                child: IconButton(
+                  onPressed: widget.onPressFilter,
+                  icon: widget.iconFilter ?? const Icon(Icons.filter_list),
+                  color: Colors.white,
+                  tooltip: widget.filterTooltip,
+                ),
+              ),
+            ),
+          ),
+        if (widget.onPressTailing != null)
+          Padding(
+            padding: const EdgeInsets.only(right: 16, top: 10, bottom: 10),
+            child: Material(
+              color: Colors.white.withValues(alpha: 0.16),
+              borderRadius: BorderRadius.circular(_buttonRadius),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(_buttonRadius),
+                onTap: widget.onPressTailing,
+                child: IconButton(
+                  onPressed: widget.onPressTailing,
+                  icon: widget.iconTailing,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
       ],
       title: Text(
         widget.title.trim().isEmpty ? titleApp : widget.title.trim(),

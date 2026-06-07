@@ -18,6 +18,9 @@ import 'package:tool_store_app/view/custom/tool_form_search_popup.dart'
 import 'package:intl/intl.dart';
 import 'package:tool_store_app/view/menu/tool/tool_data.dart' show ToolData;
 import 'tool_data_cards_helpers.dart';
+import 'tool_data_date_filter_sheet.dart';
+import 'tool_data_excel_filter_sheet.dart';
+import 'tool_data_export.dart';
 
 abstract class ToolDataStateBase extends State<ToolData> with MixinPref {
   /// Implemented by [ToolDataDialogsMixin] on [ToolDataState].
@@ -44,10 +47,76 @@ abstract class ToolDataStateBase extends State<ToolData> with MixinPref {
   AppStrings get strings => AppStrings.current;
   final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
   final Set<String> expandedForms = <String>{};
+  final Set<String> loadingDetailFormIds = <String>{};
   final TextEditingController searchController = TextEditingController();
   String searchQuery = '';
   String searchField = 'all';
+  DateTime? dateFilterFrom;
+  DateTime? dateFilterTo;
+  DateTime? excelFilterDateFrom;
+  DateTime? excelFilterDateTo;
+  String? excelFilterFormNo;
   int currentPage = 1;
+
+  bool get hasDateFilter => dateFilterFrom != null && dateFilterTo != null;
+
+  bool get hasExcelDateFilter =>
+      excelFilterDateFrom != null && excelFilterDateTo != null;
+
+  bool get hasExcelFilter =>
+      hasExcelDateFilter || (excelFilterFormNo?.trim().isNotEmpty ?? false);
+
+  String get dateFilterFromApi => dateFilterFrom != null
+      ? DateFormat('yyyy-MM-dd').format(dateFilterFrom!)
+      : '';
+
+  String get dateFilterToApi =>
+      dateFilterTo != null ? DateFormat('yyyy-MM-dd').format(dateFilterTo!) : '';
+
+  (String from, String to) get effectiveDateFilterApi {
+    DateTime? from;
+    DateTime? to;
+
+    if (hasDateFilter) {
+      from = dateFilterFrom;
+      to = dateFilterTo;
+    }
+
+    if (hasExcelDateFilter) {
+      final excelFrom = excelFilterDateFrom!;
+      final excelTo = excelFilterDateTo!;
+      if (from != null && to != null) {
+        final intersectFrom = excelFrom.isAfter(from) ? excelFrom : from;
+        final intersectTo = excelTo.isBefore(to) ? excelTo : to;
+        if (intersectFrom.isAfter(intersectTo)) {
+          return ('2099-12-31', '2099-12-30');
+        }
+        from = intersectFrom;
+        to = intersectTo;
+      } else {
+        from = excelFrom;
+        to = excelTo;
+      }
+    }
+
+    if (from == null || to == null) return ('', '');
+    return (
+      DateFormat('yyyy-MM-dd').format(from),
+      DateFormat('yyyy-MM-dd').format(to),
+    );
+  }
+
+  String get effectiveSearchKeyword {
+    final formNo = excelFilterFormNo?.trim() ?? '';
+    if (formNo.isNotEmpty) return formNo;
+    return searchQuery;
+  }
+
+  String get effectiveSearchField {
+    final formNo = excelFilterFormNo?.trim() ?? '';
+    if (formNo.isNotEmpty) return 'formNo';
+    return searchField;
+  }
 
   String get pageTitle {
     final customTitle = widget.title?.trim();
@@ -136,13 +205,14 @@ abstract class ToolDataStateBase extends State<ToolData> with MixinPref {
         formStatusOrder: '',
         formSheadAprd: '',
         formSheadComment: '',
-        fromDateUpdate: '',
+        fromDateUpdate: effectiveDateFilterApi.$1,
+        toDateUpdate: effectiveDateFilterApi.$2,
         formUserUpdate: '',
         page: page,
         limit: formsFetchLimit,
         append: append,
-        viewKeyword: searchQuery,
-        viewSearchField: searchField,
+        viewKeyword: effectiveSearchKeyword,
+        viewSearchField: effectiveSearchField,
       ),
     );
   }
@@ -190,27 +260,40 @@ abstract class ToolDataStateBase extends State<ToolData> with MixinPref {
       },
     );
     // #endregion
-    await _loadToolDetailsOnly();
+    await _reloadExpandedFormsDetails();
   }
 
-  Future<void> _loadToolDetailsOnly() async {
-    await store.dispatch(
-      getDataToolDetail(
-        param: paramViewDataTool,
-        idFormDetail: '',
-        idFrom: '',
-        formComment: '',
-        pnGroup: '',
-        pnDesc: '',
-        qty: '',
-        explan: '',
-        actionNote: '',
-        valType: '',
-        partValue: '',
-        formDetailDate: '',
-        formDetailUser: '',
-      ),
+  bool isLoadingFormDetails(String idForm) =>
+      loadingDetailFormIds.contains(idForm.trim());
+
+  bool hasLoadedFormDetails(String idForm) {
+    final id = idForm.trim();
+    if (id.isEmpty) return false;
+    return store.state.formsDetailState.formsDetail.any(
+      (item) => item.idForm.trim() == id,
     );
+  }
+
+  Future<void> _loadFormRelatedDetails(String idForm) async {
+    final id = idForm.trim();
+    if (id.isEmpty || loadingDetailFormIds.contains(id)) return;
+    setState(() => loadingDetailFormIds.add(id));
+    try {
+      await store.dispatch(loadFormRelatedDetails(idForm: id));
+    } finally {
+      if (mounted) {
+        setState(() => loadingDetailFormIds.remove(id));
+      } else {
+        loadingDetailFormIds.remove(id);
+      }
+    }
+  }
+
+  Future<void> _reloadExpandedFormsDetails() async {
+    if (expandedForms.isEmpty) return;
+    for (final id in expandedForms) {
+      await _loadFormRelatedDetails(id);
+    }
   }
 
   void rememberExpandedForm(String idForm) {
@@ -242,7 +325,7 @@ abstract class ToolDataStateBase extends State<ToolData> with MixinPref {
       if (formNo.isNotEmpty) {
         refreshData();
       } else {
-        _loadToolDetailsOnly();
+        _loadFormRelatedDetails(forms.idForm);
       }
     }
   }
@@ -283,6 +366,141 @@ abstract class ToolDataStateBase extends State<ToolData> with MixinPref {
       searchField = 'all';
     });
     refreshData();
+  }
+
+  Future<void> showDateRangeFilter() async {
+    final result = await showToolDataDateFilterSheet(
+      context: context,
+      initialFrom: dateFilterFrom,
+      initialTo: dateFilterTo,
+      showClearAction: hasDateFilter,
+    );
+    if (!mounted || result == null) return;
+
+    switch (result) {
+      case ToolDataDateFilterCleared():
+        await clearDateFilter();
+      case ToolDataDateFilterApplied(:final from, :final to):
+        setState(() {
+          dateFilterFrom = from;
+          dateFilterTo = to;
+        });
+        await refreshData();
+    }
+  }
+
+  Future<void> clearDateFilter() async {
+    if (!hasDateFilter) return;
+    setState(() {
+      dateFilterFrom = null;
+      dateFilterTo = null;
+    });
+    await refreshData();
+  }
+
+  ToolDataExcelFilterMode get excelFilterInitialMode =>
+      excelFilterFormNo?.trim().isNotEmpty == true
+      ? ToolDataExcelFilterMode.formNo
+      : ToolDataExcelFilterMode.dateUpdate;
+
+  Future<void> showExcelFilter() async {
+    final result = await showToolDataExcelFilterSheet(
+      context: context,
+      initialMode: excelFilterInitialMode,
+      initialFrom: excelFilterDateFrom,
+      initialTo: excelFilterDateTo,
+      initialFormNo: excelFilterFormNo ?? '',
+      showClearAction: hasExcelFilter,
+    );
+    if (!mounted || result == null) return;
+
+    switch (result) {
+      case ToolDataExcelFilterCleared():
+        await clearExcelFilter();
+      case ToolDataExcelFilterDateApplied():
+      case ToolDataExcelFilterFormNoApplied():
+        await _exportAndApplyExcelFilter(result);
+    }
+  }
+
+  Future<void> _exportAndApplyExcelFilter(
+    ToolDataExcelFilterSheetResult filter,
+  ) async {
+    if (!mounted) return;
+
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      final outcome = await exportFormDetailWithFilter(
+        filter: filter,
+        headerDateFrom: dateFilterFrom,
+        headerDateTo: dateFilterTo,
+      );
+
+      if (!mounted) return;
+      Navigator.of(context, rootNavigator: true).pop();
+
+      if (!outcome.cancelled) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(outcome.message),
+            backgroundColor: outcome.success ? clrGreen : Colors.red.shade700,
+          ),
+        );
+      }
+
+      if (!outcome.success) return;
+
+      switch (filter) {
+        case ToolDataExcelFilterDateApplied(:final from, :final to):
+          setState(() {
+            excelFilterDateFrom = from;
+            excelFilterDateTo = to;
+            excelFilterFormNo = null;
+          });
+        case ToolDataExcelFilterFormNoApplied(:final formNo):
+          setState(() {
+            excelFilterFormNo = formNo;
+            excelFilterDateFrom = null;
+            excelFilterDateTo = null;
+            searchController.text = formNo;
+            searchQuery = formNo;
+            searchField = 'formNo';
+          });
+        case ToolDataExcelFilterCleared():
+          break;
+      }
+      await refreshData();
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.of(context, rootNavigator: true).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(strings.exportFailed(e.toString())),
+          backgroundColor: Colors.red.shade700,
+        ),
+      );
+    }
+  }
+
+  Future<void> clearExcelFilter() async {
+    if (!hasExcelFilter) return;
+    final hadFormNo = excelFilterFormNo?.trim().isNotEmpty ?? false;
+    setState(() {
+      excelFilterDateFrom = null;
+      excelFilterDateTo = null;
+      excelFilterFormNo = null;
+      if (hadFormNo) {
+        searchController.clear();
+        searchQuery = '';
+        searchField = 'all';
+      }
+    });
+    await refreshData();
   }
 
   /// After a successful save on a form, focus the list search on that form's number.
@@ -505,6 +723,8 @@ abstract class ToolDataStateBase extends State<ToolData> with MixinPref {
       navigateAsAdd: true,
     );
     if (!mounted) return;
+    await _loadFormRelatedDetails(forms.idForm);
+    if (!mounted) return;
     setState(() {});
   }
 
@@ -560,6 +780,8 @@ abstract class ToolDataStateBase extends State<ToolData> with MixinPref {
       itemTool.partValue,
       context,
     );
+    if (!mounted) return;
+    await _loadFormRelatedDetails(forms.idForm);
     if (!mounted) return;
     setState(() {});
   }

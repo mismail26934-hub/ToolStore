@@ -909,16 +909,6 @@ mixin ToolDataDialogsMixin on ToolDataStateBase {
                             ),
                           )
                           as PoFetchResult;
-                  await store.dispatch(
-                    getDataPO(
-                      param: paramViewDataPO,
-                      idPO: '',
-                      idFormDetail: '',
-                      poNO: '',
-                      dateUpdatePO: '',
-                      userUpdatePO: '',
-                    ),
-                  );
                   if (editResult.statusValue == '1') {
                     await refreshData();
                     final parent = parentFormForDetailId(itemPO.idFormDetail);
@@ -1234,16 +1224,6 @@ mixin ToolDataDialogsMixin on ToolDataStateBase {
                               ),
                             )
                             as PoFetchResult;
-                    await store.dispatch(
-                      getDataPO(
-                        param: paramViewDataPO,
-                        idPO: '',
-                        idFormDetail: '',
-                        poNO: '',
-                        dateUpdatePO: '',
-                        userUpdatePO: '',
-                      ),
-                    );
                     if (addResult.statusValue == '1') {
                       await refreshData();
                       final header =
@@ -1373,16 +1353,6 @@ mixin ToolDataDialogsMixin on ToolDataStateBase {
                 ),
               )
               as PoFetchResult;
-      await store.dispatch(
-        getDataPO(
-          param: paramViewDataPO,
-          idPO: '',
-          idFormDetail: '',
-          poNO: '',
-          dateUpdatePO: '',
-          userUpdatePO: '',
-        ),
-      );
       if (deleteResult.statusValue == '1') {
         await refreshData();
         final parent = parentFormForDetailId(itemPO.idFormDetail);
@@ -1537,18 +1507,6 @@ mixin ToolDataDialogsMixin on ToolDataStateBase {
                             ),
                           )
                           as SoFetchResult;
-                  await store.dispatch(
-                    getDataSO(
-                      param: paramViewDataSO,
-                      idSo: '',
-                      idFormDetail: '',
-                      so: '',
-                      eta: '',
-                      noteSo: '',
-                      dateUpdateSo: '',
-                      idUpdateSo: '',
-                    ),
-                  );
                   if (editResult.statusValue == '1') {
                     await refreshData();
                     final parent = parentFormForDetailId(itemSO.idFormDetail);
@@ -1726,18 +1684,6 @@ mixin ToolDataDialogsMixin on ToolDataStateBase {
                               ),
                             )
                             as SoFetchResult;
-                    await store.dispatch(
-                      getDataSO(
-                        param: paramViewDataSO,
-                        idSo: '',
-                        idFormDetail: '',
-                        so: '',
-                        eta: '',
-                        noteSo: '',
-                        dateUpdateSo: '',
-                        idUpdateSo: '',
-                      ),
-                    );
                     if (addResult.statusValue == '1') {
                       await refreshData();
                       final header =
@@ -1868,18 +1814,6 @@ mixin ToolDataDialogsMixin on ToolDataStateBase {
                 ),
               )
               as SoFetchResult;
-      await store.dispatch(
-        getDataSO(
-          param: paramViewDataSO,
-          idSo: '',
-          idFormDetail: '',
-          so: '',
-          eta: '',
-          noteSo: '',
-          dateUpdateSo: '',
-          idUpdateSo: '',
-        ),
-      );
       if (deleteResult.statusValue == '1') {
         await refreshData();
         final parent = parentFormForDetailId(itemSO.idFormDetail);
@@ -2009,16 +1943,6 @@ mixin ToolDataDialogsMixin on ToolDataStateBase {
                               ),
                             )
                             as RcvWhFetchResult;
-                    await store.dispatch(
-                      getDataRcvWh(
-                        param: paramViewDataRcvWh,
-                        idRcvWh: '',
-                        idFormDetail: '',
-                        rcvWhDate: '',
-                        rcvWhIdInput: '',
-                        rcvWhDateInput: '',
-                      ),
-                    );
                     if (editResult.statusValue == '1') {
                       await refreshData();
                     }
@@ -2167,16 +2091,6 @@ mixin ToolDataDialogsMixin on ToolDataStateBase {
                               ),
                             )
                             as RcvWhFetchResult;
-                    await store.dispatch(
-                      getDataRcvWh(
-                        param: paramViewDataRcvWh,
-                        idRcvWh: '',
-                        idFormDetail: '',
-                        rcvWhDate: '',
-                        rcvWhIdInput: '',
-                        rcvWhDateInput: '',
-                      ),
-                    );
                     if (addResult.statusValue == '1') {
                       await updateFormMilestoneForRcvWh(forms);
                       await refreshData();
@@ -2304,16 +2218,6 @@ mixin ToolDataDialogsMixin on ToolDataStateBase {
                 ),
               )
               as RcvWhFetchResult;
-      await store.dispatch(
-        getDataRcvWh(
-          param: paramViewDataRcvWh,
-          idRcvWh: '',
-          idFormDetail: '',
-          rcvWhDate: '',
-          rcvWhIdInput: '',
-          rcvWhDateInput: '',
-        ),
-      );
       if (deleteResult.statusValue == '1') {
         await refreshData();
       }
@@ -2438,16 +2342,6 @@ mixin ToolDataDialogsMixin on ToolDataStateBase {
                               ),
                             )
                             as RcvToolFetchResult;
-                    await store.dispatch(
-                      getDataRcvTool(
-                        param: paramViewDataRcvTool,
-                        idRcvTool: '',
-                        idFormDetail: '',
-                        rcvToolDate: '',
-                        rcvToolIdInput: '',
-                        rcvToolDateInput: '',
-                      ),
-                    );
                     if (editResult.statusValue == '1') {
                       final parent = parentFormForDetailId(item.idFormDetail);
                       if (parent != null) {
@@ -2603,16 +2497,6 @@ mixin ToolDataDialogsMixin on ToolDataStateBase {
                               ),
                             )
                             as RcvToolFetchResult;
-                    await store.dispatch(
-                      getDataRcvTool(
-                        param: paramViewDataRcvTool,
-                        idRcvTool: '',
-                        idFormDetail: '',
-                        rcvToolDate: '',
-                        rcvToolIdInput: '',
-                        rcvToolDateInput: '',
-                      ),
-                    );
                     if (addResult.statusValue == '1') {
                       await updateFormMilestoneForRcvTool(forms);
                       await refreshData();
@@ -2740,16 +2624,6 @@ mixin ToolDataDialogsMixin on ToolDataStateBase {
                 ),
               )
               as RcvToolFetchResult;
-      await store.dispatch(
-        getDataRcvTool(
-          param: paramViewDataRcvTool,
-          idRcvTool: '',
-          idFormDetail: '',
-          rcvToolDate: '',
-          rcvToolIdInput: '',
-          rcvToolDateInput: '',
-        ),
-      );
       if (deleteResult.statusValue == '1') {
         final parent = parentFormForDetailId(item.idFormDetail);
         if (parent != null) {

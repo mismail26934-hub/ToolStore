@@ -626,6 +626,52 @@ class AppStrings {
         'Tidak ada form untuk filter milestone ini',
         'No forms match this milestone filter',
       );
+  String get dateUpdateFilterTitle => _t(
+        'Filter Tanggal',
+        'Filter Date',
+      );
+  String get dateUpdateFilterTooltip => _t(
+        'Filter rentang tanggal update',
+        'Filter by update date range',
+      );
+  String get dateFilterFromLabel => _t('Tanggal Mulai', 'Start Date');
+  String get dateFilterToLabel => _t('Tanggal Akhir', 'End Date');
+  String get applyDateFilter => _t('Terapkan', 'Apply');
+  String get changeDateFilter => _t('Ubah rentang', 'Change range');
+  String get clearDateFilter => _t('Hapus filter tanggal', 'Clear date filter');
+  String get noFormsDateFilter => _t(
+        'Tidak ada form pada rentang tanggal update ini',
+        'No forms match this update date range',
+      );
+  String get excelFilterTitle => _t('Filter Kolom', 'Column Filter');
+  String get excelFilterTooltip => _t(
+        'Filter rentang tanggal update / no. form',
+        'Filter by update date range / form no',
+      );
+  String get excelFilterDateUpdate =>
+      _t('Rentang Tanggal', 'Date Range');
+  String get excelFilterFormNo => _t('No. Form', 'Form No');
+  String get clearExcelFilter => _t('Hapus filter', 'Clear filter');
+  String get noFormsExcelFilter => _t(
+        'Tidak ada form yang cocok dengan filter kolom ini',
+        'No forms match this column filter',
+      );
+  String get exportExcel => _t('Export Excel', 'Export Excel');
+  String get exportExcelSaveTitle =>
+      _t('Simpan file Excel', 'Save Excel file');
+  String get exportCancelled => _t('Export dibatalkan', 'Export cancelled');
+  String exportExcelSuccess(String path) =>
+      _t('Excel disimpan: $path', 'Excel saved: $path');
+  String exportFormNotFound(String formNo) => _t(
+        'Form "$formNo" tidak ditemukan',
+        'Form "$formNo" not found',
+      );
+  String get exportDateRangeNoOverlap => _t(
+        'Rentang tanggal tidak beririsan dengan filter tanggal header',
+        'Date range does not overlap with header date filter',
+      );
+  String exportFailed(String message) =>
+      _t('Export gagal: $message', 'Export failed: $message');
   String formsShownSummary(int n, int loaded, int t) =>
       _t('$n ditampilkan · $loaded dari $t form dimuat', '$n shown · $loaded of $t form(s) loaded');
   String formsShownCount(int n, int loaded) =>

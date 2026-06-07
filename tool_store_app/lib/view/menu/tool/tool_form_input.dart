@@ -62,13 +62,14 @@ class ToolFormInputState extends State<ToolFormInput> {
           ),
         );
       }
-      if (idFormCont.text.trim().isNotEmpty &&
+      final editFormId = idFormCont.text.trim();
+      if (editFormId.isNotEmpty &&
           !store.state.formsDetailState.isLoadingToolDetail) {
         store.dispatch(
           getDataToolDetail(
             param: paramViewDataTool,
             idFormDetail: '',
-            idFrom: '',
+            idFrom: editFormId,
             formComment: '',
             pnGroup: '',
             pnDesc: '',
@@ -79,6 +80,7 @@ class ToolFormInputState extends State<ToolFormInput> {
             partValue: '',
             formDetailDate: '',
             formDetailUser: '',
+            mergeForForm: true,
           ),
         );
       }

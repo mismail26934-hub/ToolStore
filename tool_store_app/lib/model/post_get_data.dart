@@ -20,6 +20,7 @@ export 'package:tool_store_app/model/repositories/superior_repository.dart';
 export 'package:tool_store_app/model/repositories/tool_detail_repository.dart';
 export 'package:tool_store_app/model/repositories/user_repository.dart';
 
+export 'package:tool_store_app/model/thunks/form_related_details_thunks.dart';
 export 'package:tool_store_app/model/thunks/form_thunks.dart';
 export 'package:tool_store_app/model/thunks/po_thunks.dart';
 export 'package:tool_store_app/model/thunks/rcv_thunks.dart';

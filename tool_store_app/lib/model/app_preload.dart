@@ -5,8 +5,8 @@ import 'package:tool_store_app/view/var/var.dart';
 
 /// Preloads Redux data after login. Skips when no session token is stored.
 ///
-/// Dispatch order is fixed: user → forms → details → PO → SO → superior →
-/// receive WH → receive tool → dashboard counts.
+/// Dispatch order is fixed: user → forms → superior → dashboard counts.
+/// Tool/PO/SO/Rcv details load lazily when a form card is expanded.
 Future<void> preloadAuthenticatedData() async {
   final creds = await loadAuthCredentials();
   if (!creds.isAuthenticated) return;
@@ -52,48 +52,6 @@ Future<void> preloadAuthenticatedData() async {
   );
 
   store.dispatch(
-    getDataToolDetail(
-      param: paramViewDataTool,
-      idFormDetail: '',
-      idFrom: '',
-      formComment: '',
-      pnGroup: '',
-      pnDesc: '',
-      qty: '',
-      explan: '',
-      actionNote: '',
-      valType: '',
-      partValue: '',
-      formDetailDate: '',
-      formDetailUser: '',
-    ),
-  );
-
-  store.dispatch(
-    getDataPO(
-      param: paramViewDataPO,
-      idPO: '',
-      idFormDetail: '',
-      poNO: '',
-      dateUpdatePO: '',
-      userUpdatePO: '',
-    ),
-  );
-
-  store.dispatch(
-    getDataSO(
-      param: paramViewDataSO,
-      idSo: '',
-      idFormDetail: '',
-      so: '',
-      eta: '',
-      noteSo: '',
-      dateUpdateSo: '',
-      idUpdateSo: '',
-    ),
-  );
-
-  store.dispatch(
     getDataSuperrior(
       param: paramViewDataSuperrior,
       superiorId: '',
@@ -101,28 +59,6 @@ Future<void> preloadAuthenticatedData() async {
       statusSuperior: '',
       userIdInputSuperior: '',
       dateInputSuperior: '',
-    ),
-  );
-
-  store.dispatch(
-    getDataRcvWh(
-      param: paramViewDataRcvWh,
-      idRcvWh: '',
-      idFormDetail: '',
-      rcvWhDate: '',
-      rcvWhIdInput: '',
-      rcvWhDateInput: '',
-    ),
-  );
-
-  store.dispatch(
-    getDataRcvTool(
-      param: paramViewDataRcvTool,
-      idRcvTool: '',
-      idFormDetail: '',
-      rcvToolDate: '',
-      rcvToolIdInput: '',
-      rcvToolDateInput: '',
     ),
   );
 

@@ -4,6 +4,7 @@ import 'package:redux_thunk/redux_thunk.dart';
 import 'package:tool_store_app/controller/cont_crud/redux/action.dart';
 import 'package:tool_store_app/controller/cont_crud/redux/state.dart';
 import 'package:tool_store_app/model/api_client.dart';
+import 'package:tool_store_app/model/repositories/list_merge_utils.dart';
 import 'package:tool_store_app/model/repositories/mutating_list_fetch_result.dart';
 import 'package:tool_store_app/model/repositories/rcv_tool_repository.dart';
 import 'package:tool_store_app/model/repositories/rcv_wh_repository.dart';
@@ -16,13 +17,22 @@ ThunkAction<AppState> getDataRcvWh({
   required String rcvWhDate,
   required String rcvWhIdInput,
   required String rcvWhDateInput,
+  String idForm = '',
+  bool mergeForForm = false,
 }) {
   return (Store<AppState> store) async {
     final isView = param == paramViewDataRcvWh;
-    if (isView && store.state.rcvWhState.rcvWhs.isNotEmpty) {
-      store.dispatch(FetchDataRcvWhRefresh());
-    } else if (isView) {
-      store.dispatch(FetchDataRcvWh());
+    final scopedFormId = idForm.trim();
+    final scopedView = isView && mergeForForm && scopedFormId.isNotEmpty;
+
+    if (isView) {
+      if (scopedView) {
+        store.dispatch(FetchDataRcvWhRefresh());
+      } else if (store.state.rcvWhState.rcvWhs.isNotEmpty) {
+        store.dispatch(FetchDataRcvWhRefresh());
+      } else {
+        store.dispatch(FetchDataRcvWh());
+      }
     }
     final body = <String, dynamic>{
       'param': param,
@@ -32,14 +42,31 @@ ThunkAction<AppState> getDataRcvWh({
       'rcv_wh_id_input': rcvWhIdInput,
       'rcv_wh_date_input': rcvWhDateInput,
     };
+    if (scopedView) {
+      body['id_form'] = scopedFormId;
+      body['idForm'] = scopedFormId;
+    }
 
     try {
       final RcvWhFetchResult result = await fetchRcvWhList(body, param);
-      store.dispatch(DataRcvWhLoadedAction(result.list));
+      if (isView) {
+        final list = scopedView
+            ? mergeChildRowsForToolDetails(
+                existing: store.state.rcvWhState.rcvWhs,
+                incoming: result.list,
+                toolDetailIds: toolDetailIdsForForm(
+                  store.state.formsDetailState.formsDetail,
+                  scopedFormId,
+                ),
+                childDetailId: (row) => row.idFormDetail,
+              )
+            : result.list;
+        store.dispatch(DataRcvWhLoadedAction(list));
+      }
       return result;
     } on DioException catch (e) {
       final msg = applyDioError(e);
-      store.dispatch(DataRcvWhErrorAction(errors));
+      store.dispatch(DataRcvWhErrorAction(msg));
       throw Exception(msg);
     } catch (e) {
       final msg = e.toString().replaceFirst(RegExp(r'^Exception:\s*'), '');
@@ -56,13 +83,22 @@ ThunkAction<AppState> getDataRcvTool({
   required String rcvToolDate,
   required String rcvToolIdInput,
   required String rcvToolDateInput,
+  String idForm = '',
+  bool mergeForForm = false,
 }) {
   return (Store<AppState> store) async {
     final isView = param == paramViewDataRcvTool;
-    if (isView && store.state.rcvToolState.rcvTools.isNotEmpty) {
-      store.dispatch(FetchDataRcvToolRefresh());
-    } else if (isView) {
-      store.dispatch(FetchDataRcvTool());
+    final scopedFormId = idForm.trim();
+    final scopedView = isView && mergeForForm && scopedFormId.isNotEmpty;
+
+    if (isView) {
+      if (scopedView) {
+        store.dispatch(FetchDataRcvToolRefresh());
+      } else if (store.state.rcvToolState.rcvTools.isNotEmpty) {
+        store.dispatch(FetchDataRcvToolRefresh());
+      } else {
+        store.dispatch(FetchDataRcvTool());
+      }
     }
     final body = <String, dynamic>{
       'param': param,
@@ -72,14 +108,31 @@ ThunkAction<AppState> getDataRcvTool({
       'rcv_tool_id_input': rcvToolIdInput,
       'rcv_tool_date_input': rcvToolDateInput,
     };
+    if (scopedView) {
+      body['id_form'] = scopedFormId;
+      body['idForm'] = scopedFormId;
+    }
 
     try {
       final RcvToolFetchResult result = await fetchRcvToolList(body, param);
-      store.dispatch(DataRcvToolLoadedAction(result.list));
+      if (isView) {
+        final list = scopedView
+            ? mergeChildRowsForToolDetails(
+                existing: store.state.rcvToolState.rcvTools,
+                incoming: result.list,
+                toolDetailIds: toolDetailIdsForForm(
+                  store.state.formsDetailState.formsDetail,
+                  scopedFormId,
+                ),
+                childDetailId: (row) => row.idFormDetail,
+              )
+            : result.list;
+        store.dispatch(DataRcvToolLoadedAction(list));
+      }
       return result;
     } on DioException catch (e) {
       final msg = applyDioError(e);
-      store.dispatch(DataRcvToolErrorAction(errors));
+      store.dispatch(DataRcvToolErrorAction(msg));
       throw Exception(msg);
     } catch (e) {
       final msg = e.toString().replaceFirst(RegExp(r'^Exception:\s*'), '');
