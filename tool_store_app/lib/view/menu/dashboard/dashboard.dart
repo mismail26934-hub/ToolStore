@@ -87,9 +87,7 @@ class _DashboardState extends State<Dashboard> with MixinPref {
                     const mainAxisSpacing = 12.0;
                     final cardWidth =
                         (constraints.maxWidth - crossAxisSpacing) / 2;
-                    final autoCardHeight =
-                        (constraints.maxHeight - (mainAxisSpacing * 2)) / 3;
-                    final cardHeight = autoCardHeight.clamp(170.0, 182.0);
+                    const cardHeight = 182.0;
                     final childAspectRatio = cardWidth / cardHeight;
 
                     return RefreshIndicator(
@@ -289,49 +287,84 @@ class _DashboardHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDesktop = MediaQuery.sizeOf(context).width >= mobileWidth;
+
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 22),
+      padding: EdgeInsets.fromLTRB(20, isDesktop ? 14 : 18, 20, isDesktop ? 16 : 22),
       decoration: const BoxDecoration(
         gradient: AppTheme.dashboardHeaderGradient,
         borderRadius: AppTheme.dashboardHeaderBottomRadius,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              _buildMenuButton(),
-              const Spacer(),
-              _buildSearchButton(),
-              const SizedBox(width: 8),
-              _buildNotificationBadge(context),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              _buildLogo(),
-              const SizedBox(width: 10),
-              Expanded(
-                flex: 5,
-                child: Hero(
-                  tag: 'text-app',
-                  child: Material(
-                    color: Colors.transparent,
-                    child: Text(
-                      context.s.dashboardTitle,
-                      style: Theme.of(context).textTheme.headlineSmall
-                          ?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w800,
-                          ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
+      child: isDesktop ? _buildDesktopHeader(context) : _buildMobileHeader(context),
+    );
+  }
+
+  Widget _buildDesktopHeader(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        _buildMenuButton(),
+        const SizedBox(width: 12),
+        Flexible(child: _buildTitle(context, isDesktop: true)),
+        const SizedBox(width: 10),
+        _buildLogo(),
+        const Spacer(),
+        _buildSearchButton(),
+        const SizedBox(width: 8),
+        _buildNotificationBadge(context),
+      ],
+    );
+  }
+
+  Widget _buildMobileHeader(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            _buildMenuButton(),
+            const Spacer(),
+            _buildSearchButton(),
+            const SizedBox(width: 8),
+            _buildNotificationBadge(context),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            _buildLogo(compact: true),
+            const SizedBox(width: 10),
+            Expanded(child: _buildTitle(context, isDesktop: false)),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTitle(BuildContext context, {required bool isDesktop}) {
+    final style = isDesktop
+        ? Theme.of(context).textTheme.headlineSmall?.copyWith(
+            color: Colors.white,
+            fontWeight: FontWeight.w800,
+          )
+        : Theme.of(context).textTheme.titleMedium?.copyWith(
+            color: Colors.white,
+            fontWeight: FontWeight.w800,
+            height: 1.25,
+            fontSize: 17,
+          );
+
+    return Hero(
+      tag: 'text-app',
+      child: Material(
+        color: Colors.transparent,
+        child: Text(
+          context.s.dashboardTitle,
+          maxLines: isDesktop ? 1 : 2,
+          overflow: TextOverflow.ellipsis,
+          style: style,
+        ),
       ),
     );
   }
@@ -409,17 +442,21 @@ class _DashboardHeader extends StatelessWidget {
     );
   }
 
-  Widget _buildLogo() {
+  Widget _buildLogo({bool compact = false}) {
+    final size = compact ? 44.0 : 50.0;
+    final iconSize = compact ? 22.0 : 24.0;
+    final radius = compact ? 18.0 : _logoRadius;
+
     return Hero(
       tag: 'logo-app',
       child: Container(
-        width: 50,
-        height: 50,
+        width: size,
+        height: size,
         decoration: BoxDecoration(
           color: Colors.white.withValues(alpha: 0.22),
-          borderRadius: BorderRadius.circular(_logoRadius),
+          borderRadius: BorderRadius.circular(radius),
         ),
-        child: const Icon(Icons.handyman, color: Colors.white, size: 24),
+        child: Icon(Icons.handyman, color: Colors.white, size: iconSize),
       ),
     );
   }
@@ -471,7 +508,6 @@ class _DashboardCard extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final compactMode = constraints.maxHeight < 176;
         return Material(
           color: Colors.transparent,
           child: InkWell(
@@ -569,10 +605,10 @@ class _DashboardCard extends StatelessWidget {
                     Expanded(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        crossAxisAlignment: CrossAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           Column(
-                            crossAxisAlignment: CrossAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
                               Text(
                                 title,
@@ -584,14 +620,14 @@ class _DashboardCard extends StatelessWidget {
                               const SizedBox(height: 4),
                               Text(
                                 subtitle,
-                                maxLines: compactMode ? 1 : 2,
+                                maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                                 textAlign: TextAlign.center,
                                 style: subtitleStyle,
                               ),
                             ],
                           ),
-                          if (compactMode)
+                          if (onTap != null)
                             Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [

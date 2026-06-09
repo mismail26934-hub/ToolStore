@@ -37,11 +37,7 @@ Future<AuthCredentials> loadAuthCredentials() async {
   return AuthCredentials(token: authToken, idUsers: userId);
 }
 
-void _applyAuthField(
-  Map<String, dynamic> merged,
-  String key,
-  String value,
-) {
+void _applyAuthField(Map<String, dynamic> merged, String key, String value) {
   if (value.isEmpty) return;
   final current = merged[key];
   if (current == null || current.toString().trim().isEmpty) {

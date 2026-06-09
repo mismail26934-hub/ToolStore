@@ -1,7 +1,7 @@
 /// API path segments and full endpoint URLs for the Tool Store backend.
 class ApiUrl {
   /// Default dev server when [serv] is not overridden via `--dart-define=API_BASE=...`.
-  static const String defaultServ = 'http://192.168.1.5:8080/';
+  static const String defaultServ = 'https://strakin.tech/';
 
   /// Base URL with trailing slash. Override at build/run time:
   /// `flutter run --dart-define=API_BASE=http://10.0.0.1:8080`
