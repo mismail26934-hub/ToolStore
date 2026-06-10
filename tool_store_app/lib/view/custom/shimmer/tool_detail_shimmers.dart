@@ -87,6 +87,39 @@ class ToolListLoadingShimmer extends StatelessWidget {
   }
 }
 
+/// Failed to load tool list (API/network).
+class ToolListErrorPlaceholder extends StatelessWidget {
+  const ToolListErrorPlaceholder({super.key, required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.red.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.red.withValues(alpha: 0.35)),
+      ),
+      child: Column(
+        children: [
+          Icon(Icons.cloud_off_outlined, size: 34, color: Colors.red.shade700),
+          const SizedBox(height: 10),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Colors.red.shade800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 /// Empty tool list inside an expanded form card.
 class ToolListEmptyPlaceholder extends StatelessWidget {
   const ToolListEmptyPlaceholder({
@@ -152,6 +185,10 @@ class ToolListSectionBody extends StatelessWidget {
       return ToolListLoadingShimmer(skeletonCount: skeletonCount);
     }
     if (vm.items.isEmpty) {
+      final error = vm.errorMessage?.trim();
+      if (error != null && error.isNotEmpty) {
+        return ToolListErrorPlaceholder(message: error);
+      }
       return emptyPlaceholder ?? const ToolListEmptyPlaceholder();
     }
     return ListView.builder(

@@ -281,6 +281,7 @@ class _DashboardHeader extends StatelessWidget {
 
   static const _buttonRadius = 16.0;
   static const _logoRadius = 20.0;
+  static const _horizontalPadding = 20.0;
 
   final VoidCallback onMenuTap;
   final VoidCallback onSearchTap;
@@ -290,7 +291,13 @@ class _DashboardHeader extends StatelessWidget {
     final isDesktop = MediaQuery.sizeOf(context).width >= mobileWidth;
 
     return Container(
-      padding: EdgeInsets.fromLTRB(20, isDesktop ? 14 : 18, 20, isDesktop ? 16 : 22),
+      width: double.infinity,
+      padding: EdgeInsets.fromLTRB(
+        _horizontalPadding,
+        isDesktop ? 14 : 18,
+        _horizontalPadding,
+        isDesktop ? 16 : 22,
+      ),
       decoration: const BoxDecoration(
         gradient: AppTheme.dashboardHeaderGradient,
         borderRadius: AppTheme.dashboardHeaderBottomRadius,
@@ -303,12 +310,17 @@ class _DashboardHeader extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        _buildMenuButton(),
-        const SizedBox(width: 12),
-        Flexible(child: _buildTitle(context, isDesktop: true)),
-        const SizedBox(width: 10),
-        _buildLogo(),
-        const Spacer(),
+        Expanded(
+          child: Row(
+            children: [
+              _buildMenuButton(),
+              const SizedBox(width: 12),
+              Flexible(child: _buildTitle(context, isDesktop: true)),
+              const SizedBox(width: 10),
+              _buildLogo(),
+            ],
+          ),
+        ),
         _buildSearchButton(),
         const SizedBox(width: 8),
         _buildNotificationBadge(context),

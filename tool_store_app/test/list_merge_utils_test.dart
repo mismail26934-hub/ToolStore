@@ -39,6 +39,22 @@ void main() {
       expect(merged, hasLength(2));
       expect(merged.map((t) => t.idFormDetail).toList(), ['D2', 'D1-new']);
     });
+
+    test('assigns parent id when API omits id_form on detail rows', () {
+      final incoming = [
+        _tool(idForm: '', idFormDetail: 'D9'),
+      ];
+
+      final merged = mergeToolsForForm(
+        existing: const [],
+        incoming: incoming,
+        idForm: 'F1',
+      );
+
+      expect(merged, hasLength(1));
+      expect(merged.first.idForm, 'F1');
+      expect(merged.first.idFormDetail, 'D9');
+    });
   });
 
   group('mergeChildRowsForToolDetails', () {

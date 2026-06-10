@@ -232,20 +232,32 @@ mixin ToolDataFormCardMixin on ToolDataStateBase {
       ),
       StoreConnector<AppState, DetailSectionVm>(
         converter: (store) {
+          final formId = forms.idForm.trim();
           final allTool = store.state.formsDetailState.formsDetail;
           final items = allTool
-              .where((itemTool) => itemTool.idForm == forms.idForm)
+              .where((itemTool) => itemTool.idForm.trim() == formId)
               .toList();
+          final isLoading =
+              isLoadingFormDetails(forms.idForm) && items.isEmpty;
+          final error = store.state.formsDetailState.error?.trim();
           return DetailSectionVm(
             items: items,
-            isLoading: isLoadingFormDetails(forms.idForm) && items.isEmpty,
+            isLoading: isLoading,
+            errorMessage: !isLoading && items.isEmpty ? error : null,
           );
         },
         builder: (context, vm) {
           return ToolListSectionBody(
             viewModel: vm,
-            itemBuilder: (context, index, itemTool) =>
-                buildToolItemCard(itemTool, index, forms),
+            itemBuilder: (context, index, itemTool) {
+              try {
+                return buildToolItemCard(itemTool, index, forms);
+              } catch (e) {
+                return ToolListErrorPlaceholder(
+                  message: 'Gagal menampilkan tool #${index + 1}: $e',
+                );
+              }
+            },
           );
         },
       ),

@@ -5,6 +5,7 @@ class DetailSectionVm {
   const DetailSectionVm({
     required this.items,
     required this.isLoading,
+    this.errorMessage,
     this.salesOrderExists = false,
     this.whReceivedExists = false,
     this.toolRoomReceivedExists = false,
@@ -12,6 +13,7 @@ class DetailSectionVm {
 
   final List<PostList> items;
   final bool isLoading;
+  final String? errorMessage;
 
   /// True when this tool line already has Sales Order / SO-PR data (gates PO actions).
   final bool salesOrderExists;

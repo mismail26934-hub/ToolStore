@@ -43,7 +43,22 @@ List<PostList> mergeToolsForForm({
   final id = idForm.trim();
   if (id.isEmpty) return incoming;
   final kept = existing.where((t) => t.idForm.trim() != id).toList();
-  final scoped = incoming.where((t) => t.idForm.trim() == id).toList();
+
+  // API may omit id_form on detail rows when already filtered by id_form POST.
+  for (final tool in incoming) {
+    if (tool.idForm.trim().isEmpty) {
+      tool.idForm = id;
+    }
+  }
+
+  var scoped = incoming.where((t) => t.idForm.trim() == id).toList();
+  if (scoped.isEmpty && incoming.isNotEmpty) {
+    for (final tool in incoming) {
+      tool.idForm = id;
+    }
+    scoped = incoming;
+  }
+
   return [...kept, ...scoped];
 }
 

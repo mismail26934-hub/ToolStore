@@ -162,9 +162,10 @@ final formsDetailReducer = combineReducers<FormsDetailState>([
         state.copyWith(isLoadingToolDetail: true, error: null),
   ).call,
   TypedReducer<FormsDetailState, DataToolsLoadedAction>(
-    (state, action) => state.copyWith(
-      isLoadingToolDetail: false,
+    (state, action) => FormsDetailState(
       formsDetail: action.formsDetail,
+      isLoadingToolDetail: false,
+      error: null,
     ),
   ).call,
   TypedReducer<FormsDetailState, DataToolsErrorAction>(

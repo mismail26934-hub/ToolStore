@@ -6,7 +6,7 @@ import 'package:tool_store_app/view/custom/shimmer/detail_section_vm.dart';
 import 'package:tool_store_app/view/custom/shimmer/tool_detail_shimmers.dart';
 import 'package:tool_store_app/theme/app_theme.dart';
 import 'package:tool_store_app/view/var/var.dart';
-import 'package:intl/intl.dart';
+import 'package:tool_store_app/model/parsers/number_parse_utils.dart';
 import 'tool_data_state_base.dart';
 
 mixin ToolDataToolItemCardMixin on ToolDataStateBase {
@@ -88,11 +88,7 @@ mixin ToolDataToolItemCardMixin on ToolDataStateBase {
               ),
               buildMetaChip(
                 icon: Icons.payments_outlined,
-                label: NumberFormat.currency(
-                  locale: 'id_ID',
-                  decimalDigits: 0,
-                  symbol: '',
-                ).format(double.parse(itemTool.partValue)),
+                label: formatPartValueLabel(itemTool.partValue),
                 color: Colors.orange.shade900,
               ),
             ],

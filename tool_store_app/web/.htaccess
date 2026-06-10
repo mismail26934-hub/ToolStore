@@ -1,0 +1,21 @@
+# Avoid stale Flutter bundles on Hostinger CDN (max-age 7d default).
+<IfModule mod_headers.c>
+  <FilesMatch "^(main\.dart(\.[a-f0-9]{8})?\.js|flutter_bootstrap\.js|flutter_service_worker\.js|flutter\.js|version\.json)$">
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+    Header set Pragma "no-cache"
+    Header set Expires "0"
+  </FilesMatch>
+</IfModule>
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /Tool-Monitoring/
+
+  # Serve existing files/directories as-is
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # Flutter web SPA: route unknown paths to index.html
+  RewriteRule ^ index.html [L]
+</IfModule>

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_redux/flutter_redux.dart';
 import 'package:tool_store_app/controller/api_url/post_list.dart';
@@ -321,11 +323,11 @@ abstract class ToolDataStateBase extends State<ToolData> with MixinPref {
       }
     });
     if (expanded) {
+      // Load tool lines immediately; do not wait for form list refresh.
+      unawaited(_loadFormRelatedDetails(forms.idForm));
       final formNo = forms.formNo.trim();
       if (formNo.isNotEmpty) {
-        refreshData();
-      } else {
-        _loadFormRelatedDetails(forms.idForm);
+        unawaited(refreshData());
       }
     }
   }
@@ -679,8 +681,9 @@ abstract class ToolDataStateBase extends State<ToolData> with MixinPref {
   }
 
   bool formHasTools(AppState state, PostList forms) {
+    final formId = forms.idForm.trim();
     return state.formsDetailState.formsDetail.any(
-      (itemTool) => itemTool.idForm == forms.idForm,
+      (itemTool) => itemTool.idForm.trim() == formId,
     );
   }
 
