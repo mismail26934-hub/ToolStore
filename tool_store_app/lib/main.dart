@@ -11,14 +11,17 @@ import 'package:tool_store_app/theme/app_theme.dart';
 import 'package:tool_store_app/theme/theme_controller.dart';
 import 'package:tool_store_app/view/custom/mixin/mixin_pref.dart';
 import 'package:tool_store_app/view/custom/web_custom/web_custom_berhaviour.dart';
+import 'package:tool_store_app/services/form_deep_link.dart';
 import 'package:tool_store_app/services/push_notification_service.dart';
 import 'package:tool_store_app/view/menu/splash_login/splash.dart';
 import 'package:tool_store_app/view/var/var.dart';
+import 'package:tool_store_app/navigation/root_navigator.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await themeController.load();
   await localeController.load();
+  await FormDeepLinkService.instance.initialize();
 
   runApp(const MyApp());
 
@@ -68,6 +71,7 @@ class _MyAppState extends State<MyApp> with MixinPref {
     return StoreProvider<AppState>(
       store: store,
       child: MaterialApp(
+        navigatorKey: rootNavigatorKey,
         color: themeController.isDarkMode ? const Color(0xFF0F1117) : clrWhite,
         scrollBehavior: WebCustomScrollBehavior(),
         debugShowCheckedModeBanner: false,

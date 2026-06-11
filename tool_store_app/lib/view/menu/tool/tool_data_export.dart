@@ -4,7 +4,8 @@ import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:tool_store_app/l10n/app_strings.dart';
 import 'package:tool_store_app/model/repositories/form_detail_export_repository.dart';
-import 'package:tool_store_app/model/repositories/form_repository.dart';
+import 'package:tool_store_app/model/repositories/form_repository.dart'
+    show resolveFormIdByFormNo;
 import 'package:tool_store_app/view/menu/tool/tool_data_excel_filter_sheet.dart';
 import 'package:tool_store_app/view/var/var.dart';
 
@@ -20,48 +21,6 @@ class ToolDataExportOutcome {
   final String message;
   final String? savedPath;
   final bool cancelled;
-}
-
-Future<String?> resolveFormIdByFormNo(String formNo) async {
-  final query = formNo.trim();
-  if (query.isEmpty) return null;
-
-  final parsed = await fetchFormList({
-    'param': paramViewDataForm,
-    'id_form': '',
-    'form_no': '',
-    'form_serv_name': '',
-    'form_check_by': '',
-    'form_date_check_by': '',
-    'form_date_serv_name': '',
-    'form_serv_comment': '',
-    'form_superior_aprd': '',
-    'form_superior_comment': '',
-    'form_sadmin_comment': '',
-    'form_milestone': '',
-    'form_status_order': '',
-    'form_shead_aprd': '',
-    'form_shead_comment': '',
-    'from_date_update': '',
-    'form_user_update': '',
-    'page': '1',
-    'limit': '20',
-    'keyword': query,
-    'search_field': 'formNo',
-  });
-
-  for (final form in parsed.items) {
-    if (form.formNo.trim() == query) {
-      final id = form.idForm.trim();
-      if (id.isNotEmpty) return id;
-    }
-  }
-
-  if (parsed.items.isNotEmpty) {
-    final id = parsed.items.first.idForm.trim();
-    if (id.isNotEmpty) return id;
-  }
-  return null;
 }
 
 (DateTime from, DateTime to) intersectExportDateRange({

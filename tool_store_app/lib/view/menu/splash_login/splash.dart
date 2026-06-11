@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:tool_store_app/l10n/l10n_ext.dart';
 import 'package:tool_store_app/theme/app_theme.dart';
 import 'package:tool_store_app/model/app_preload.dart';
+import 'package:tool_store_app/services/form_deep_link.dart';
 import 'package:tool_store_app/services/push_notification_service.dart';
 import 'package:tool_store_app/view/custom/mixin/mixin_pref.dart';
 import 'package:tool_store_app/view/custom/routes/page_routes.dart';
@@ -67,12 +68,14 @@ class _SplashScreenState extends State<SplashScreen>
       unawaited(preloadAuthenticatedData());
       unawaited(PushNotificationService.instance.syncTokenWithBackend());
       if (!mounted) return;
-      await PageRoutes.routeDashboards(context);
+      final formNo = FormDeepLinkService.instance.consumePendingFormNo();
+      await PageRoutes.routeHomeAfterAuth(context, formNo: formNo);
     } catch (e, st) {
       debugPrint('SplashScreen navigasi gagal: $e\n$st');
       if (!mounted) return;
       if (hasSession) {
-        await PageRoutes.routeDashboards(context);
+        final formNo = FormDeepLinkService.instance.consumePendingFormNo();
+        await PageRoutes.routeHomeAfterAuth(context, formNo: formNo);
       } else {
         await PageRoutes.routeLogin(context);
       }

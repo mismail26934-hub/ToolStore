@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tool_store_app/l10n/app_strings.dart';
+import 'package:tool_store_app/model/repositories/form_repository.dart';
 import 'package:tool_store_app/view/menu/dashboard/dashboard.dart';
 import 'package:tool_store_app/view/menu/home/home.dart';
 import 'package:tool_store_app/view/menu/splash_login/login.dart';
@@ -28,6 +30,33 @@ class PageRoutes {
           return FadeTransition(opacity: animation, child: child);
         },
       ),
+    );
+  }
+
+  static Future<void> routeHomeAfterAuth(
+    BuildContext context, {
+    String? formNo,
+  }) async {
+    final pending = formNo?.trim() ?? '';
+    if (pending.isNotEmpty) {
+      await routeToolByFormNo(context, formNo: pending);
+      return;
+    }
+    await routeDashboards(context);
+  }
+
+  static Future<void> routeToolByFormNo(
+    BuildContext context, {
+    required String formNo,
+  }) async {
+    final idForm = await resolveFormIdByFormNo(formNo);
+    if (!context.mounted) return;
+    await routeTool(
+      context,
+      title: AppStrings.current.searchResults,
+      initialSearchQuery: formNo,
+      initialSearchField: 'formNo',
+      initialExpandedFormId: idForm,
     );
   }
 

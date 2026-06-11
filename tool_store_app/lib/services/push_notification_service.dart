@@ -10,6 +10,8 @@ import 'package:tool_store_app/firebase_messaging_background.dart';
 import 'package:tool_store_app/firebase_options.dart';
 import 'package:tool_store_app/model/api_client.dart';
 import 'package:tool_store_app/services/fcm_platform.dart';
+import 'package:tool_store_app/navigation/root_navigator.dart';
+import 'package:tool_store_app/services/form_deep_link.dart';
 import 'package:tool_store_app/view/var/var.dart';
 
 /// FCM setup: init Firebase, permissions, token sync to backend (mobile + web).
@@ -73,8 +75,27 @@ class PushNotificationService {
     _messaging = FirebaseMessaging.instance;
     await _setupLocalNotifications();
     _listenForegroundMessages();
+    await _listenNotificationOpens();
 
     _initialized = true;
+  }
+
+  Future<void> _listenNotificationOpens() async {
+    final initial = await _messagingOrThrow.getInitialMessage();
+    if (initial != null) {
+      _handleNotificationOpen(initial);
+    }
+
+    FirebaseMessaging.onMessageOpenedApp.listen(_handleNotificationOpen);
+  }
+
+  void _handleNotificationOpen(RemoteMessage message) {
+    FormDeepLinkService.instance.captureFromNotificationData(message.data);
+    unawaited(
+      FormDeepLinkService.instance.navigateToPendingFormFromRoot(
+        rootNavigatorKey,
+      ),
+    );
   }
 
   Future<void> _setupLocalNotifications() async {
