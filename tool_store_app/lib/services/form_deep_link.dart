@@ -3,21 +3,23 @@ import 'dart:async';
 import 'package:app_links/app_links.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:tool_store_app/config/app_links_config.g.dart';
 import 'package:tool_store_app/model/api_client.dart';
 import 'package:tool_store_app/navigation/root_navigator.dart';
 import 'package:tool_store_app/view/custom/routes/page_routes.dart';
 
-/// Production web base for `?form_no=` deep links (override via `--dart-define=WEB_APP_BASE=...`).
+/// Runtime deep-link settings. Values default to [AppLinksConfig] (from config/app_links.json).
 class FormDeepLinkConfig {
   FormDeepLinkConfig._();
 
-  static const String defaultWebBase = 'https://strakin.tech/Tool-Monitoring/';
-  static const String androidPackageName = 'com.example.tool_store_app';
-  static const String iosBundleId = 'com.example.toolStoreApp';
+  static String get defaultWebBase => AppLinksConfig.webBase;
+  static String get androidPackageName => AppLinksConfig.androidPackageName;
+  static String get iosBundleId => AppLinksConfig.iosBundleId;
+  static String get formNoQueryParam => AppLinksConfig.formNoQueryParam;
 
   static String get webAppBase {
     const fromEnv = String.fromEnvironment('WEB_APP_BASE');
-    if (fromEnv.isEmpty) return defaultWebBase;
+    if (fromEnv.isEmpty) return AppLinksConfig.webBase;
     return fromEnv.endsWith('/') ? fromEnv : '$fromEnv/';
   }
 
@@ -33,17 +35,20 @@ class FormDeepLinkConfig {
   }
 }
 
-/// Builds a shareable URL: `https://strakin.tech/Tool-Monitoring/?form_no=F-001`.
+/// Builds a shareable form deep link URL.
 String buildFormLink(String formNo) {
   final no = formNo.trim();
   final base = FormDeepLinkConfig.webAppBase;
   if (no.isEmpty) return base;
-  return Uri.parse(base).replace(queryParameters: {'form_no': no}).toString();
+  return Uri.parse(base).replace(
+    queryParameters: {FormDeepLinkConfig.formNoQueryParam: no},
+  ).toString();
 }
 
-/// Reads `form_no` from a URI query string.
+/// Reads the form number from a URI query string.
 String? parseFormNoFromUri(Uri uri) {
-  final formNo = uri.queryParameters['form_no']?.trim();
+  final key = FormDeepLinkConfig.formNoQueryParam;
+  final formNo = uri.queryParameters[key]?.trim();
   if (formNo == null || formNo.isEmpty) return null;
   return formNo;
 }
@@ -108,7 +113,8 @@ class FormDeepLinkService {
   void captureFromCurrentUri() => captureFromUri(Uri.base);
 
   void captureFromNotificationData(Map<String, dynamic> data) {
-    final formNo = data['form_no']?.toString().trim() ?? '';
+    final key = FormDeepLinkConfig.formNoQueryParam;
+    final formNo = data[key]?.toString().trim() ?? '';
     if (formNo.isNotEmpty) _pendingFormNo = formNo;
   }
 

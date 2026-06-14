@@ -1027,31 +1027,63 @@ mixin ToolDataDialogsMixin on ToolDataStateBase {
         newMilestone.trim().toUpperCase()) {
       return;
     }
-    try {
-      await store.dispatch(
-        getDataTool(
-          param: paramEditDataForm,
-          idForm: forms.idForm.trim(),
-          formNo: forms.formNo.trim(),
-          formServName: forms.formServName.trim(),
-          formCheckBy: forms.formCheckBy.trim(),
-          formDateCheckBy: forms.formDateCheckBy.trim(),
-          formDateServName: forms.formDateServName.trim(),
-          formServComment: forms.formServComment.trim(),
-          formSuperiorAprd: forms.formSuperiorAprd.trim(),
-          formSuperiorComment: forms.formSuperiorComment.trim(),
-          formSadminComment: forms.formSadminComment.trim(),
-          formMilestone: newMilestone,
-          formStatusOrder: forms.formStatusOrder.trim(),
-          formSheadAprd: forms.formSheadAprd.trim(),
-          formSheadComment: forms.formSheadComment.trim(),
-          fromDateUpdate: DateFormat('yyyy-MM-dd').format(DateTime.now()),
-          formUserUpdate: idUsersApp.isNotEmpty
-              ? idUsersApp
-              : forms.formUserUpdate.trim(),
+    await store.dispatch(
+      getDataTool(
+        param: paramEditDataForm,
+        idForm: forms.idForm.trim(),
+        formNo: forms.formNo.trim(),
+        formServName: forms.formServName.trim(),
+        formCheckBy: forms.formCheckBy.trim(),
+        formDateCheckBy: forms.formDateCheckBy.trim(),
+        formDateServName: forms.formDateServName.trim(),
+        formServComment: forms.formServComment.trim(),
+        formSuperiorAprd: forms.formSuperiorAprd.trim(),
+        formSuperiorComment: forms.formSuperiorComment.trim(),
+        formSadminComment: forms.formSadminComment.trim(),
+        formMilestone: newMilestone,
+        formStatusOrder: forms.formStatusOrder.trim(),
+        formSheadAprd: forms.formSheadAprd.trim(),
+        formSheadComment: forms.formSheadComment.trim(),
+        fromDateUpdate: DateFormat('yyyy-MM-dd').format(DateTime.now()),
+        formUserUpdate: idUsersApp.isNotEmpty
+            ? idUsersApp
+            : forms.formUserUpdate.trim(),
+      ),
+    );
+  }
+
+  void _showMilestoneSyncError(Object error) {
+    if (!mounted) return;
+    final errText = error.toString().replaceFirst(RegExp(r'^Exception:\s*'), '');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          errText.isNotEmpty ? errText : strings.requestFailed,
+          style: const TextStyle(color: Colors.white),
         ),
-      );
-    } catch (_) {}
+        backgroundColor: Colors.orange.shade800,
+      ),
+    );
+  }
+
+  Future<void> _syncRcvWhMilestoneForForm(PostList forms) async {
+    try {
+      final header = _formHeaderFromStore(forms.idForm) ?? forms;
+      await updateFormMilestoneForRcvWh(header);
+      await refreshData();
+    } catch (e) {
+      _showMilestoneSyncError(e);
+    }
+  }
+
+  Future<void> _syncRcvToolMilestoneForForm(PostList forms) async {
+    try {
+      final header = _formHeaderFromStore(forms.idForm) ?? forms;
+      await updateFormMilestoneForRcvTool(header);
+      await refreshData();
+    } catch (e) {
+      _showMilestoneSyncError(e);
+    }
   }
 
   /// Sets [forms.formMilestone] from SO coverage across tool lines:
@@ -1102,12 +1134,19 @@ mixin ToolDataDialogsMixin on ToolDataStateBase {
     if (detailIds.isEmpty) return;
 
     final rcvWhFilledIds = store.state.rcvWhState.rcvWhs
+        .where(
+          (r) =>
+              r.idFormDetail.trim().isNotEmpty &&
+              r.rcvWhDate.trim().isNotEmpty,
+        )
         .map((r) => r.idFormDetail.trim())
-        .where((s) => s.isNotEmpty)
         .toSet();
 
     final filledCount = detailIds.where(rcvWhFilledIds.contains).length;
-    if (filledCount == 0) return;
+    if (filledCount == 0) {
+      await updateFormMilestoneFromSoFillState(forms);
+      return;
+    }
 
     final targetMilestone = filledCount == detailIds.length
         ? milestoneFull
@@ -1133,7 +1172,10 @@ mixin ToolDataDialogsMixin on ToolDataStateBase {
         .toSet();
 
     final filledCount = detailIds.where(rcvToolFilledDetailIds.contains).length;
-    if (filledCount == 0) return;
+    if (filledCount == 0) {
+      await updateFormMilestoneForRcvWh(forms);
+      return;
+    }
 
     final targetMilestone = filledCount == detailIds.length
         ? milestoneFull
@@ -1945,6 +1987,10 @@ mixin ToolDataDialogsMixin on ToolDataStateBase {
                             as RcvWhFetchResult;
                     if (editResult.statusValue == '1') {
                       await refreshData();
+                      final parent = parentFormForDetailId(item.idFormDetail);
+                      if (parent != null) {
+                        await _syncRcvWhMilestoneForForm(parent);
+                      }
                     }
                     if (!mounted) return;
                     if (editResult.statusValue == '1') {
@@ -2092,8 +2138,8 @@ mixin ToolDataDialogsMixin on ToolDataStateBase {
                             )
                             as RcvWhFetchResult;
                     if (addResult.statusValue == '1') {
-                      await updateFormMilestoneForRcvWh(forms);
                       await refreshData();
+                      await _syncRcvWhMilestoneForForm(forms);
                     }
                     if (!mounted) return;
                     if (addResult.statusValue == '1') {
@@ -2220,6 +2266,10 @@ mixin ToolDataDialogsMixin on ToolDataStateBase {
               as RcvWhFetchResult;
       if (deleteResult.statusValue == '1') {
         await refreshData();
+        final parent = parentFormForDetailId(item.idFormDetail);
+        if (parent != null) {
+          await _syncRcvWhMilestoneForForm(parent);
+        }
       }
       if (!mounted) return;
       if (deleteResult.statusValue == '1') {
@@ -2343,11 +2393,11 @@ mixin ToolDataDialogsMixin on ToolDataStateBase {
                             )
                             as RcvToolFetchResult;
                     if (editResult.statusValue == '1') {
+                      await refreshData();
                       final parent = parentFormForDetailId(item.idFormDetail);
                       if (parent != null) {
-                        await updateFormMilestoneForRcvTool(parent);
+                        await _syncRcvToolMilestoneForForm(parent);
                       }
-                      await refreshData();
                     }
                     if (!mounted) return;
                     if (editResult.statusValue == '1') {
@@ -2498,8 +2548,8 @@ mixin ToolDataDialogsMixin on ToolDataStateBase {
                             )
                             as RcvToolFetchResult;
                     if (addResult.statusValue == '1') {
-                      await updateFormMilestoneForRcvTool(forms);
                       await refreshData();
+                      await _syncRcvToolMilestoneForForm(forms);
                     }
                     if (!mounted) return;
                     if (addResult.statusValue == '1') {
@@ -2625,11 +2675,11 @@ mixin ToolDataDialogsMixin on ToolDataStateBase {
               )
               as RcvToolFetchResult;
       if (deleteResult.statusValue == '1') {
+        await refreshData();
         final parent = parentFormForDetailId(item.idFormDetail);
         if (parent != null) {
-          await updateFormMilestoneForRcvTool(parent);
+          await _syncRcvToolMilestoneForForm(parent);
         }
-        await refreshData();
       }
       if (!mounted) return;
       if (deleteResult.statusValue == '1') {

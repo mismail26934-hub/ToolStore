@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
-# Zip .well-known files for Hostinger domain root (NOT under Tool-Monitoring/).
+# Zip .well-known files for Hostinger domain root (NOT under app path prefix).
 set -euo pipefail
 cd "$(dirname "$0")/.."
+
+dart run scripts/sync_app_links_config.dart
+# shellcheck source=config/app_links.env.sh
+source config/app_links.env.sh
 
 SRC="hostinger-well-known/.well-known"
 OUT="dist/well-known-hostinger.zip"
@@ -26,15 +30,14 @@ fi
 echo ""
 echo "Created: $OUT"
 echo ""
-echo "Before upload, edit:"
-echo "  hostinger-well-known/.well-known/assetlinks.json"
-echo "    -> bash scripts/print_android_sha256.sh"
-echo "  hostinger-well-known/.well-known/apple-app-site-association"
-echo "    -> replace REPLACE_WITH_APPLE_TEAM_ID with your Apple Team ID"
+echo "Before upload, edit config/app_links.json:"
+echo "  androidSha256Fingerprints -> bash scripts/print_android_sha256.sh"
+echo "  appleTeamId               -> your Apple Team ID"
+echo "Then: dart run scripts/sync_app_links_config.dart"
 echo ""
 echo "Hostinger File Manager:"
-echo "  public_html/.well-known/  (domain root https://strakin.tech/)"
+echo "  public_html/.well-known/  (domain root https://${WEB_HOST}/)"
 echo ""
 echo "Verify:"
-echo "  curl -s https://strakin.tech/.well-known/assetlinks.json"
-echo "  curl -s https://strakin.tech/.well-known/apple-app-site-association"
+echo "  curl -s https://${WEB_HOST}/.well-known/assetlinks.json"
+echo "  curl -s https://${WEB_HOST}/.well-known/apple-app-site-association"

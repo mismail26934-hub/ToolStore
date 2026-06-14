@@ -1,9 +1,13 @@
 #!/usr/bin/env bash
-# Verify https://strakin.tech/Tool-Monitoring/ matches local build/web artifacts.
+# Verify deployed web build matches local artifacts (URL from config/app_links.json).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-BASE_URL="${DEPLOY_URL:-https://strakin.tech/Tool-Monitoring}"
+dart run scripts/sync_app_links_config.dart
+# shellcheck source=config/app_links.env.sh
+source config/app_links.env.sh
+
+BASE_URL="${DEPLOY_URL:-${WEB_BASE%/}}"
 LOCAL="build/web"
 
 if [[ ! -f "$LOCAL/main.dart.js" ]]; then
@@ -53,7 +57,7 @@ if [[ -z "$remote_md5" || "$local_md5" != "$remote_md5" ]]; then
   echo "  Local : $local_md5"
   echo "  Remote: $remote_md5"
   echo ""
-  echo "Upload semua isi build/web/ ke public_html/Tool-Monitoring/"
+  echo "Upload semua isi build/web/ ke public_html${WEB_PATH_PREFIX}/"
   echo "Atau: bash scripts/package_hostinger_deploy.sh lalu extract zip di Hostinger"
   fail=1
 fi

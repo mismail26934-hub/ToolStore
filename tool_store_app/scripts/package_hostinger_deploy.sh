@@ -3,6 +3,10 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+dart run scripts/sync_app_links_config.dart
+# shellcheck source=config/app_links.env.sh
+source config/app_links.env.sh
+
 if [[ ! -f build/web/main.dart.js ]]; then
   echo "Run: bash scripts/build_web_hostinger.sh"
   exit 1
@@ -22,5 +26,5 @@ fi
 
 echo ""
 echo "Created: $OUT"
-echo "Hostinger: File Manager -> public_html/Tool-Monitoring -> Upload zip -> Extract"
+echo "Hostinger: File Manager -> public_html${WEB_PATH_PREFIX} -> Upload zip -> Extract"
 echo "MD5: $(md5sum build/web/main.dart.js 2>/dev/null || md5 -q build/web/main.dart.js)"

@@ -3,8 +3,13 @@
     "apps": [],
     "details": [
       {
-        "appIDs": ["REPLACE_WITH_APPLE_TEAM_ID.com.example.toolStoreApp"],
-        "paths": ["/Tool-Monitoring", "/Tool-Monitoring/*"]
+        "appIDs": [
+          "REPLACE_WITH_APPLE_TEAM_ID.com.example.toolStoreApp"
+        ],
+        "paths": [
+          "/Tool-Monitoring",
+          "/Tool-Monitoring/*"
+        ]
       }
     ]
   }
