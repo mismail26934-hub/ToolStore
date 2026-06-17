@@ -28,7 +28,7 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
-                                                <!-- @sync-app-links:intent-filter -->
+                                                                                                <!-- @sync-app-links:intent-filter -->
             <!-- App Links: https://strakin.tech/Tool-Monitoring/?form_no=F-00123 -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW"/>

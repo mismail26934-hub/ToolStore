@@ -1,13 +1,11 @@
-import 'dart:io';
-
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import 'package:tool_store_app/l10n/app_strings.dart';
 import 'package:tool_store_app/model/repositories/form_detail_export_repository.dart';
 import 'package:tool_store_app/model/repositories/form_repository.dart'
     show resolveFormIdByFormNo;
 import 'package:tool_store_app/view/menu/tool/tool_data_excel_filter_sheet.dart';
-import 'package:tool_store_app/view/var/var.dart';
 
 class ToolDataExportOutcome {
   const ToolDataExportOutcome({
@@ -93,19 +91,25 @@ Future<ToolDataExportOutcome> exportFormDetailWithFilter({
   final savedPath = await FilePicker.saveFile(
     dialogTitle: s.exportExcelSaveTitle,
     fileName: exportFile.filename,
+    bytes: Uint8List.fromList(exportFile.bytes),
     type: FileType.custom,
     allowedExtensions: const ['xlsx'],
   );
 
   if (savedPath == null) {
+    if (kIsWeb) {
+      return ToolDataExportOutcome(
+        success: true,
+        message: s.exportExcelSuccess(exportFile.filename),
+        savedPath: exportFile.filename,
+      );
+    }
     return ToolDataExportOutcome(
       success: false,
       message: s.exportCancelled,
       cancelled: true,
     );
   }
-
-  await File(savedPath).writeAsBytes(exportFile.bytes, flush: true);
 
   return ToolDataExportOutcome(
     success: true,
