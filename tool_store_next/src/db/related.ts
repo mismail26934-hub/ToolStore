@@ -1,0 +1,279 @@
+import type { ResultSetHeader, RowDataPacket } from 'mysql2'
+import { ApiParam } from '@/api/params'
+import { emptyToNull, newId, s } from '@/db/helpers'
+import { getDbPool } from '@/db/pool'
+import type { PoRow, RcvToolRow, RcvWhRow, SoRow } from '@/types/models'
+
+type Packet = RowDataPacket & Record<string, unknown>
+
+function mapPo(row: Packet): PoRow {
+  return {
+    idPo: s(row.id_po),
+    idFormDetail: s(row.id_form_detail),
+    poNo: s(row.po_no),
+    dateUpdatePo: s(row.date_update_po),
+    userUpdatePo: s(row.user_update_po),
+  }
+}
+
+function mapSo(row: Packet): SoRow {
+  return {
+    idSo: s(row.id_so),
+    idFormDetail: s(row.id_form_detail),
+    so: s(row.so),
+    eta: s(row.eta),
+    noteSo: s(row.note_so),
+    dateUpdateSo: s(row.date_update_so),
+    idUpdateSo: s(row.id_update_so),
+  }
+}
+
+function mapRcvWh(row: Packet): RcvWhRow {
+  return {
+    idRcvWh: s(row.id_rcv_wh),
+    idFormDetail: s(row.id_form_detail),
+    rcvWhDate: s(row.rcv_wh_date),
+    rcvWhIdInput: s(row.rcv_wh_id_input),
+    rcvWhDateInput: s(row.rcv_wh_date_input),
+  }
+}
+
+function mapRcvTool(row: Packet): RcvToolRow {
+  return {
+    idRcvTool: s(row.id_rcv_tool),
+    idFormDetail: s(row.id_form_detail),
+    rcvToolDate: s(row.rcv_tool_date),
+    rcvToolIdInput: s(row.rcv_tool_id_input),
+    rcvToolDateInput: s(row.rcv_tool_date_input),
+  }
+}
+
+export async function dbListPoByForm(idForm: string): Promise<PoRow[]> {
+  const pool = getDbPool()
+  const [rows] = await pool.query<Packet[]>(
+    `SELECT p.* FROM po p
+     INNER JOIN form_details d ON d.id_form_detail = p.id_form_detail
+     WHERE d.id_form = ?`,
+    [idForm.trim()],
+  )
+  return rows.map(mapPo)
+}
+
+export async function dbMutatePo(input: {
+  param: string
+  idPo?: string
+  idFormDetail: string
+  poNo?: string
+  dateUpdatePo?: string
+  userUpdatePo?: string
+}): Promise<string> {
+  const pool = getDbPool()
+  if (input.param === ApiParam.deletePo) {
+    await pool.query(`DELETE FROM po WHERE id_po = ?`, [input.idPo?.trim()])
+    return 'PO dihapus'
+  }
+  if (input.param === ApiParam.addPo) {
+    await pool.query(
+      `INSERT INTO po (id_po, id_form_detail, po_no, date_update_po, user_update_po)
+       VALUES (?,?,?,?,?)`,
+      [
+        input.idPo?.trim() || newId(),
+        input.idFormDetail,
+        emptyToNull(input.poNo),
+        emptyToNull(input.dateUpdatePo),
+        emptyToNull(input.userUpdatePo),
+      ],
+    )
+    return 'PO ditambahkan'
+  }
+  if (input.param === ApiParam.editPo) {
+    const [r] = await pool.query<ResultSetHeader>(
+      `UPDATE po SET po_no = ?, date_update_po = ?, user_update_po = ?
+       WHERE id_po = ?`,
+      [
+        emptyToNull(input.poNo),
+        emptyToNull(input.dateUpdatePo),
+        emptyToNull(input.userUpdatePo),
+        input.idPo?.trim(),
+      ],
+    )
+    if (r.affectedRows === 0) throw new Error('PO tidak ditemukan')
+    return 'PO diperbarui'
+  }
+  throw new Error(`Param PO tidak dikenal: ${input.param}`)
+}
+
+export async function dbListSoByForm(idForm: string): Promise<SoRow[]> {
+  const pool = getDbPool()
+  const [rows] = await pool.query<Packet[]>(
+    `SELECT s.* FROM so s
+     INNER JOIN form_details d ON d.id_form_detail = s.id_form_detail
+     WHERE d.id_form = ?`,
+    [idForm.trim()],
+  )
+  return rows.map(mapSo)
+}
+
+export async function dbMutateSo(input: {
+  param: string
+  idSo?: string
+  idFormDetail: string
+  so?: string
+  eta?: string
+  noteSo?: string
+  dateUpdateSo?: string
+  idUpdateSo?: string
+}): Promise<string> {
+  const pool = getDbPool()
+  if (input.param === ApiParam.deleteSo) {
+    await pool.query(`DELETE FROM so WHERE id_so = ?`, [input.idSo?.trim()])
+    return 'SO dihapus'
+  }
+  if (input.param === ApiParam.addSo) {
+    await pool.query(
+      `INSERT INTO so (id_so, id_form_detail, so, eta, note_so, date_update_so, id_update_so)
+       VALUES (?,?,?,?,?,?,?)`,
+      [
+        input.idSo?.trim() || newId(),
+        input.idFormDetail,
+        emptyToNull(input.so),
+        emptyToNull(input.eta),
+        emptyToNull(input.noteSo),
+        emptyToNull(input.dateUpdateSo),
+        emptyToNull(input.idUpdateSo),
+      ],
+    )
+    return 'SO ditambahkan'
+  }
+  if (input.param === ApiParam.editSo) {
+    const [r] = await pool.query<ResultSetHeader>(
+      `UPDATE so SET so = ?, eta = ?, note_so = ?, date_update_so = ?, id_update_so = ?
+       WHERE id_so = ?`,
+      [
+        emptyToNull(input.so),
+        emptyToNull(input.eta),
+        emptyToNull(input.noteSo),
+        emptyToNull(input.dateUpdateSo),
+        emptyToNull(input.idUpdateSo),
+        input.idSo?.trim(),
+      ],
+    )
+    if (r.affectedRows === 0) throw new Error('SO tidak ditemukan')
+    return 'SO diperbarui'
+  }
+  throw new Error(`Param SO tidak dikenal: ${input.param}`)
+}
+
+export async function dbListRcvWhByForm(idForm: string): Promise<RcvWhRow[]> {
+  const pool = getDbPool()
+  const [rows] = await pool.query<Packet[]>(
+    `SELECT r.* FROM rcv_wh r
+     INNER JOIN form_details d ON d.id_form_detail = r.id_form_detail
+     WHERE d.id_form = ?`,
+    [idForm.trim()],
+  )
+  return rows.map(mapRcvWh)
+}
+
+export async function dbMutateRcvWh(input: {
+  param: string
+  idRcvWh?: string
+  idFormDetail: string
+  rcvWhDate?: string
+  rcvWhIdInput?: string
+  rcvWhDateInput?: string
+}): Promise<string> {
+  const pool = getDbPool()
+  if (input.param === ApiParam.deleteRcvWh) {
+    await pool.query(`DELETE FROM rcv_wh WHERE id_rcv_wh = ?`, [
+      input.idRcvWh?.trim(),
+    ])
+    return 'Rcv WH dihapus'
+  }
+  if (input.param === ApiParam.addRcvWh) {
+    await pool.query(
+      `INSERT INTO rcv_wh (id_rcv_wh, id_form_detail, rcv_wh_date, rcv_wh_id_input, rcv_wh_date_input)
+       VALUES (?,?,?,?,?)`,
+      [
+        input.idRcvWh?.trim() || newId(),
+        input.idFormDetail,
+        emptyToNull(input.rcvWhDate),
+        emptyToNull(input.rcvWhIdInput),
+        emptyToNull(input.rcvWhDateInput),
+      ],
+    )
+    return 'Rcv WH ditambahkan'
+  }
+  if (input.param === ApiParam.editRcvWh) {
+    const [r] = await pool.query<ResultSetHeader>(
+      `UPDATE rcv_wh SET rcv_wh_date = ?, rcv_wh_id_input = ?, rcv_wh_date_input = ?
+       WHERE id_rcv_wh = ?`,
+      [
+        emptyToNull(input.rcvWhDate),
+        emptyToNull(input.rcvWhIdInput),
+        emptyToNull(input.rcvWhDateInput),
+        input.idRcvWh?.trim(),
+      ],
+    )
+    if (r.affectedRows === 0) throw new Error('Rcv WH tidak ditemukan')
+    return 'Rcv WH diperbarui'
+  }
+  throw new Error(`Param Rcv WH tidak dikenal: ${input.param}`)
+}
+
+export async function dbListRcvToolByForm(idForm: string): Promise<RcvToolRow[]> {
+  const pool = getDbPool()
+  const [rows] = await pool.query<Packet[]>(
+    `SELECT r.* FROM rcv_tool r
+     INNER JOIN form_details d ON d.id_form_detail = r.id_form_detail
+     WHERE d.id_form = ?`,
+    [idForm.trim()],
+  )
+  return rows.map(mapRcvTool)
+}
+
+export async function dbMutateRcvTool(input: {
+  param: string
+  idRcvTool?: string
+  idFormDetail: string
+  rcvToolDate?: string
+  rcvToolIdInput?: string
+  rcvToolDateInput?: string
+}): Promise<string> {
+  const pool = getDbPool()
+  if (input.param === ApiParam.deleteRcvTool) {
+    await pool.query(`DELETE FROM rcv_tool WHERE id_rcv_tool = ?`, [
+      input.idRcvTool?.trim(),
+    ])
+    return 'Rcv Tool dihapus'
+  }
+  if (input.param === ApiParam.addRcvTool) {
+    await pool.query(
+      `INSERT INTO rcv_tool (id_rcv_tool, id_form_detail, rcv_tool_date, rcv_tool_id_input, rcv_tool_date_input)
+       VALUES (?,?,?,?,?)`,
+      [
+        input.idRcvTool?.trim() || newId(),
+        input.idFormDetail,
+        emptyToNull(input.rcvToolDate),
+        emptyToNull(input.rcvToolIdInput),
+        emptyToNull(input.rcvToolDateInput),
+      ],
+    )
+    return 'Rcv Tool ditambahkan'
+  }
+  if (input.param === ApiParam.editRcvTool) {
+    const [r] = await pool.query<ResultSetHeader>(
+      `UPDATE rcv_tool SET rcv_tool_date = ?, rcv_tool_id_input = ?, rcv_tool_date_input = ?
+       WHERE id_rcv_tool = ?`,
+      [
+        emptyToNull(input.rcvToolDate),
+        emptyToNull(input.rcvToolIdInput),
+        emptyToNull(input.rcvToolDateInput),
+        input.idRcvTool?.trim(),
+      ],
+    )
+    if (r.affectedRows === 0) throw new Error('Rcv Tool tidak ditemukan')
+    return 'Rcv Tool diperbarui'
+  }
+  throw new Error(`Param Rcv Tool tidak dikenal: ${input.param}`)
+}
