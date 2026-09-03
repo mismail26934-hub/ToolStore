@@ -19,6 +19,8 @@ export type MessageKey =
   | 'languageEn'
   | 'languageId'
   | 'appearance'
+  | 'manage'
+  | 'appTagline'
   | 'signInContinue'
   | 'loginTagline'
   | 'loginKicker'
@@ -74,6 +76,8 @@ const id: Dictionary = {
   languageEn: 'English',
   languageId: 'Bahasa Indonesia',
   appearance: 'Tampilan',
+  manage: 'Kelola',
+  appTagline: 'Monitoring tool, approval, dan serah terima gudang',
   signInContinue: 'Masuk untuk melanjutkan',
   loginTagline:
     'Pantau permintaan tool, approval, dan serah terima gudang dalam satu workspace.',
@@ -129,6 +133,8 @@ const en: Dictionary = {
   languageEn: 'English',
   languageId: 'Bahasa Indonesia',
   appearance: 'Appearance',
+  manage: 'Manage',
+  appTagline: 'Tool requests, approvals, and warehouse handoff',
   signInContinue: 'Sign in to continue',
   loginTagline:
     'Monitor tool requests, approvals, and warehouse handoff in one workspace.',

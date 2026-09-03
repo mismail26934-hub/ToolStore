@@ -6,22 +6,6 @@ import { useLogin } from '@/features/auth/useLogin'
 import { registerWebFcm, isFcmConfigured } from '@/features/fcm/registerWebFcm'
 import { usePrefs } from '@/prefs/PreferencesContext'
 
-function WrenchMark() {
-  return (
-    <svg
-      className="login-mark-svg"
-      viewBox="0 0 48 48"
-      fill="none"
-      aria-hidden
-    >
-      <path
-        d="M31.5 8.2a9.2 9.2 0 0 0-12.7 12.7L8.2 31.5a3.2 3.2 0 0 0 4.5 4.5l10.6-10.6A9.2 9.2 0 0 0 39.8 16.5l-5.8 5.8-4.2-4.2 5.8-5.8a9.15 9.15 0 0 0-4.1-4.1Z"
-        fill="currentColor"
-      />
-    </svg>
-  )
-}
-
 function EyeIcon({ open }: { open: boolean }) {
   if (open) {
     return (
@@ -46,12 +30,8 @@ function EyeIcon({ open }: { open: boolean }) {
 function SunIcon() {
   return (
     <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden>
-      <path
-        fill="currentColor"
-        d="M12 18a6 6 0 1 1 0-12 6 6 0 0 1 0 12Zm0-16h0v2.5h0V2Zm0 19.5h0V24h0v-2.5ZM2 12h2.5v0H2v0Zm17.5 0H22v0h-2.5v0ZM5.05 5.05l1.77 1.77-1.77-1.77Zm12.13 12.13 1.77 1.77-1.77-1.77ZM18.95 5.05l-1.77 1.77 1.77-1.77ZM6.82 17.18l-1.77 1.77 1.77-1.77Z"
-      />
-      <circle cx="12" cy="12" r="4.25" fill="currentColor" />
-      <g stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+      <g stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" fill="none">
+        <circle cx="12" cy="12" r="3.6" />
         <path d="M12 3.2v2.1M12 18.7v2.1M3.2 12h2.1M18.7 12h2.1M5.6 5.6l1.5 1.5M16.9 16.9l1.5 1.5M16.9 5.6l-1.5 1.5M5.6 18.4l1.5-1.5" />
       </g>
     </svg>
@@ -104,104 +84,84 @@ export function LoginPage() {
   }
 
   return (
-    <div className="login-page">
-      <div className="login-shell">
-        <aside className="login-brand" aria-hidden={false}>
-          <div className="login-brand-glow" aria-hidden />
-          <div className="login-brand-grid" aria-hidden />
-          <div className="login-brand-content">
-            <div className="login-mark">
-              <WrenchMark />
-            </div>
-            <p className="login-kicker">{t('loginKicker')}</p>
-            <h1 className="login-brand-title">{t('appName')}</h1>
-            <p className="login-brand-copy">{t('loginTagline')}</p>
-          </div>
-        </aside>
+    <main className="login-page">
+      <section className="login-card">
+        <div className="login-lang" aria-label={t('appearance')}>
+          <button
+            type="button"
+            className="login-icon-btn"
+            onClick={toggleTheme}
+            title={isDark ? t('darkModeOn') : t('darkModeOff')}
+            aria-label={t('darkMode')}
+            aria-pressed={isDark}
+          >
+            {isDark ? <MoonIcon /> : <SunIcon />}
+          </button>
+          <button
+            type="button"
+            className="login-icon-btn"
+            onClick={toggleLocale}
+            title={isEnglish ? t('languageEn') : t('languageId')}
+            aria-label={t('language')}
+            aria-pressed={isEnglish}
+          >
+            <LangIcon />
+            <span className="login-lang-code">{isEnglish ? 'EN' : 'ID'}</span>
+          </button>
+        </div>
 
-        <section className="login-panel">
-          <form className="login-form" onSubmit={onSubmit} noValidate>
-            <div className="login-form-top">
-              <header className="login-form-head">
-                <h2>{t('login')}</h2>
-                <p>{t('signInContinue')}</p>
-              </header>
-              <div className="login-icon-actions" aria-label={t('appearance')}>
-                <button
-                  type="button"
-                  className="login-icon-btn"
-                  onClick={toggleTheme}
-                  title={isDark ? t('darkModeOn') : t('darkModeOff')}
-                  aria-label={t('darkMode')}
-                  aria-pressed={isDark}
-                >
-                  {isDark ? <MoonIcon /> : <SunIcon />}
-                </button>
-                <button
-                  type="button"
-                  className="login-icon-btn"
-                  onClick={toggleLocale}
-                  title={isEnglish ? t('languageEn') : t('languageId')}
-                  aria-label={t('language')}
-                  aria-pressed={isEnglish}
-                >
-                  <LangIcon />
-                  <span className="login-lang-code">
-                    {isEnglish ? 'EN' : 'ID'}
-                  </span>
-                </button>
-              </div>
-            </div>
+        <h1>{t('appName')}</h1>
+        <p>{t('signInContinue')}</p>
 
-            <label className="login-field">
-              <span>{t('username')}</span>
+        <form className="login-form" onSubmit={onSubmit} noValidate>
+          <label>
+            {t('username')}
+            <input
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              autoComplete="username"
+              placeholder="nama.pengguna"
+              required
+            />
+          </label>
+
+          <label>
+            {t('password')}
+            <div className="login-input-wrap">
               <input
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                autoComplete="username"
-                placeholder="nama.pengguna"
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
+                placeholder="••••••••"
                 required
               />
-            </label>
+              <button
+                type="button"
+                className="login-eye"
+                onClick={() => setShowPassword((v) => !v)}
+                aria-label={showPassword ? t('hide') : t('show')}
+              >
+                <EyeIcon open={showPassword} />
+              </button>
+            </div>
+          </label>
 
-            <label className="login-field">
-              <span>{t('password')}</span>
-              <div className="login-input-wrap">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  autoComplete="current-password"
-                  placeholder="••••••••"
-                  required
-                />
-                <button
-                  type="button"
-                  className="login-eye"
-                  onClick={() => setShowPassword((v) => !v)}
-                  aria-label={showPassword ? t('hide') : t('show')}
-                >
-                  <EyeIcon open={showPassword} />
-                </button>
-              </div>
-            </label>
+          {login.isError && (
+            <div className="alert alert-error" role="alert">
+              {(login.error as Error)?.message || 'Login gagal'}
+            </div>
+          )}
 
-            {login.isError && (
-              <div className="alert alert-error login-error" role="alert">
-                {(login.error as Error)?.message || 'Login gagal'}
-              </div>
-            )}
-
-            <button
-              type="submit"
-              className="login-submit"
-              disabled={login.isPending}
-            >
-              {login.isPending ? t('signingIn') : t('login')}
-            </button>
-          </form>
-        </section>
-      </div>
-    </div>
+          <button
+            type="submit"
+            className="btn btn-primary login-submit"
+            disabled={login.isPending}
+          >
+            {login.isPending ? t('signingIn') : t('login')}
+          </button>
+        </form>
+      </section>
+    </main>
   )
 }

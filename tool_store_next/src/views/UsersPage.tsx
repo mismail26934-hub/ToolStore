@@ -34,19 +34,23 @@ function UserCard({ user, index }: { user: UserRow; index: number }) {
         <div className="meta-grid">
           <div>
             <span className="muted">No. Telp</span>
-            <div>{user.noTelp || '—'}</div>
+            <div className="meta-value">{user.noTelp || '—'}</div>
           </div>
           <div>
             <span className="muted">Superior</span>
-            <div>{user.namaSuperior || user.superiorId || '—'}</div>
+            <div className="meta-value">
+              {user.namaSuperior || user.superiorId || '—'}
+            </div>
           </div>
           <div>
             <span className="muted">ID TU</span>
-            <div>{user.idTu || '—'}</div>
+            <div className="meta-value">{user.idTu || '—'}</div>
           </div>
           <div>
             <span className="muted">ID Users</span>
-            <div>{user.idUsers || '—'}</div>
+            <div className="meta-value mono" title={user.idUsers || undefined}>
+              {user.idUsers || '—'}
+            </div>
           </div>
         </div>
         <div className="section-title-row">
@@ -132,7 +136,7 @@ export function UsersPage() {
         </div>
       )}
 
-      <div className="stack">
+      <div className="card-grid">
         {users.map((user, i) => (
           <UserCard key={user.idUsers || `${user.username}-${i}`} user={user} index={i} />
         ))}
