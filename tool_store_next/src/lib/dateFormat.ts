@@ -36,8 +36,25 @@ export function maskDmyInput(raw: string): string {
   return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`
 }
 
+/** Normalize any common date string to dd/mm/yyyy for UI display. */
 export function formatDateDisplay(value: string | null | undefined): string {
   if (!value?.trim()) return '—'
-  const slice = value.trim().slice(0, 10)
-  return ymdToDmy(slice) || slice
+  const raw = value.trim()
+  const ymdHead = raw.slice(0, 10)
+  if (YMD_RE.test(ymdHead)) return ymdToDmy(ymdHead)
+
+  const dmyHead = raw.match(DMY_RE)?.[0]
+  if (dmyHead) {
+    const ymd = dmyToYmd(dmyHead)
+    return ymd ? ymdToDmy(ymd) : dmyHead
+  }
+
+  const parsed = Date.parse(raw)
+  if (!Number.isNaN(parsed)) {
+    const d = new Date(parsed)
+    const pad = (n: number) => String(n).padStart(2, '0')
+    return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`
+  }
+
+  return raw
 }

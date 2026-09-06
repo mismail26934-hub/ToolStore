@@ -1,11 +1,23 @@
-import { isApprovedValue, normFormMilestone } from '@/features/forms/formMilestones'
-import type { FormRow, RcvToolRow, RcvWhRow, ToolDetailRow } from '@/types/models'
+import {
+  filledStepsFromMilestone,
+  isApprovedValue,
+  normFormMilestone,
+} from '@/features/forms/formMilestones'
+import type {
+  FormRow,
+  RcvToolRow,
+  RcvWhRow,
+  SoRow,
+  ToolDetailRow,
+} from '@/types/models'
 
 export type TimelineCompute = {
   filled: number
   redStep: number | null
   /** 0-based step index that is partially filled, or null. */
   partialStepIndex: number | null
+  /** 0..1 fill amount for the partial step node. */
+  partialProgress: number | null
   nextLabel: string
 }
 
@@ -21,29 +33,15 @@ const NEXT_LABELS = [
 
 const STEP_COUNT = 7
 
-function filledStepsFromMilestoneNorm(n: string): number {
-  if (n === '' || n === 'DRAFT') return 0
-  if (n === 'RECEIVED TOOL STORE' || n === 'RECEIVED BY TOOL STORE') return 7
-  if (
-    n === 'PARTIAL RECEIVED TOOL STORE' ||
-    n === 'PARTIAL RECEIVED BY TOOL STORE'
-  ) {
-    return 6
-  }
-  if (n === 'RECEIVED BY WH/GA') return 6
-  if (n === 'PARTIAL RECEIVED BY WH/GA') return 5
-  if (n === 'ORDER PROCESSED' || n === 'PROCESSING ORDER') return 5
-  if (n === 'APPROVED BY SERVICE DEPT HEAD') return 4
-  if (n === 'REVIEWED BY SERVICE ADMIN' || n === 'CONTINUE') return 3
-  if (n === 'SUPERIOR APPROVED') return 2
-  if (n === 'CHECK BY TOOL STORE') return 1
-  return 0
+function detailIdSet(rows: { idFormDetail: string }[] | undefined) {
+  return new Set((rows ?? []).map((r) => r.idFormDetail.trim()).filter(Boolean))
 }
 
 export function computeOrderTimeline(
   form: FormRow,
   opts?: {
     tools?: ToolDetailRow[]
+    so?: SoRow[]
     rcvWh?: RcvWhRow[]
     rcvTool?: RcvToolRow[]
   },
@@ -53,6 +51,7 @@ export function computeOrderTimeline(
       filled: 0,
       redStep: null,
       partialStepIndex: null,
+      partialProgress: null,
       nextLabel: NEXT_LABELS[0],
     }
   }
@@ -65,6 +64,7 @@ export function computeOrderTimeline(
       filled: 1,
       redStep: 1,
       partialStepIndex: null,
+      partialProgress: null,
       nextLabel: NEXT_LABELS[0],
     }
   }
@@ -73,6 +73,7 @@ export function computeOrderTimeline(
       filled: 3,
       redStep: 3,
       partialStepIndex: null,
+      partialProgress: null,
       nextLabel: NEXT_LABELS[2],
     }
   }
@@ -81,48 +82,67 @@ export function computeOrderTimeline(
       filled: 2,
       redStep: 2,
       partialStepIndex: null,
+      partialProgress: null,
       nextLabel: NEXT_LABELS[1],
     }
   }
 
-  let filled = filledStepsFromMilestoneNorm(n)
+  let filled = filledStepsFromMilestone(form.formMilestone)
   let partialStepIndex: number | null = null
+  let partialProgress: number | null = null
 
   if (isApprovedValue(form.formSuperiorAprd)) filled = Math.max(filled, 2)
   if (form.formSadminComment.trim()) filled = Math.max(filled, 3)
   if (isApprovedValue(form.formSheadAprd)) filled = Math.max(filled, 4)
 
   const tools = opts?.tools ?? []
-  if (filled >= 5 && tools.length > 0) {
-    const detailIds = new Set(
-      tools.map((t) => t.idFormDetail.trim()).filter(Boolean),
-    )
-    if (detailIds.size > 0) {
-      const total = detailIds.size
-      const whIds = new Set(
-        (opts?.rcvWh ?? []).map((r) => r.idFormDetail.trim()).filter(Boolean),
-      )
-      const toolIds = new Set(
-        (opts?.rcvTool ?? []).map((r) => r.idFormDetail.trim()).filter(Boolean),
-      )
-      const whCount = [...detailIds].filter((id) => whIds.has(id)).length
-      const toolCount = [...detailIds].filter((id) => toolIds.has(id)).length
-      const allRcvWh = whCount === total
-      const anyRcvWh = whCount > 0
-      const allRcvTool = toolCount === total
-      const anyRcvTool = toolCount > 0
+  const detailIds = detailIdSet(tools)
+  const total = detailIds.size
 
-      if (allRcvTool) {
-        filled = Math.max(filled, 7)
-      } else if (anyRcvTool) {
-        filled = Math.max(filled, 6)
-        partialStepIndex = 6
-      } else if (allRcvWh) {
-        filled = Math.max(filled, 6)
-      } else if (anyRcvWh) {
-        filled = Math.max(filled, 5)
-        partialStepIndex = 5
-      }
+  if (filled >= 4 && total > 0) {
+    const soIds = detailIdSet(opts?.so)
+    const whIds = detailIdSet(opts?.rcvWh)
+    const toolRcvIds = detailIdSet(opts?.rcvTool)
+
+    const soCount = [...detailIds].filter((id) => soIds.has(id)).length
+    const whCount = [...detailIds].filter((id) => whIds.has(id)).length
+    const toolRcvCount = [...detailIds].filter((id) => toolRcvIds.has(id)).length
+
+    const allSo = soCount === total
+    const anySo = soCount > 0
+    const allRcvWh = whCount === total
+    const anyRcvWh = whCount > 0
+    const allRcvTool = toolRcvCount === total
+    const anyRcvTool = toolRcvCount > 0
+
+    // Process steps prefer live related coverage over milestone alone.
+    if (allRcvTool) {
+      filled = Math.max(filled, 7)
+      partialStepIndex = null
+      partialProgress = null
+    } else if (anyRcvTool) {
+      filled = Math.max(filled, 6)
+      partialStepIndex = 6
+      partialProgress = toolRcvCount / total
+    } else if (allRcvWh) {
+      filled = Math.max(filled, 6)
+      partialStepIndex = null
+      partialProgress = null
+    } else if (anyRcvWh) {
+      filled = Math.max(filled, 5)
+      partialStepIndex = 5
+      partialProgress = whCount / total
+    } else if (allSo) {
+      // Semua tool sudah punya SO → step 5 penuh.
+      filled = Math.max(filled, 5)
+      partialStepIndex = null
+      partialProgress = null
+    } else if (anySo || filled >= 5) {
+      // Ada SO sebagian (atau milestone processing tapi SO belum lengkap).
+      // Jangan centang penuh step 5 — tampilkan isi warna % SO.
+      filled = 4
+      partialStepIndex = 4
+      partialProgress = soCount / total
     }
   }
 
@@ -131,19 +151,42 @@ export function computeOrderTimeline(
     case 'RECEIVED BY TOOL STORE':
       filled = STEP_COUNT
       partialStepIndex = null
+      partialProgress = null
       break
     case 'PARTIAL RECEIVED TOOL STORE':
     case 'PARTIAL RECEIVED BY TOOL STORE':
-      filled = Math.max(filled, 6)
-      partialStepIndex = 6
+      if (partialStepIndex !== 6) {
+        filled = Math.max(filled, 6)
+        partialStepIndex = 6
+        if (partialProgress == null && total > 0) {
+          const toolRcvIds = detailIdSet(opts?.rcvTool)
+          const toolRcvCount = [...detailIds].filter((id) =>
+            toolRcvIds.has(id),
+          ).length
+          partialProgress = toolRcvCount / total
+        }
+      }
       break
     case 'RECEIVED BY WH/GA':
       filled = Math.max(filled, 6)
-      if (partialStepIndex === 6) partialStepIndex = null
+      if (partialStepIndex === 6) {
+        partialStepIndex = null
+        partialProgress = null
+      }
       break
     case 'PARTIAL RECEIVED BY WH/GA':
-      filled = Math.max(filled, 5)
-      partialStepIndex = 5
+      if (partialStepIndex == null || partialStepIndex > 5) {
+        filled = Math.max(Math.min(filled, 5), 5)
+        // Keep SO/WH partial logic above if already set for step 5.
+        if (partialStepIndex !== 5) {
+          partialStepIndex = 5
+          if (total > 0) {
+            const whIds = detailIdSet(opts?.rcvWh)
+            const whCount = [...detailIds].filter((id) => whIds.has(id)).length
+            partialProgress = whCount / total
+          }
+        }
+      }
       break
     default:
       break
@@ -155,5 +198,11 @@ export function computeOrderTimeline(
       ? 'COMPLETED'
       : NEXT_LABELS[Math.min(filled, NEXT_LABELS.length - 1)]
 
-  return { filled, redStep: null, partialStepIndex, nextLabel }
+  return {
+    filled,
+    redStep: null,
+    partialStepIndex,
+    partialProgress,
+    nextLabel,
+  }
 }

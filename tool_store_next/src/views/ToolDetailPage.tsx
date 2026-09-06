@@ -4,11 +4,13 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import { useAuth } from '@/auth/AuthContext'
+import { ActionNoteField } from '@/components/ActionNoteField'
 import { PageHeader } from '@/components/PageHeader'
 import {
   useToolDetailMutations,
   useToolDetails,
 } from '@/features/tools/useToolDetails'
+import { normalizeActionNoteCode } from '@/lib/actionNotes'
 import type { ToolDetailRow } from '@/types/models'
 
 type RowForm = {
@@ -47,7 +49,7 @@ function fromApi(row: ToolDetailRow): RowForm {
     brand: row.brand ?? '',
     spesifikasi: row.spesifikasi ?? '',
     explan: row.explan,
-    actionNote: row.actionNote,
+    actionNote: normalizeActionNoteCode(row.actionNote),
     idFormDetail: row.idFormDetail,
   }
 }
@@ -105,10 +107,11 @@ export function ToolDetailPage() {
 
     try {
       for (const row of rows) {
-        const actionNote =
-          row.actionNote.trim().length > 0
-            ? row.actionNote.trim().charAt(0)
-            : ''
+        const actionNote = normalizeActionNoteCode(row.actionNote)
+        if (!actionNote) {
+          setError('ACTION NOTE wajib dipilih (A/B/C/D)')
+          return
+        }
         const payload = {
           idForm,
           idFormDetail: row.idFormDetail,
@@ -294,20 +297,12 @@ export function ToolDetailPage() {
               />
             </label>
 
-            <label className="field">
-              <span>ACTION NOTE (A/B/C/D)</span>
-              <select
-                value={row.actionNote}
-                onChange={(e) => updateRow(i, { actionNote: e.target.value })}
-                required
-              >
-                <option value="">Select…</option>
-                <option value="A">A</option>
-                <option value="B">B</option>
-                <option value="C">C</option>
-                <option value="D">D</option>
-              </select>
-            </label>
+            <ActionNoteField
+              value={row.actionNote}
+              onChange={(v) => updateRow(i, { actionNote: v })}
+              required
+              disabled={submitting}
+            />
           </section>
         ))}
 

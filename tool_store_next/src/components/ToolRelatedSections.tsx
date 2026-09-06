@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, type FormEvent } from 'react'
+import { useState, type FormEvent, type ReactNode } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { ApiParam } from '@/api/params'
 import { useAuth } from '@/auth/AuthContext'
 import {
@@ -10,8 +11,18 @@ import {
   canMutateSo,
   todayYmd,
 } from '@/auth/roles'
+import { DateInput } from '@/components/DateInput'
+import { syncFormProcessMilestone } from '@/features/forms/syncFormProcessMilestone'
+import { formatDateDisplay } from '@/lib/dateFormat'
 import { useFormRelated, useRelatedMutations } from '@/features/related/useRelated'
-import type { PoRow, RcvToolRow, RcvWhRow, SoRow, ToolDetailRow } from '@/types/models'
+import type {
+  FormRow,
+  PoRow,
+  RcvToolRow,
+  RcvWhRow,
+  SoRow,
+  ToolDetailRow,
+} from '@/types/models'
 
 type Dialog =
   | { kind: 'po'; row?: PoRow }
@@ -20,22 +31,179 @@ type Dialog =
   | { kind: 'rcvTool'; row?: RcvToolRow }
   | null
 
-function byDetail<T extends { idFormDetail: string }>(rows: T[] | undefined, id: string) {
+function byDetail<T extends { idFormDetail: string }>(
+  rows: T[] | undefined,
+  id: string,
+) {
   return (rows ?? []).filter((r) => r.idFormDetail === id)
 }
 
+function dateSlice(value: string | null | undefined, fallback = '') {
+  const v = value?.trim().slice(0, 10) ?? ''
+  return v || fallback
+}
+
+function PlusIcon() {
+  return (
+    <svg
+      className="btn-icon-svg"
+      viewBox="0 0 24 24"
+      width="15"
+      height="15"
+      aria-hidden
+      fill="none"
+    >
+      <path
+        d="M12 5v14M5 12h14"
+        stroke="currentColor"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+      />
+    </svg>
+  )
+}
+
+function EditIcon() {
+  return (
+    <svg
+      className="btn-icon-svg"
+      viewBox="0 0 24 24"
+      width="15"
+      height="15"
+      aria-hidden
+      fill="none"
+    >
+      <path
+        d="M14 5.5l4.5 4.5M5 15.5V19h3.5L19 8.5 14.5 4 5 13.5z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
+function TrashIcon() {
+  return (
+    <svg
+      className="btn-icon-svg"
+      viewBox="0 0 24 24"
+      width="15"
+      height="15"
+      aria-hidden
+      fill="none"
+    >
+      <path
+        d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M10 11v6M14 11v6"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
+function RelatedField({
+  label,
+  canAdd,
+  onAdd,
+  wide,
+  children,
+}: {
+  label: string
+  canAdd: boolean
+  onAdd: () => void
+  wide?: boolean
+  children: ReactNode
+}) {
+  return (
+    <div className={`related-inline-field${wide ? ' is-wide' : ''}`}>
+      <div className="related-inline-label">
+        <span className="muted">{label}</span>
+        {canAdd && (
+          <button
+            type="button"
+            className="btn btn-ghost btn-icon-only"
+            title={`Add ${label}`}
+            aria-label={`Add ${label}`}
+            onClick={onAdd}
+          >
+            <PlusIcon />
+          </button>
+        )}
+      </div>
+      <div className="related-inline-list">{children}</div>
+    </div>
+  )
+}
+
+function RelatedItemRow({
+  label,
+  details,
+  canEdit,
+  onEdit,
+}: {
+  label: string
+  details?: { label: string; value: string }[]
+  canEdit: boolean
+  onEdit: () => void
+}) {
+  return (
+    <div className="related-inline-row">
+      <div className="related-inline-content">
+        {details && details.length > 0 ? (
+          <table className="related-mini-table">
+            <tbody>
+              {label ? (
+                <tr>
+                  <th colSpan={2}>{label}</th>
+                </tr>
+              ) : null}
+              {details.map((d) => (
+                <tr key={d.label}>
+                  <th>{d.label}</th>
+                  <td>{d.value || '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <span className="meta-value">{label}</span>
+        )}
+      </div>
+      {canEdit && (
+        <button
+          type="button"
+          className="btn btn-ghost btn-icon-only"
+          title="Edit"
+          aria-label="Edit"
+          onClick={onEdit}
+        >
+          <EditIcon />
+        </button>
+      )}
+    </div>
+  )
+}
+
 export function ToolRelatedSections({
+  form,
   tool,
   related,
   mut,
 }: {
+  form: FormRow
   tool: ToolDetailRow
   related: ReturnType<typeof useFormRelated>
   mut: ReturnType<typeof useRelatedMutations>
 }) {
   const { user } = useAuth()
+  const queryClient = useQueryClient()
   const [dialog, setDialog] = useState<Dialog>(null)
   const [error, setError] = useState<string | null>(null)
+  const [dateField, setDateField] = useState('')
 
   const pos = byDetail(related.po.data, tool.idFormDetail)
   const sos = byDetail(related.so.data, tool.idFormDetail)
@@ -43,11 +211,41 @@ export function ToolRelatedSections({
   const rooms = byDetail(related.rcvTool.data, tool.idFormDetail)
 
   const busy =
-    mut.po.isPending || mut.so.isPending || mut.rcvWh.isPending || mut.rcvTool.isPending
+    mut.po.isPending ||
+    mut.so.isPending ||
+    mut.rcvWh.isPending ||
+    mut.rcvTool.isPending
+
+  const syncMilestone = async () => {
+    try {
+      await syncFormProcessMilestone({
+        form,
+        userId: user?.idUsersApp ?? '',
+        queryClient,
+      })
+    } catch {
+      // Related save already succeeded; milestone sync is best-effort.
+    }
+  }
+
+  const openDialog = (next: Exclude<Dialog, null>) => {
+    setError(null)
+    if (next.kind === 'so') {
+      setDateField(dateSlice(next.row?.eta))
+    } else if (next.kind === 'rcvWh') {
+      setDateField(dateSlice(next.row?.rcvWhDate, todayYmd()))
+    } else if (next.kind === 'rcvTool') {
+      setDateField(dateSlice(next.row?.rcvToolDate, todayYmd()))
+    } else {
+      setDateField('')
+    }
+    setDialog(next)
+  }
 
   const close = () => {
     setDialog(null)
     setError(null)
+    setDateField('')
   }
 
   const onPoSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -58,15 +256,21 @@ export function ToolRelatedSections({
     if (sos.length > 0) return setError('PO terkunci karena SO sudah ada')
     try {
       await mut.po.mutateAsync({
-        param: dialog && 'row' in dialog && dialog.row && 'idPo' in dialog.row && dialog.row.idPo
-          ? ApiParam.editPo
-          : ApiParam.addPo,
-        idPo: dialog?.kind === 'po' ? dialog.row?.idPo ?? '' : '',
+        param:
+          dialog &&
+          'row' in dialog &&
+          dialog.row &&
+          'idPo' in dialog.row &&
+          dialog.row.idPo
+            ? ApiParam.editPo
+            : ApiParam.addPo,
+        idPo: dialog?.kind === 'po' ? (dialog.row?.idPo ?? '') : '',
         idFormDetail: tool.idFormDetail,
         poNo,
         dateUpdatePo: todayYmd(),
         userUpdatePo: user?.idUsersApp ?? '',
       })
+      await syncMilestone()
       close()
     } catch (err) {
       setError((err as Error).message)
@@ -77,18 +281,19 @@ export function ToolRelatedSections({
     e.preventDefault()
     const fd = new FormData(e.currentTarget)
     const so = String(fd.get('so') ?? '').trim()
-    const eta = String(fd.get('eta') ?? '').trim()
     const noteSo = String(fd.get('note_so') ?? '').trim()
+    const eta = dateField.trim()
     if (!so) return setError('SO / PR number wajib diisi')
     if (!eta) return setError('ETA wajib diisi')
-    if (whs.length > 0) return setError('SO terkunci karena WH receive sudah ada')
+    if (whs.length > 0)
+      return setError('SO terkunci karena WH receive sudah ada')
     try {
       await mut.so.mutateAsync({
         param:
           dialog?.kind === 'so' && dialog.row?.idSo
             ? ApiParam.editSo
             : ApiParam.addSo,
-        idSo: dialog?.kind === 'so' ? dialog.row?.idSo ?? '' : '',
+        idSo: dialog?.kind === 'so' ? (dialog.row?.idSo ?? '') : '',
         idFormDetail: tool.idFormDetail,
         so,
         eta,
@@ -96,6 +301,7 @@ export function ToolRelatedSections({
         dateUpdateSo: todayYmd(),
         idUpdateSo: user?.idUsersApp ?? '',
       })
+      await syncMilestone()
       close()
     } catch (err) {
       setError((err as Error).message)
@@ -104,22 +310,23 @@ export function ToolRelatedSections({
 
   const onWhSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    const fd = new FormData(e.currentTarget)
-    const date = String(fd.get('date') ?? '').trim()
+    const date = dateField.trim()
     if (!date) return setError('Tanggal wajib diisi')
-    if (rooms.length > 0) return setError('WH receive terkunci karena Tool Room sudah ada')
+    if (rooms.length > 0)
+      return setError('WH receive terkunci karena Tool Room sudah ada')
     try {
       await mut.rcvWh.mutateAsync({
         param:
           dialog?.kind === 'rcvWh' && dialog.row?.idRcvWh
             ? ApiParam.editRcvWh
             : ApiParam.addRcvWh,
-        idRcvWh: dialog?.kind === 'rcvWh' ? dialog.row?.idRcvWh ?? '' : '',
+        idRcvWh: dialog?.kind === 'rcvWh' ? (dialog.row?.idRcvWh ?? '') : '',
         idFormDetail: tool.idFormDetail,
         rcvWhDate: date,
         rcvWhIdInput: user?.idUsersApp ?? '',
         rcvWhDateInput: todayYmd(),
       })
+      await syncMilestone()
       close()
     } catch (err) {
       setError((err as Error).message)
@@ -128,8 +335,7 @@ export function ToolRelatedSections({
 
   const onToolRcvSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    const fd = new FormData(e.currentTarget)
-    const date = String(fd.get('date') ?? '').trim()
+    const date = dateField.trim()
     if (!date) return setError('Tanggal wajib diisi')
     try {
       await mut.rcvTool.mutateAsync({
@@ -137,12 +343,14 @@ export function ToolRelatedSections({
           dialog?.kind === 'rcvTool' && dialog.row?.idRcvTool
             ? ApiParam.editRcvTool
             : ApiParam.addRcvTool,
-        idRcvTool: dialog?.kind === 'rcvTool' ? dialog.row?.idRcvTool ?? '' : '',
+        idRcvTool:
+          dialog?.kind === 'rcvTool' ? (dialog.row?.idRcvTool ?? '') : '',
         idFormDetail: tool.idFormDetail,
         rcvToolDate: date,
         rcvToolIdInput: user?.idUsersApp ?? '',
         rcvToolDateInput: todayYmd(),
       })
+      await syncMilestone()
       close()
     } catch (err) {
       setError((err as Error).message)
@@ -151,167 +359,225 @@ export function ToolRelatedSections({
 
   const removePo = async (row: PoRow) => {
     if (sos.length > 0) return
-    if (!window.confirm('Hapus PO ini?')) return
-    await mut.po.mutateAsync({
-      param: ApiParam.deletePo,
-      idPo: row.idPo,
-      idFormDetail: tool.idFormDetail,
-      poNo: row.poNo,
-      dateUpdatePo: todayYmd(),
-      userUpdatePo: user?.idUsersApp ?? '',
-    })
+    if (!window.confirm(`Hapus PO ${row.poNo || ''}?`)) return
+    try {
+      await mut.po.mutateAsync({
+        param: ApiParam.deletePo,
+        idPo: row.idPo,
+        idFormDetail: tool.idFormDetail,
+        poNo: row.poNo,
+        dateUpdatePo: todayYmd(),
+        userUpdatePo: user?.idUsersApp ?? '',
+      })
+      await syncMilestone()
+      close()
+    } catch (err) {
+      setError((err as Error).message)
+    }
   }
 
   const removeSo = async (row: SoRow) => {
     if (whs.length > 0) return
-    if (!window.confirm('Hapus SO ini?')) return
-    await mut.so.mutateAsync({
-      param: ApiParam.deleteSo,
-      idSo: row.idSo,
-      idFormDetail: tool.idFormDetail,
-      so: row.so,
-      eta: row.eta,
-      noteSo: row.noteSo,
-      dateUpdateSo: todayYmd(),
-      idUpdateSo: user?.idUsersApp ?? '',
-    })
+    if (!window.confirm(`Hapus SO ${row.so || ''}?`)) return
+    try {
+      await mut.so.mutateAsync({
+        param: ApiParam.deleteSo,
+        idSo: row.idSo,
+        idFormDetail: tool.idFormDetail,
+        so: row.so,
+        eta: row.eta,
+        noteSo: row.noteSo,
+        dateUpdateSo: todayYmd(),
+        idUpdateSo: user?.idUsersApp ?? '',
+      })
+      await syncMilestone()
+      close()
+    } catch (err) {
+      setError((err as Error).message)
+    }
   }
 
   const removeWh = async (row: RcvWhRow) => {
     if (rooms.length > 0) return
     if (!window.confirm('Hapus WH receive ini?')) return
-    await mut.rcvWh.mutateAsync({
-      param: ApiParam.deleteRcvWh,
-      idRcvWh: row.idRcvWh,
-      idFormDetail: tool.idFormDetail,
-      rcvWhDate: row.rcvWhDate,
-      rcvWhIdInput: user?.idUsersApp ?? '',
-      rcvWhDateInput: todayYmd(),
-    })
+    try {
+      await mut.rcvWh.mutateAsync({
+        param: ApiParam.deleteRcvWh,
+        idRcvWh: row.idRcvWh,
+        idFormDetail: tool.idFormDetail,
+        rcvWhDate: row.rcvWhDate,
+        rcvWhIdInput: user?.idUsersApp ?? '',
+        rcvWhDateInput: todayYmd(),
+      })
+      await syncMilestone()
+      close()
+    } catch (err) {
+      setError((err as Error).message)
+    }
   }
 
   const removeToolRcv = async (row: RcvToolRow) => {
     if (!window.confirm('Hapus Tool Room receive ini?')) return
-    await mut.rcvTool.mutateAsync({
-      param: ApiParam.deleteRcvTool,
-      idRcvTool: row.idRcvTool,
-      idFormDetail: tool.idFormDetail,
-      rcvToolDate: row.rcvToolDate,
-      rcvToolIdInput: user?.idUsersApp ?? '',
-      rcvToolDateInput: todayYmd(),
-    })
+    try {
+      await mut.rcvTool.mutateAsync({
+        param: ApiParam.deleteRcvTool,
+        idRcvTool: row.idRcvTool,
+        idFormDetail: tool.idFormDetail,
+        rcvToolDate: row.rcvToolDate,
+        rcvToolIdInput: user?.idUsersApp ?? '',
+        rcvToolDateInput: todayYmd(),
+      })
+      await syncMilestone()
+      close()
+    } catch (err) {
+      setError((err as Error).message)
+    }
   }
 
+  const poLocked = sos.length > 0
+  const soLocked = whs.length > 0
+  const whLocked = rooms.length > 0
+
   return (
-    <div className="related-wrap">
-      <RelatedBlock
-        title="Purchase Order"
-        canAdd={canMutatePo(user) && sos.length === 0}
-        onAdd={() => setDialog({ kind: 'po' })}
-      >
-        {pos.map((row) => (
-          <div key={row.idPo} className="related-line">
-            <span>PO : {row.poNo}</span>
-            {canMutatePo(user) && sos.length === 0 && (
-              <span className="row-gap">
-                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setDialog({ kind: 'po', row })}>
-                  Edit
-                </button>
-                <button type="button" className="btn btn-danger btn-sm" onClick={() => removePo(row)}>
-                  Del
-                </button>
-              </span>
-            )}
-          </div>
-        ))}
-        {pos.length === 0 && <p className="muted">Belum ada PO.</p>}
-      </RelatedBlock>
+    <div className="related-inline-wrap">
+      <div className="tool-item-block-grid related-inline-grid">
+        <RelatedField
+          label="PO"
+          canAdd={canMutatePo(user) && !poLocked}
+          onAdd={() => openDialog({ kind: 'po' })}
+        >
+          {pos.length === 0 && <div className="meta-value muted">—</div>}
+          {pos.map((row, i) => (
+            <RelatedItemRow
+              key={row.idPo}
+              label={
+                pos.length > 1
+                  ? `${i + 1}) ${row.poNo || '—'}`
+                  : row.poNo || '—'
+              }
+              canEdit={canMutatePo(user) && !poLocked}
+              onEdit={() => openDialog({ kind: 'po', row })}
+            />
+          ))}
+        </RelatedField>
 
-      <RelatedBlock
-        title="Sales Order / PR"
-        canAdd={canMutateSo(user) && whs.length === 0}
-        onAdd={() => setDialog({ kind: 'so' })}
-      >
-        {sos.map((row) => (
-          <div key={row.idSo} className="related-line">
-            <span>
-              SO : {row.so}
-              <span className="muted"> · ETA {row.eta || '—'} · {row.noteSo || '-'}</span>
-            </span>
-            {canMutateSo(user) && whs.length === 0 && (
-              <span className="row-gap">
-                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setDialog({ kind: 'so', row })}>
-                  Edit
-                </button>
-                <button type="button" className="btn btn-danger btn-sm" onClick={() => removeSo(row)}>
-                  Del
-                </button>
-              </span>
-            )}
-          </div>
-        ))}
-        {sos.length === 0 && <p className="muted">Belum ada SO.</p>}
-      </RelatedBlock>
+        <RelatedField
+          label="SO / PR"
+          canAdd={canMutateSo(user) && !soLocked}
+          onAdd={() => openDialog({ kind: 'so' })}
+          wide
+        >
+          {sos.length === 0 && <div className="meta-value muted">—</div>}
+          {sos.length > 0 && (
+            <div className="related-data-table-wrap">
+              <table className="related-data-table">
+                <thead>
+                  <tr>
+                    <th>SO / PR number</th>
+                    <th>ETA</th>
+                    <th>Note SO / PR</th>
+                    {canMutateSo(user) && !soLocked && <th className="actions" />}
+                  </tr>
+                </thead>
+                <tbody>
+                  {sos.map((row) => (
+                    <tr key={row.idSo}>
+                      <td>{row.so || '—'}</td>
+                      <td>{formatDateDisplay(row.eta)}</td>
+                      <td>{row.noteSo?.trim() || '—'}</td>
+                      {canMutateSo(user) && !soLocked && (
+                        <td className="actions">
+                          <button
+                            type="button"
+                            className="btn btn-ghost btn-icon-only"
+                            title="Edit"
+                            aria-label="Edit"
+                            onClick={() => openDialog({ kind: 'so', row })}
+                          >
+                            <EditIcon />
+                          </button>
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </RelatedField>
 
-      <RelatedBlock
-        title="Date WH Received"
-        canAdd={canMutateRcvWh(user) && rooms.length === 0}
-        onAdd={() => setDialog({ kind: 'rcvWh' })}
-      >
-        {whs.map((row) => (
-          <div key={row.idRcvWh} className="related-line">
-            <span>{row.rcvWhDate}</span>
-            {canMutateRcvWh(user) && rooms.length === 0 && (
-              <span className="row-gap">
-                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setDialog({ kind: 'rcvWh', row })}>
-                  Edit
-                </button>
-                <button type="button" className="btn btn-danger btn-sm" onClick={() => removeWh(row)}>
-                  Del
-                </button>
-              </span>
-            )}
-          </div>
-        ))}
-        {whs.length === 0 && <p className="muted">Belum ada WH receive.</p>}
-      </RelatedBlock>
+        <RelatedField
+          label="WH Received"
+          canAdd={canMutateRcvWh(user) && !whLocked}
+          onAdd={() => openDialog({ kind: 'rcvWh' })}
+        >
+          {whs.length === 0 && <div className="meta-value muted">—</div>}
+          {whs.map((row, i) => (
+            <RelatedItemRow
+              key={row.idRcvWh}
+              label={
+                whs.length > 1
+                  ? `${i + 1}) ${formatDateDisplay(row.rcvWhDate)}`
+                  : formatDateDisplay(row.rcvWhDate)
+              }
+              canEdit={canMutateRcvWh(user) && !whLocked}
+              onEdit={() => openDialog({ kind: 'rcvWh', row })}
+            />
+          ))}
+        </RelatedField>
 
-      <RelatedBlock
-        title="Date Tool Room Received"
-        canAdd={canMutateRcvTool(user)}
-        onAdd={() => setDialog({ kind: 'rcvTool' })}
-      >
-        {rooms.map((row) => (
-          <div key={row.idRcvTool} className="related-line">
-            <span>{row.rcvToolDate}</span>
-            {canMutateRcvTool(user) && (
-              <span className="row-gap">
-                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setDialog({ kind: 'rcvTool', row })}>
-                  Edit
-                </button>
-                <button type="button" className="btn btn-danger btn-sm" onClick={() => removeToolRcv(row)}>
-                  Del
-                </button>
-              </span>
-            )}
-          </div>
-        ))}
-        {rooms.length === 0 && <p className="muted">Belum ada Tool Room receive.</p>}
-      </RelatedBlock>
+        <RelatedField
+          label="Tool Room"
+          canAdd={canMutateRcvTool(user)}
+          onAdd={() => openDialog({ kind: 'rcvTool' })}
+        >
+          {rooms.length === 0 && <div className="meta-value muted">—</div>}
+          {rooms.map((row, i) => (
+            <RelatedItemRow
+              key={row.idRcvTool}
+              label={
+                rooms.length > 1
+                  ? `${i + 1}) ${formatDateDisplay(row.rcvToolDate)}`
+                  : formatDateDisplay(row.rcvToolDate)
+              }
+              canEdit={canMutateRcvTool(user)}
+              onEdit={() => openDialog({ kind: 'rcvTool', row })}
+            />
+          ))}
+        </RelatedField>
+      </div>
 
       {dialog && (
         <div className="modal-backdrop" onClick={close} role="presentation">
-          <div className="modal-panel" onClick={(e) => e.stopPropagation()}>
-            <div className="section-title-row">
+          <div
+            className="modal-panel"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+          >
+            <div className="form-panel-header">
               <h3>
                 {dialog.kind === 'po' && 'PO'}
                 {dialog.kind === 'so' && 'SO / PR'}
                 {dialog.kind === 'rcvWh' && 'WH Received'}
                 {dialog.kind === 'rcvTool' && 'Tool Room Received'}
               </h3>
-              <button type="button" className="btn btn-ghost btn-sm" onClick={close}>
-                Close
-              </button>
+              {dialog.row && (
+                <button
+                  type="button"
+                  className="btn btn-danger btn-sm btn-with-icon"
+                  disabled={busy}
+                  onClick={() => {
+                    if (dialog.kind === 'po') void removePo(dialog.row!)
+                    if (dialog.kind === 'so') void removeSo(dialog.row!)
+                    if (dialog.kind === 'rcvWh') void removeWh(dialog.row!)
+                    if (dialog.kind === 'rcvTool') void removeToolRcv(dialog.row!)
+                  }}
+                >
+                  <TrashIcon />
+                  <span className="btn-label">Delete</span>
+                </button>
+              )}
             </div>
             {error && <div className="alert alert-error">{error}</div>}
 
@@ -319,83 +585,119 @@ export function ToolRelatedSections({
               <form className="stack" onSubmit={onPoSubmit}>
                 <label className="field">
                   <span>PO number</span>
-                  <input name="po_no" defaultValue={dialog.row?.poNo ?? ''} required />
+                  <input
+                    name="po_no"
+                    defaultValue={dialog.row?.poNo ?? ''}
+                    required
+                  />
                 </label>
-                <button className="btn btn-primary" disabled={busy} type="submit">
-                  Save
-                </button>
+                <div className="row-gap">
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    onClick={close}
+                  >
+                    Close
+                  </button>
+                  <button className="btn btn-primary" disabled={busy} type="submit">
+                    Save
+                  </button>
+                </div>
               </form>
             )}
             {dialog.kind === 'so' && (
               <form className="stack" onSubmit={onSoSubmit}>
                 <label className="field">
                   <span>SO / PR number</span>
-                  <input name="so" defaultValue={dialog.row?.so ?? ''} required />
+                  <input
+                    name="so"
+                    defaultValue={dialog.row?.so ?? ''}
+                    required
+                  />
                 </label>
                 <label className="field">
                   <span>ETA</span>
-                  <input type="date" name="eta" defaultValue={dialog.row?.eta?.slice(0, 10) ?? ''} required />
+                  <DateInput
+                    value={dateField}
+                    onChange={setDateField}
+                    required
+                    aria-label="ETA"
+                  />
                 </label>
                 <label className="field">
                   <span>Note SO / PR</span>
-                  <input name="note_so" defaultValue={dialog.row?.noteSo ?? ''} />
+                  <input
+                    name="note_so"
+                    defaultValue={dialog.row?.noteSo ?? ''}
+                  />
                 </label>
-                <button className="btn btn-primary" disabled={busy} type="submit">
-                  Save
-                </button>
+                <div className="row-gap">
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    onClick={close}
+                  >
+                    Close
+                  </button>
+                  <button className="btn btn-primary" disabled={busy} type="submit">
+                    Save
+                  </button>
+                </div>
               </form>
             )}
             {dialog.kind === 'rcvWh' && (
               <form className="stack" onSubmit={onWhSubmit}>
                 <label className="field">
                   <span>Date</span>
-                  <input type="date" name="date" defaultValue={dialog.row?.rcvWhDate?.slice(0, 10) ?? todayYmd()} required />
+                  <DateInput
+                    value={dateField}
+                    onChange={setDateField}
+                    required
+                    aria-label="WH Received date"
+                  />
                 </label>
-                <button className="btn btn-primary" disabled={busy} type="submit">
-                  Save
-                </button>
+                <div className="row-gap">
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    onClick={close}
+                  >
+                    Close
+                  </button>
+                  <button className="btn btn-primary" disabled={busy} type="submit">
+                    Save
+                  </button>
+                </div>
               </form>
             )}
             {dialog.kind === 'rcvTool' && (
               <form className="stack" onSubmit={onToolRcvSubmit}>
                 <label className="field">
                   <span>Date</span>
-                  <input type="date" name="date" defaultValue={dialog.row?.rcvToolDate?.slice(0, 10) ?? todayYmd()} required />
+                  <DateInput
+                    value={dateField}
+                    onChange={setDateField}
+                    required
+                    aria-label="Tool Room date"
+                  />
                 </label>
-                <button className="btn btn-primary" disabled={busy} type="submit">
-                  Save
-                </button>
+                <div className="row-gap">
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    onClick={close}
+                  >
+                    Close
+                  </button>
+                  <button className="btn btn-primary" disabled={busy} type="submit">
+                    Save
+                  </button>
+                </div>
               </form>
             )}
           </div>
         </div>
       )}
-    </div>
-  )
-}
-
-function RelatedBlock({
-  title,
-  canAdd,
-  onAdd,
-  children,
-}: {
-  title: string
-  canAdd: boolean
-  onAdd: () => void
-  children: React.ReactNode
-}) {
-  return (
-    <div className="related-block">
-      <div className="section-title-row">
-        <strong>{title}</strong>
-        {canAdd && (
-          <button type="button" className="btn btn-primary btn-sm" onClick={onAdd}>
-            +
-          </button>
-        )}
-      </div>
-      {children}
     </div>
   )
 }

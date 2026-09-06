@@ -27,6 +27,7 @@ import {
 } from '@/components/ListStates'
 import { ToolRelatedSections } from '@/components/ToolRelatedSections'
 import { usePrefs } from '@/prefs/PreferencesContext'
+import { formatActionNote } from '@/lib/actionNotes'
 import { formatDateDisplay } from '@/lib/dateFormat'
 import { resolveFormIdByFormNo } from '@/features/forms/exportApi'
 import {
@@ -36,7 +37,10 @@ import {
   resolveInboxMode,
 } from '@/features/forms/formInbox'
 import { useFormsList } from '@/features/forms/useForms'
-import { useFormRelated, useRelatedMutations } from '@/features/related/useRelated'
+import {
+  useFormRelated,
+  useRelatedMutations,
+} from '@/features/related/useRelated'
 import { useToolDetails } from '@/features/tools/useToolDetails'
 import type { FormRow } from '@/types/models'
 
@@ -54,16 +58,14 @@ function FormCardDetails({
 
   return (
     <div className="form-card-body">
-      <div className="meta-grid">
-        <div>
-          <span className="muted">ID Form</span>
-          <div>{form.idForm}</div>
-        </div>
-        <div>
-          <span className="muted">Updated</span>
-          <div>{formatDateDisplay(form.fromDateUpdate)}</div>
-        </div>
-      </div>
+      <OrderTimeline
+        form={form}
+        compact={false}
+        tools={details.data}
+        so={related.so.data}
+        rcvWh={related.rcvWh.data}
+        rcvTool={related.rcvTool.data}
+      />
 
       {canEditForm && (
         <div className="section-title-row">
@@ -99,137 +101,77 @@ function FormCardDetails({
         <p className="muted">Belum ada tool item.</p>
       )}
       {details.data && details.data.length > 0 && (
-        <>
-          <ul className="tool-list show-mobile">
-            {details.data.map((row) => (
-              <li key={row.idFormDetail || `${row.pnGroup}-${row.pnDesc}`}>
-                <article className="tool-item-card">
-                  <Link
-                    className="tool-item-card-link"
-                    href={`/forms/${form.idForm}/tools/${row.idFormDetail}`}
-                  >
-                    <div className="tool-item-card-title">
-                      {row.pnGroup || '—'}
-                    </div>
-                    <div className="meta-grid tool-item-card-meta">
-                      <div>
-                        <span className="muted">Qty</span>
-                        <div className="meta-value">{row.qty || '0'}</div>
-                      </div>
-                      <div>
-                        <span className="muted">Description</span>
-                        <div className="meta-value">{row.pnDesc || '—'}</div>
-                      </div>
-                      <div>
-                        <span className="muted">Price</span>
-                        <div className="meta-value">{row.partValue || '—'}</div>
-                      </div>
-                      <div>
-                        <span className="muted">Cat / Vendor</span>
-                        <div className="meta-value">{row.valType || '—'}</div>
-                      </div>
-                      <div>
-                        <span className="muted">Brand</span>
-                        <div className="meta-value">{row.brand || '—'}</div>
-                      </div>
-                      <div>
-                        <span className="muted">Spesifikasi</span>
-                        <div className="meta-value">
-                          {row.spesifikasi || '—'}
-                        </div>
-                      </div>
-                      <div>
-                        <span className="muted">Explanation</span>
-                        <div className="meta-value">{row.explan || '—'}</div>
-                      </div>
-                      <div>
-                        <span className="muted">Action note</span>
-                        <div className="meta-value">{row.actionNote || '—'}</div>
-                      </div>
-                      <div>
-                        <span className="muted">Comment</span>
-                        <div className="meta-value">
-                          {row.formComment || '—'}
-                        </div>
-                      </div>
-                      <div>
-                        <span className="muted">Date</span>
-                        <div className="meta-value">
-                          {formatDateDisplay(row.formDetailDate)}
-                        </div>
-                      </div>
-                    </div>
-                  </Link>
-                  <ToolRelatedSections tool={row} related={related} mut={mut} />
-                </article>
-              </li>
-            ))}
-          </ul>
-
-          <div className="tool-items-desktop show-desktop">
-            <div className="data-table-wrap">
-              <table className="data-table data-table-compact">
-                <thead>
-                  <tr>
-                    <th>PN Group</th>
-                    <th>Qty</th>
-                    <th>Description</th>
-                    <th>Price</th>
-                    <th>Cat / Vendor</th>
-                    <th>Brand</th>
-                    <th>Spesifikasi</th>
-                    <th>Explanation</th>
-                    <th>Action note</th>
-                    <th>Comment</th>
-                    <th>Date</th>
-                    <th className="actions">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {details.data.map((row) => (
-                    <tr
-                      key={row.idFormDetail || `${row.pnGroup}-${row.pnDesc}`}
-                      className="data-table-row"
-                    >
-                      <td>
-                        <strong>{row.pnGroup || '—'}</strong>
-                      </td>
-                      <td>{row.qty || '0'}</td>
-                      <td>{row.pnDesc || '—'}</td>
-                      <td>{row.partValue || '—'}</td>
-                      <td>{row.valType || '—'}</td>
-                      <td>{row.brand || '—'}</td>
-                      <td>{row.spesifikasi || '—'}</td>
-                      <td>{row.explan || '—'}</td>
-                      <td>{row.actionNote || '—'}</td>
-                      <td>{row.formComment || '—'}</td>
-                      <td>{formatDateDisplay(row.formDetailDate)}</td>
-                      <td className="actions">
-                        <Link
-                          className="btn btn-secondary btn-sm"
-                          href={`/forms/${form.idForm}/tools/${row.idFormDetail}`}
-                        >
-                          Open
-                        </Link>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            {details.data.map((row) => (
-              <div
-                key={`rel-${row.idFormDetail || row.pnGroup}`}
-                className="tool-item-related"
-              >
-                <div className="muted tool-item-related-label">
-                  {row.pnGroup || 'Tool'} · related
+        <div className="tool-items-stack">
+          {details.data.map((row) => (
+            <article
+              key={row.idFormDetail || `${row.pnGroup}-${row.pnDesc}`}
+              className="tool-item-block-card"
+            >
+              <div className="tool-item-block-head">
+                <div>
+                  <div className="tool-item-card-title">
+                    {row.pnGroup || '—'}
+                  </div>
+                  <div className="muted">
+                    qty {row.qty || '0'} · {row.pnDesc || '—'}
+                  </div>
                 </div>
-                <ToolRelatedSections tool={row} related={related} mut={mut} />
+                <Link
+                  className="btn btn-secondary btn-sm"
+                  href={`/forms/${form.idForm}/tools/${row.idFormDetail}`}
+                >
+                  Open
+                </Link>
               </div>
-            ))}
-          </div>
-        </>
+
+              <div className="tool-item-block-grid">
+                <div>
+                  <span className="muted">Price</span>
+                  <div className="meta-value">{row.partValue || '—'}</div>
+                </div>
+                <div>
+                  <span className="muted">Cat / Vendor</span>
+                  <div className="meta-value">{row.valType || '—'}</div>
+                </div>
+                <div>
+                  <span className="muted">Brand</span>
+                  <div className="meta-value">{row.brand || '—'}</div>
+                </div>
+                <div>
+                  <span className="muted">Spesifikasi</span>
+                  <div className="meta-value">{row.spesifikasi || '—'}</div>
+                </div>
+                <div>
+                  <span className="muted">Explanation</span>
+                  <div className="meta-value">{row.explan || '—'}</div>
+                </div>
+                <div>
+                  <span className="muted">Action note</span>
+                  <div className="meta-value">
+                    {formatActionNote(row.actionNote)}
+                  </div>
+                </div>
+                <div>
+                  <span className="muted">Comment</span>
+                  <div className="meta-value">{row.formComment || '—'}</div>
+                </div>
+                <div>
+                  <span className="muted">Date</span>
+                  <div className="meta-value">
+                    {formatDateDisplay(row.formDetailDate)}
+                  </div>
+                </div>
+              </div>
+
+              <ToolRelatedSections
+                form={form}
+                tool={row}
+                related={related}
+                mut={mut}
+              />
+            </article>
+          ))}
+        </div>
       )}
     </div>
   )
@@ -246,9 +188,6 @@ function FormCard({
   onToggle: () => void
   canEditForm: boolean
 }) {
-  const details = useToolDetails(form.idForm, expanded)
-  const related = useFormRelated(form.idForm, expanded)
-
   return (
     <article className="form-card">
       <button type="button" className="form-card-head" onClick={onToggle}>
@@ -265,13 +204,7 @@ function FormCard({
           <div className="muted">
             {form.formServName || 'No serviceman'} · {form.formMilestone || '—'}
           </div>
-          <OrderTimeline
-            form={form}
-            compact={!expanded}
-            tools={expanded ? details.data : undefined}
-            rcvWh={expanded ? related.rcvWh.data : undefined}
-            rcvTool={expanded ? related.rcvTool.data : undefined}
-          />
+          {!expanded && <OrderTimeline form={form} compact />}
         </div>
       </button>
 
@@ -308,9 +241,7 @@ export function FormsPage() {
   const [keyword, setKeyword] = useState(params.get('q') ?? '')
   const [searchField, setSearchField] = useState(params.get('field') ?? 'all')
   const [searchOpen, setSearchOpen] = useState(() => !!params.get('q')?.trim())
-  const [expandedId, setExpandedId] = useState<string | null>(
-    params.get('expand'),
-  )
+  const expandedId = params.get('expand')
   const [exportOpen, setExportOpen] = useState(false)
   const [dateFilterOpen, setDateFilterOpen] = useState(false)
   const [actionsOpen, setActionsOpen] = useState(false)
@@ -361,7 +292,6 @@ export function FormsPage() {
         next.set('inbox', 'all')
         setKeyword(formNo)
         setSearchField('formNo')
-        setExpandedId(id)
         router.replace(`/forms?${next.toString()}`)
       } catch (e) {
         if (!cancelled) setDeepLinkError((e as Error).message)
@@ -427,6 +357,13 @@ export function FormsPage() {
     const next = new URLSearchParams(params.toString())
     mutate(next)
     router.replace(`/forms?${next.toString()}`)
+  }
+
+  const toggleExpand = (idForm: string) => {
+    replaceParams((next) => {
+      if (next.get('expand') === idForm) next.delete('expand')
+      else next.set('expand', idForm)
+    })
   }
 
   const setPage = (nextPage: number) => {
@@ -772,11 +709,7 @@ export function FormsPage() {
                 form={form}
                 expanded={expandedId === form.idForm}
                 canEditForm={canEdit}
-                onToggle={() =>
-                  setExpandedId((id) =>
-                    id === form.idForm ? null : form.idForm,
-                  )
-                }
+                onToggle={() => toggleExpand(form.idForm)}
               />
             ))}
           </div>
@@ -797,10 +730,7 @@ export function FormsPage() {
               <tbody>
                 {forms.map((form) => {
                   const expanded = expandedId === form.idForm
-                  const toggle = () =>
-                    setExpandedId((id) =>
-                      id === form.idForm ? null : form.idForm,
-                    )
+                  const toggle = () => toggleExpand(form.idForm)
                   return (
                     <Fragment key={form.idForm}>
                       <tr
@@ -846,7 +776,6 @@ export function FormsPage() {
                         <tr className="data-table-detail">
                           <td colSpan={7}>
                             <div className="data-table-detail-inner">
-                              <OrderTimeline form={form} compact={false} />
                               <FormCardDetails
                                 form={form}
                                 canEditForm={canEdit}

@@ -11,6 +11,7 @@ import {
 import { formEditPayload } from '@/features/forms/formEdit'
 import { Milestone } from '@/features/forms/formMilestones'
 import { useFormMutations } from '@/features/forms/useForms'
+import { formatDateDisplay } from '@/lib/dateFormat'
 import type { FormRow } from '@/types/models'
 
 type Props = {
@@ -116,7 +117,11 @@ export function FormApprovalSection({ form, hasTools }: Props) {
         <ApprovalTile
           title="Check / Request"
           value={form.formCheckBy || '—'}
-          sub={form.formDateCheckBy || ''}
+          sub={
+            form.formDateCheckBy
+              ? formatDateDisplay(form.formDateCheckBy)
+              : ''
+          }
           actionLabel={showRequest ? 'Request Order' : undefined}
           onAction={showRequest ? () => setDialog('request') : undefined}
         />
@@ -124,7 +129,7 @@ export function FormApprovalSection({ form, hasTools }: Props) {
           title="Superior"
           value={form.formSuperiorAprd || '—'}
           sub={form.formSuperiorComment || ''}
-          actionLabel={showSuperior ? 'Act' : undefined}
+          actionLabel={showSuperior ? 'Approve' : undefined}
           onAction={
             showSuperior
               ? () => {
@@ -138,7 +143,7 @@ export function FormApprovalSection({ form, hasTools }: Props) {
           title="Service Admin"
           value={form.formSadminComment ? 'Noted' : '—'}
           sub={form.formSadminComment || ''}
-          actionLabel={showSadmin ? 'Act' : undefined}
+          actionLabel={showSadmin ? 'Review' : undefined}
           onAction={
             showSadmin
               ? () => {
@@ -152,7 +157,7 @@ export function FormApprovalSection({ form, hasTools }: Props) {
           title="Dept Head"
           value={form.formSheadAprd || '—'}
           sub={form.formSheadComment || ''}
-          actionLabel={showDept ? 'Act' : undefined}
+          actionLabel={showDept ? 'Approve' : undefined}
           onAction={
             showDept
               ? () => {
