@@ -11,7 +11,19 @@ export type MessageKey =
   | 'rejectedSuperior'
   | 'rejectedDept'
   | 'users'
+  | 'superiors'
+  | 'superiorsSubtitle'
+  | 'addSuperior'
+  | 'editSuperior'
+  | 'importExcel'
+  | 'downloadTemplate'
+  | 'chooseFile'
+  | 'prevPage'
+  | 'nextPage'
+  | 'showingRange'
   | 'logout'
+  | 'logoutConfirm'
+  | 'close'
   | 'darkMode'
   | 'darkModeOn'
   | 'darkModeOff'
@@ -20,6 +32,16 @@ export type MessageKey =
   | 'languageId'
   | 'appearance'
   | 'manage'
+  | 'actions'
+  | 'search'
+  | 'clearSearch'
+  | 'dataCount'
+  | 'noData'
+  | 'loading'
+  | 'filterDates'
+  | 'changeDates'
+  | 'exportExcel'
+  | 'addForm'
   | 'appTagline'
   | 'signInContinue'
   | 'loginTagline'
@@ -68,7 +90,19 @@ const id: Dictionary = {
   rejectedSuperior: 'Ditolak (Superior)',
   rejectedDept: 'Ditolak (Dept Head)',
   users: 'Users',
+  superiors: 'Superior',
+  superiorsSubtitle: 'Master data superior (SUPERADMIN)',
+  addSuperior: 'Tambah superior',
+  editSuperior: 'Edit superior',
+  importExcel: 'Import Excel',
+  downloadTemplate: 'Download template',
+  chooseFile: 'Pilih file',
+  prevPage: 'Sebelumnya',
+  nextPage: 'Berikutnya',
+  showingRange: 'Menampilkan {from}–{to} dari {total}',
   logout: 'Keluar',
+  logoutConfirm: 'Yakin ingin keluar dari sesi ini?',
+  close: 'Tutup',
   darkMode: 'Mode Gelap',
   darkModeOn: 'Tema gelap aktif. Ketuk untuk tema terang.',
   darkModeOff: 'Aktifkan tema gelap untuk tampilan malam.',
@@ -77,6 +111,16 @@ const id: Dictionary = {
   languageId: 'Bahasa Indonesia',
   appearance: 'Tampilan',
   manage: 'Kelola',
+  actions: 'Aksi',
+  search: 'Cari',
+  clearSearch: 'Hapus pencarian',
+  dataCount: '{n} data',
+  noData: 'Tidak ada data',
+  loading: 'Memuat…',
+  filterDates: 'Filter tanggal',
+  changeDates: 'Ubah tanggal',
+  exportExcel: 'Export Excel',
+  addForm: 'Tambah form',
   appTagline: 'Monitoring tool, approval, dan serah terima gudang',
   signInContinue: 'Masuk untuk melanjutkan',
   loginTagline:
@@ -125,7 +169,19 @@ const en: Dictionary = {
   rejectedSuperior: 'Rejected (Superior)',
   rejectedDept: 'Rejected (Dept Head)',
   users: 'Users',
+  superiors: 'Superiors',
+  superiorsSubtitle: 'Superior master data (SUPERADMIN)',
+  addSuperior: 'Add superior',
+  editSuperior: 'Edit superior',
+  importExcel: 'Import Excel',
+  downloadTemplate: 'Download template',
+  chooseFile: 'Choose file',
+  prevPage: 'Previous',
+  nextPage: 'Next',
+  showingRange: 'Showing {from}–{to} of {total}',
   logout: 'Logout',
+  logoutConfirm: 'Are you sure you want to sign out?',
+  close: 'Close',
   darkMode: 'Dark Mode',
   darkModeOn: 'Dark theme is on. Tap for light theme.',
   darkModeOff: 'Enable dark theme for comfortable night viewing.',
@@ -134,6 +190,16 @@ const en: Dictionary = {
   languageId: 'Bahasa Indonesia',
   appearance: 'Appearance',
   manage: 'Manage',
+  actions: 'Actions',
+  search: 'Search',
+  clearSearch: 'Clear search',
+  dataCount: '{n} results',
+  noData: 'No data',
+  loading: 'Loading…',
+  filterDates: 'Filter dates',
+  changeDates: 'Change dates',
+  exportExcel: 'Export Excel',
+  addForm: 'Add form',
   appTagline: 'Tool requests, approvals, and warehouse handoff',
   signInContinue: 'Sign in to continue',
   loginTagline:

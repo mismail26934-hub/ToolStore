@@ -7,6 +7,8 @@ import { ApiParam } from '@/api/params'
 import { useAuth } from '@/auth/AuthContext'
 import { canAddOrEditForm, todayYmd } from '@/auth/roles'
 import { UserPickerModal } from '@/components/UserPickerModal'
+import { DateInput } from '@/components/DateInput'
+import { PageHeader } from '@/components/PageHeader'
 import { useForm, useFormMutations } from '@/features/forms/useForms'
 import { useToolDetails } from '@/features/tools/useToolDetails'
 import type { FormRow } from '@/types/models'
@@ -38,8 +40,8 @@ function emptyForm(userId: string): FormState {
   return {
     idForm: '',
     formNo: '',
-    formStatusOrder: 'HOLDER',
-    formServComment: 'MISSING',
+    formStatusOrder: '',
+    formServComment: '',
     formDateServName: today,
     formServName: '',
     formCheckBy: '',
@@ -59,8 +61,8 @@ function fromRow(row: FormRow): FormState {
   return {
     idForm: row.idForm,
     formNo: row.formNo,
-    formStatusOrder: row.formStatusOrder || 'HOLDER',
-    formServComment: row.formServComment,
+    formStatusOrder: row.formStatusOrder || '',
+    formServComment: row.formServComment || '',
     formDateServName: row.formDateServName.slice(0, 10),
     formServName: row.formServName,
     formCheckBy: row.formCheckBy,
@@ -98,7 +100,11 @@ export function FormHeaderPage() {
 
   const allowed = canAddOrEditForm(user)
   const cats =
-    form.formStatusOrder === 'NON HOLDER' ? NON_HOLDER_CATS : HOLDER_CATS
+    form.formStatusOrder === 'NON HOLDER'
+      ? NON_HOLDER_CATS
+      : form.formStatusOrder === 'HOLDER'
+        ? HOLDER_CATS
+        : []
   const patch = (p: Partial<FormState>) => setForm((f) => ({ ...f, ...p }))
 
   const onSubmit = async (e: FormEvent) => {
@@ -106,9 +112,11 @@ export function FormHeaderPage() {
     setError(null)
     if (!allowed) return setError('Anda tidak berhak mengubah form ini')
     if (!form.formNo.trim()) return setError('Form Number wajib diisi')
+    if (!form.formStatusOrder.trim())
+      return setError('Status Order wajib dipilih')
+    if (!form.formServComment.trim()) return setError('Category wajib dipilih')
     if (!form.formServName.trim()) return setError('Serviceman wajib dipilih')
     if (!form.formCheckBy.trim()) return setError('Check By wajib dipilih')
-    if (!form.formServComment.trim()) return setError('Category wajib dipilih')
 
     try {
       await mutate.mutateAsync({
@@ -165,27 +173,24 @@ export function FormHeaderPage() {
 
   return (
     <div className="page">
-      <header className="page-header">
-        <div>
-          <h1>{isAdd ? 'Add Form' : 'Edit Form'}</h1>
-          <p className="muted">Request header</p>
-        </div>
-        <div className="page-header-actions">
-          {!isAdd && allowed && (
-            <button
-              type="button"
-              className="btn btn-danger"
-              onClick={onDelete}
-              disabled={mutate.isPending}
-            >
-              Delete
-            </button>
-          )}
-          <Link className="btn btn-ghost" href="/forms">
-            Back
-          </Link>
-        </div>
-      </header>
+      <PageHeader
+        title={isAdd ? 'Add Form' : 'Edit Form'}
+        subtitle="Request header"
+      >
+        {!isAdd && allowed && (
+          <button
+            type="button"
+            className="btn btn-danger"
+            onClick={onDelete}
+            disabled={mutate.isPending}
+          >
+            Delete
+          </button>
+        )}
+        <Link className="btn btn-ghost" href="/forms">
+          Back
+        </Link>
+      </PageHeader>
 
       {!isAdd && remote.isLoading && <div className="panel">Loading form…</div>}
       {!isAdd && remote.isError && (
@@ -208,16 +213,24 @@ export function FormHeaderPage() {
               value={form.formStatusOrder}
               onChange={(e) => {
                 const next = e.target.value
-                const nextCats = next === 'NON HOLDER' ? NON_HOLDER_CATS : HOLDER_CATS
+                const nextCats =
+                  next === 'NON HOLDER'
+                    ? NON_HOLDER_CATS
+                    : next === 'HOLDER'
+                      ? HOLDER_CATS
+                      : []
                 patch({
                   formStatusOrder: next,
                   formServComment: nextCats.includes(form.formServComment)
                     ? form.formServComment
-                    : nextCats[0],
+                    : '',
                 })
               }}
               required
             >
+              <option value="" disabled>
+                Pilih status…
+              </option>
               <option value="HOLDER">HOLDER</option>
               <option value="NON HOLDER">NON HOLDER</option>
             </select>
@@ -231,7 +244,13 @@ export function FormHeaderPage() {
               value={form.formServComment}
               onChange={(e) => patch({ formServComment: e.target.value })}
               required
+              disabled={!form.formStatusOrder}
             >
+              <option value="" disabled>
+                {form.formStatusOrder
+                  ? 'Pilih category…'
+                  : 'Pilih status dulu…'}
+              </option>
               {cats.map((c) => (
                 <option key={c} value={c}>
                   {c}
@@ -241,11 +260,11 @@ export function FormHeaderPage() {
           </label>
           <label className="field">
             <span>Create Date</span>
-            <input
-              type="date"
+            <DateInput
               value={form.formDateServName}
-              onChange={(e) => patch({ formDateServName: e.target.value })}
+              onChange={(v) => patch({ formDateServName: v })}
               required
+              aria-label="Create Date"
             />
           </label>
         </div>
@@ -281,11 +300,11 @@ export function FormHeaderPage() {
 
         <label className="field">
           <span>Check Date</span>
-          <input
-            type="date"
+          <DateInput
             value={form.formDateCheckBy}
-            onChange={(e) => patch({ formDateCheckBy: e.target.value })}
+            onChange={(v) => patch({ formDateCheckBy: v })}
             required
+            aria-label="Check Date"
           />
         </label>
 

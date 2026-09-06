@@ -4,6 +4,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import Link from 'next/link'
 import { useParams, usePathname, useRouter } from 'next/navigation'
 import { SuperiorPickerModal } from '@/components/SuperiorPickerModal'
+import { PageHeader } from '@/components/PageHeader'
 import { useUser, useUserMutations } from '@/features/users/useUsers'
 import type { UserRow } from '@/types/models'
 import { USER_LEVELS } from '@/types/models'
@@ -142,27 +143,24 @@ export function UserFormPage() {
 
   return (
     <div className="page">
-      <header className="page-header">
-        <div>
-          <h1>{isAdd ? 'Add User' : 'Edit User'}</h1>
-          <p className="muted">Informasi user & akses role</p>
-        </div>
-        <div className="page-header-actions">
-          {!isAdd && (
-            <button
-              type="button"
-              className="btn btn-danger"
-              onClick={onDelete}
-              disabled={submitting}
-            >
-              Delete
-            </button>
-          )}
-          <Link className="btn btn-ghost" href="/users">
-            Back
-          </Link>
-        </div>
-      </header>
+      <PageHeader
+        title={isAdd ? 'Add User' : 'Edit User'}
+        subtitle="Informasi user & akses role"
+      >
+        {!isAdd && (
+          <button
+            type="button"
+            className="btn btn-danger"
+            onClick={onDelete}
+            disabled={submitting}
+          >
+            Delete
+          </button>
+        )}
+        <Link className="btn btn-ghost" href="/users">
+          Back
+        </Link>
+      </PageHeader>
 
       {!isAdd && remote.isLoading && (
         <div className="panel">Loading user…</div>

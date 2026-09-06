@@ -11,63 +11,40 @@ import {
 import { PageHeader } from '@/components/PageHeader'
 import { ClearIcon, SearchTextInput } from '@/components/SearchTextInput'
 import { Pagination } from '@/components/Pagination'
+import { SuperiorExcelImportModal } from '@/components/SuperiorExcelImportModal'
+import { useSuperiorsList } from '@/features/superiors/useSuperiors'
 import { usePrefs } from '@/prefs/PreferencesContext'
-import { useUsersList } from '@/features/users/useUsers'
-import type { UserRow } from '@/types/models'
+import type { SuperiorRow } from '@/types/models'
 import { USER_PAGE_SIZE } from '@/types/models'
 
-function statusTone(status: string): 'ok' | 'bad' | 'warn' {
-  const s = status.toLowerCase()
-  if (s.includes('active') || s.includes('aktif')) return 'ok'
-  if (s.includes('inactive') || s.includes('nonaktif') || s.includes('disable'))
-    return 'bad'
-  return 'warn'
-}
-
-function UserCard({ user, index }: { user: UserRow; index: number }) {
-  const tone = statusTone(user.status)
+function SuperiorCard({ row }: { row: SuperiorRow }) {
   return (
     <article className="form-card user-card">
       <div className="form-card-head user-card-head">
         <div>
-          <div className="form-card-title">
-            #{index + 1} · {user.username || '—'}
-          </div>
-          <div className="muted">{user.namaUser || '—'}</div>
+          <div className="form-card-title">{row.namaSuperior || '—'}</div>
+          <div className="muted mono">{row.superiorId || '—'}</div>
         </div>
         <div className="chip-row">
-          <span className="chip">{user.level || '—'}</span>
-          <span className={`chip chip-${tone}`}>{user.status || '—'}</span>
+          <span className="chip">{row.statusSuperior || '—'}</span>
         </div>
       </div>
       <div className="form-card-body">
         <div className="meta-grid">
           <div>
-            <span className="muted">No. Telp</span>
-            <div className="meta-value">{user.noTelp || '—'}</div>
+            <span className="muted">Username</span>
+            <div className="meta-value">{row.username || '—'}</div>
           </div>
           <div>
-            <span className="muted">Superior</span>
-            <div className="meta-value">
-              {user.namaSuperior || user.superiorId || '—'}
-            </div>
-          </div>
-          <div>
-            <span className="muted">ID TU</span>
-            <div className="meta-value">{user.idTu || '—'}</div>
-          </div>
-          <div>
-            <span className="muted">ID Users</span>
-            <div className="meta-value mono" title={user.idUsers || undefined}>
-              {user.idUsers || '—'}
-            </div>
+            <span className="muted">Nama user</span>
+            <div className="meta-value">{row.namaUser || '—'}</div>
           </div>
         </div>
         <div className="section-title-row">
           <span className="muted">Actions</span>
           <Link
             className="btn btn-secondary btn-sm"
-            href={`/users/${encodeURIComponent(user.idUsers)}/edit`}
+            href={`/superiors/${encodeURIComponent(row.superiorId)}/edit`}
           >
             Edit
           </Link>
@@ -77,13 +54,14 @@ function UserCard({ user, index }: { user: UserRow; index: number }) {
   )
 }
 
-export function UsersPage() {
+export function SuperiorsPage() {
   const { t } = usePrefs()
   const router = useRouter()
   const params = useSearchParams()
   const [keyword, setKeyword] = useState(params.get('q') ?? '')
   const [searchField, setSearchField] = useState(params.get('field') ?? 'all')
   const [searchOpen, setSearchOpen] = useState(() => !!params.get('q')?.trim())
+  const [importOpen, setImportOpen] = useState(false)
   const searchInputRef = useRef<HTMLInputElement>(null)
   const hasActiveSearch = !!params.get('q')?.trim()
 
@@ -105,19 +83,19 @@ export function UsersPage() {
     [params, page],
   )
 
-  const query = useUsersList(filters)
-  const users = query.data?.items ?? []
-  const totalItems = query.data?.total ?? users.length
+  const query = useSuperiorsList(filters)
+  const items = query.data?.items ?? []
+  const totalItems = query.data?.total ?? items.length
   const totalPages = Math.max(1, Math.ceil(totalItems / USER_PAGE_SIZE))
   const searchResultCount =
-    query.data?.total ?? (query.isLoading ? null : users.length)
+    query.data?.total ?? (query.isLoading ? null : items.length)
 
   const setPage = (nextPage: number) => {
     const next = new URLSearchParams(params.toString())
     if (nextPage <= 1) next.delete('page')
     else next.set('page', String(nextPage))
     const qs = next.toString()
-    router.replace(qs ? `/users?${qs}` : '/users')
+    router.replace(qs ? `/superiors?${qs}` : '/superiors')
   }
 
   const onSearch = (e: FormEvent) => {
@@ -127,30 +105,24 @@ export function UsersPage() {
     next.set('q', keyword.trim())
     next.set('field', searchField)
     next.delete('page')
-    router.replace(`/users?${next.toString()}`)
+    router.replace(`/superiors?${next.toString()}`)
   }
 
   const clearSearch = () => {
     setKeyword('')
     setSearchField('all')
-    const next = new URLSearchParams(params.toString())
-    next.delete('q')
-    next.delete('field')
-    next.delete('page')
-    const qs = next.toString()
-    router.replace(qs ? `/users?${qs}` : '/users')
+    router.replace('/superiors')
   }
 
   return (
     <div className="page">
-      <PageHeader title="Users" subtitle="Manajemen user (SUPERADMIN)">
+      <PageHeader title={t('superiors')} subtitle={t('superiorsSubtitle')}>
         <button
           type="button"
           className={`btn btn-ghost btn-with-icon${searchOpen || hasActiveSearch ? ' btn-filter-active' : ''}`}
           title={t('search')}
           aria-label={t('search')}
           aria-expanded={searchOpen}
-          aria-pressed={searchOpen}
           onClick={() => setSearchOpen((v) => !v)}
         >
           <svg
@@ -177,11 +149,36 @@ export function UsersPage() {
           </svg>
           <span className="btn-label">{t('search')}</span>
         </button>
+        <button
+          type="button"
+          className="btn btn-ghost btn-with-icon"
+          title={t('importExcel')}
+          aria-label={t('importExcel')}
+          onClick={() => setImportOpen(true)}
+        >
+          <svg
+            className="btn-icon-svg"
+            viewBox="0 0 24 24"
+            width="18"
+            height="18"
+            aria-hidden
+            fill="none"
+          >
+            <path
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M12 3v12M8 11l4 4 4-4M5 19h14"
+            />
+          </svg>
+          <span className="btn-label">{t('importExcel')}</span>
+        </button>
         <Link
           className="btn btn-secondary btn-with-icon"
-          href="/users/new"
-          title="Add user"
-          aria-label="Add user"
+          href="/superiors/new"
+          title={t('addSuperior')}
+          aria-label={t('addSuperior')}
         >
           <svg
             className="btn-icon-svg"
@@ -198,7 +195,7 @@ export function UsersPage() {
               d="M12 5v14M5 12h14"
             />
           </svg>
-          <span className="btn-label">Add user</span>
+          <span className="btn-label">{t('addSuperior')}</span>
         </Link>
       </PageHeader>
 
@@ -206,9 +203,6 @@ export function UsersPage() {
         <div className="filter-chip-row">
           <span className="chip chip-filter">
             {t('search')}: {params.get('q')}
-            {params.get('field') && params.get('field') !== 'all'
-              ? ` · ${params.get('field')}`
-              : ''}
             {searchResultCount != null
               ? ` · ${t('dataCount').replace('{n}', String(searchResultCount))}`
               : query.isFetching
@@ -231,15 +225,14 @@ export function UsersPage() {
             aria-label="Search field"
           >
             <option value="all">Semua</option>
-            <option value="username">Username</option>
             <option value="name">Nama</option>
-            <option value="phone">No. Telp</option>
-            <option value="level">Level</option>
+            <option value="username">Username</option>
             <option value="status">Status</option>
+            <option value="id">ID</option>
           </select>
           <SearchTextInput
             ref={searchInputRef}
-            placeholder="Search user…"
+            placeholder="Search superior…"
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
             aria-label={t('search')}
@@ -270,18 +263,14 @@ export function UsersPage() {
         </div>
       )}
 
-      {!query.isLoading && !query.isError && users.length === 0 && (
+      {!query.isLoading && !query.isError && items.length === 0 && (
         <EmptyState message={t('noData')} />
       )}
 
-      {!query.isLoading && !query.isError && users.length > 0 && (
+      {!query.isLoading && !query.isError && items.length > 0 && (
         <div className="card-grid">
-          {users.map((user, i) => (
-            <UserCard
-              key={user.idUsers || `${user.username}-${i}`}
-              user={user}
-              index={(page - 1) * USER_PAGE_SIZE + i}
-            />
+          {items.map((row) => (
+            <SuperiorCard key={row.superiorId} row={row} />
           ))}
         </div>
       )}
@@ -293,6 +282,11 @@ export function UsersPage() {
         pageSize={USER_PAGE_SIZE}
         onPageChange={setPage}
         disabled={query.isFetching}
+      />
+
+      <SuperiorExcelImportModal
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
       />
     </div>
   )

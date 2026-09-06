@@ -1,6 +1,6 @@
 'use client'
 
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { queryKeys } from '../../api/queryKeys'
 import { FORM_PAGE_SIZE } from '../../api/params'
 import {
@@ -19,26 +19,15 @@ export function useDashboardCounts() {
   })
 }
 
-export function useFormsInfinite(filters: Omit<FormListFilters, 'page'>) {
-  return useInfiniteQuery({
+export function useFormsList(filters: FormListFilters) {
+  return useQuery({
     queryKey: queryKeys.forms(filters),
-    initialPageParam: 1,
-    queryFn: ({ pageParam }) =>
+    queryFn: () =>
       fetchForms({
         ...filters,
-        page: pageParam,
+        page: filters.page ?? 1,
         limit: filters.limit ?? FORM_PAGE_SIZE,
       }),
-    getNextPageParam: (lastPage, allPages) => {
-      const loaded = allPages.reduce((n, p) => n + p.items.length, 0)
-      if (lastPage.items.length < (filters.limit ?? FORM_PAGE_SIZE)) {
-        return undefined
-      }
-      if (lastPage.total != null && loaded >= lastPage.total) {
-        return undefined
-      }
-      return allPages.length + 1
-    },
   })
 }
 

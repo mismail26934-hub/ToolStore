@@ -5,11 +5,14 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@/auth/AuthContext'
 import { isSuperAdmin } from '@/auth/session'
 import { AppShell } from '@/components/AppShell'
+import { PageBootLoading } from '@/components/AppBoot'
+import { PageHeaderProvider } from '@/components/PageHeader'
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const { user, ready } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
+  const booting = !ready || !user
 
   useEffect(() => {
     if (!ready) return
@@ -18,8 +21,13 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     }
   }, [user, ready, router, pathname])
 
-  if (!ready || !user) return <div className="panel">Loading…</div>
-  return <AppShell>{children}</AppShell>
+  return (
+    <PageHeaderProvider>
+      <AppShell bootstrapping={booting}>
+        {booting ? <PageBootLoading /> : children}
+      </AppShell>
+    </PageHeaderProvider>
+  )
 }
 
 export function SuperAdminGuard({ children }: { children: React.ReactNode }) {
@@ -34,7 +42,7 @@ export function SuperAdminGuard({ children }: { children: React.ReactNode }) {
   }, [user, ready, router])
 
   if (!ready || !user || !isSuperAdmin(user)) {
-    return <div className="panel">Loading…</div>
+    return <PageBootLoading />
   }
   return <>{children}</>
 }
@@ -47,7 +55,6 @@ export function GuestOnly({ children }: { children: React.ReactNode }) {
     if (ready && user) router.replace('/dashboard')
   }, [user, ready, router])
 
-  if (!ready) return <div className="panel">Loading…</div>
-  if (user) return <div className="panel">Redirecting…</div>
+  if (!ready || user) return <PageBootLoading />
   return <>{children}</>
 }

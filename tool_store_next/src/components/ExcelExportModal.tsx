@@ -2,6 +2,7 @@
 
 import { useMemo, useState, type FormEvent } from 'react'
 import { todayYmd } from '@/auth/roles'
+import { DateInput } from '@/components/DateInput'
 import {
   downloadFormDetailExport,
   resolveFormIdByFormNo,
@@ -89,20 +90,16 @@ export function ExcelExportModal({ open, onClose }: Props) {
             <div className="grid-2">
               <label className="field">
                 <span>From</span>
-                <input
-                  type="date"
+                <DateInput
                   value={from}
-                  onChange={(e) => setFrom(e.target.value)}
+                  onChange={setFrom}
                   required
+                  aria-label="From"
                 />
               </label>
               <label className="field">
                 <span>To</span>
-                <input
-                  type="date"
-                  value={to}
-                  onChange={(e) => setTo(e.target.value)}
-                />
+                <DateInput value={to} onChange={setTo} aria-label="To" />
               </label>
             </div>
           ) : (

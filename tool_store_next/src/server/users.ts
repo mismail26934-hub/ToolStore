@@ -3,7 +3,6 @@
 import { ApiParam } from '@/api/params'
 import {
   dbGetUserById,
-  dbListSuperiors,
   dbListUsers,
   dbMutateUser,
   dbSaveFcmToken,
@@ -11,6 +10,7 @@ import {
   type SuperiorListFilters,
   type UserListFilters,
 } from '@/db/usersRepo'
+import { fetchSuperiors as fetchSuperiorsFromMasters } from '@/server/superiors'
 import type { PaginatedList, SuperiorRow, UserRow } from '@/types/models'
 
 export type { SaveUserInput, SuperiorListFilters, UserListFilters }
@@ -57,14 +57,11 @@ export async function deleteUser(input: SaveUserInput): Promise<string> {
   }
 }
 
+/** List from masters table `superiors` (Option A). */
 export async function fetchSuperiors(
   filters: SuperiorListFilters = {},
 ): Promise<PaginatedList<SuperiorRow>> {
-  try {
-    return await dbListSuperiors(filters)
-  } catch (e) {
-    throw new Error(e instanceof Error ? e.message : 'Gagal memuat superior')
-  }
+  return fetchSuperiorsFromMasters(filters)
 }
 
 export async function saveFcmToken(input: {

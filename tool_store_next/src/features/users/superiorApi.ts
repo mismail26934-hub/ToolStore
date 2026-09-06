@@ -1,2 +1,2 @@
-export type { SuperiorListFilters } from '@/server/users'
-export { fetchSuperiors } from '@/server/users'
+export type { SuperiorListFilters } from '@/server/superiors'
+export { fetchSuperiors } from '@/server/superiors'

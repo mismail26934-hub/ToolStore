@@ -7,6 +7,12 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/auth/AuthContext'
 import { isSuperAdmin } from '@/auth/session'
 import { FcmRegistrar } from '@/components/FcmRegistrar'
+import { LogoutConfirmModal } from '@/components/LogoutConfirmModal'
+import {
+  usePageHeaderActionsHostSetter,
+  usePageHeaderMeta,
+} from '@/components/PageHeader'
+import { ProfileModal } from '@/components/ProfileModal'
 import { usePrefs } from '@/prefs/PreferencesContext'
 
 function MenuIcon({ open }: { open: boolean }) {
@@ -56,20 +62,6 @@ function MoonIcon() {
   )
 }
 
-function LogoutIcon() {
-  return (
-    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden fill="none">
-      <path
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M10 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4M15 16l4-4-4-4M19 12H10"
-      />
-    </svg>
-  )
-}
-
 function UserIcon() {
   return (
     <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden fill="none">
@@ -84,7 +76,13 @@ function UserIcon() {
   )
 }
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+export function AppShell({
+  children,
+  bootstrapping = false,
+}: {
+  children: React.ReactNode
+  bootstrapping?: boolean
+}) {
   const { user, logout } = useAuth()
   const { t, isDark, toggleTheme, isEnglish, toggleLocale } = usePrefs()
   const router = useRouter()
@@ -93,7 +91,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const qc = useQueryClient()
   const [menuOpen, setMenuOpen] = useState(false)
   const [manageOpen, setManageOpen] = useState(false)
+  const [sessionOpen, setSessionOpen] = useState(false)
+  const [profileOpen, setProfileOpen] = useState(false)
+  const [logoutOpen, setLogoutOpen] = useState(false)
   const manageRef = useRef<HTMLDivElement>(null)
+  const sessionRef = useRef<HTMLDivElement>(null)
+  const pageMeta = usePageHeaderMeta()
+  const setActionsHost = usePageHeaderActionsHostSetter()
 
   const formsLinks = [
     { href: '/forms', inbox: 'active', label: t('dataTool') },
@@ -114,6 +118,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setMenuOpen(false)
     setManageOpen(false)
+    setSessionOpen(false)
   }, [pathname, search])
 
   useEffect(() => {
@@ -132,14 +137,21 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, [menuOpen])
 
   useEffect(() => {
-    if (!manageOpen) return
+    if (!manageOpen && !sessionOpen) return
     const onDoc = (e: MouseEvent) => {
-      if (!manageRef.current?.contains(e.target as Node)) {
+      const target = e.target as Node
+      if (manageOpen && !manageRef.current?.contains(target)) {
         setManageOpen(false)
+      }
+      if (sessionOpen && !sessionRef.current?.contains(target)) {
+        setSessionOpen(false)
       }
     }
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setManageOpen(false)
+      if (e.key === 'Escape') {
+        setManageOpen(false)
+        setSessionOpen(false)
+      }
     }
     document.addEventListener('mousedown', onDoc)
     document.addEventListener('keydown', onKey)
@@ -147,12 +159,27 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       document.removeEventListener('mousedown', onDoc)
       document.removeEventListener('keydown', onKey)
     }
-  }, [manageOpen])
+  }, [manageOpen, sessionOpen])
 
   const handleLogout = () => {
     logout()
     qc.clear()
+    setLogoutOpen(false)
     router.replace('/login')
+  }
+
+  const openProfile = () => {
+    setSessionOpen(false)
+    setManageOpen(false)
+    setMenuOpen(false)
+    setProfileOpen(true)
+  }
+
+  const openLogout = () => {
+    setSessionOpen(false)
+    setManageOpen(false)
+    setMenuOpen(false)
+    setLogoutOpen(true)
   }
 
   const formsInboxActive = (inbox: string) => {
@@ -195,15 +222,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </span>
       </button>
       <FcmRegistrar variant="icon" auto={autoFcm} />
-      <button
-        type="button"
-        className="btn btn-icon btn-icon-danger"
-        onClick={handleLogout}
-        title={t('logout')}
-        aria-label={t('logout')}
-      >
-        <LogoutIcon />
-      </button>
     </>
   )
 
@@ -218,13 +236,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         onClick={() => setMenuOpen(false)}
       >
         {t('dashboard')}
-      </Link>
-      <Link
-        href="/profile"
-        className={linkClass(pathname === '/profile')}
-        onClick={() => setMenuOpen(false)}
-      >
-        {t('myProfile')}
       </Link>
       <div className="nav-menu-label">{t('forms')}</div>
       {formsLinks.map((item) => (
@@ -246,112 +257,203 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {t('users')}
         </Link>
       )}
+      {isSuperAdmin(user) && (
+        <Link
+          href="/superiors"
+          className={linkClass(pathname.startsWith('/superiors'))}
+          onClick={() => setMenuOpen(false)}
+        >
+          {t('superiors')}
+        </Link>
+      )}
     </>
   )
 
   return (
-    <div className={`app-shell${menuOpen ? ' menu-open' : ''}`}>
+    <div
+      className={`app-shell${menuOpen ? ' menu-open' : ''}${bootstrapping ? ' app-shell--boot' : ''}`}
+    >
       <div className="topbar-glass" aria-hidden />
 
       <header className="topbar">
-        <div className="brand-row">
-          <div className="brand">
-            {t('appName')}
-            <span>{t('appTagline')}</span>
-          </div>
-        </div>
-
-        <div className="top-actions">
-          <div className="top-actions-panel top-actions-panel--bar">
-            <div
-              className={`nav-manage${manageOpen ? ' is-open' : ''}`}
-              ref={manageRef}
-            >
-              <button
-                type="button"
-                className="btn"
-                aria-expanded={manageOpen}
-                onClick={() => setManageOpen((v) => !v)}
-              >
-                {t('manage')}
-                <span className="nav-manage-caret" aria-hidden>
-                  ▾
-                </span>
-              </button>
-              {manageOpen && (
-                <div className="nav-manage-menu" role="menu">
-                  <Link
-                    href="/dashboard"
-                    className={linkClass(pathname === '/dashboard')}
-                    role="menuitem"
-                    onClick={() => setManageOpen(false)}
-                  >
-                    {t('dashboard')}
-                  </Link>
-                  <Link
-                    href="/profile"
-                    className={linkClass(pathname === '/profile')}
-                    role="menuitem"
-                    onClick={() => setManageOpen(false)}
-                  >
-                    {t('myProfile')}
-                  </Link>
-                  <div className="nav-menu-label">{t('forms')}</div>
-                  {formsLinks.map((item) => (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      className={linkClass(formsInboxActive(item.inbox))}
-                      role="menuitem"
-                      onClick={() => setManageOpen(false)}
-                    >
-                      {item.label}
-                    </Link>
-                  ))}
-                  {isSuperAdmin(user) && (
-                    <Link
-                      href="/users"
-                      className={linkClass(pathname.startsWith('/users'))}
-                      role="menuitem"
-                      onClick={() => setManageOpen(false)}
-                    >
-                      {t('users')}
-                    </Link>
-                  )}
+        {bootstrapping ? (
+          <>
+            <div className="brand-row" aria-hidden>
+              <div className="boot-brand-skel">
+                <span className="boot-line-skel boot-line-skel--title" />
+                <span className="boot-line-skel boot-line-skel--tagline" />
+              </div>
+            </div>
+            <div className="top-actions" aria-hidden>
+              <div className="boot-actions-skel boot-actions-skel--bar">
+                <span className="boot-pill boot-pill--sm" />
+                <span className="boot-pill" />
+                <span className="boot-pill boot-pill--icon" />
+                <span className="boot-pill boot-pill--icon" />
+                <span className="boot-pill boot-pill--icon" />
+                <span className="boot-pill boot-pill--account" />
+              </div>
+              <div className="boot-actions-skel boot-actions-skel--mobile">
+                <span className="boot-pill boot-pill--icon" />
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="brand-row">
+              {pageMeta?.title ? (
+                <div className="page-nav-title">
+                  <h1>{pageMeta.title}</h1>
+                  {pageMeta.subtitle ? <p>{pageMeta.subtitle}</p> : null}
+                </div>
+              ) : (
+                <div className="brand">
+                  {t('appName')}
+                  <span>{t('appTagline')}</span>
                 </div>
               )}
             </div>
 
-            {prefIcons(true)}
+            <div className="top-actions">
+              <div
+                className="page-nav-actions"
+                ref={setActionsHost}
+                aria-label="Page actions"
+              />
 
-            <div className="nav-session">
-              <Link href="/profile" className="btn nav-account">
-                <UserIcon />
-                <span className="nav-user">
-                  <span className="nav-user-name">
-                    {user?.name || user?.username}
-                  </span>
-                  <span className="nav-user-level">{user?.level || '—'}</span>
-                </span>
-              </Link>
+              <div className="top-actions-panel top-actions-panel--bar">
+                <div
+                  className={`nav-manage${manageOpen ? ' is-open' : ''}`}
+                  ref={manageRef}
+                >
+                  <button
+                    type="button"
+                    className="btn"
+                    aria-expanded={manageOpen}
+                    onClick={() => setManageOpen((v) => !v)}
+                  >
+                    {t('manage')}
+                    <span className="nav-manage-caret" aria-hidden>
+                      ▾
+                    </span>
+                  </button>
+                  {manageOpen && (
+                    <div className="nav-manage-menu" role="menu">
+                      <Link
+                        href="/dashboard"
+                        className={linkClass(pathname === '/dashboard')}
+                        role="menuitem"
+                        onClick={() => setManageOpen(false)}
+                      >
+                        {t('dashboard')}
+                      </Link>
+                      <div className="nav-menu-label">{t('forms')}</div>
+                      {formsLinks.map((item) => (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          className={linkClass(formsInboxActive(item.inbox))}
+                          role="menuitem"
+                          onClick={() => setManageOpen(false)}
+                        >
+                          {item.label}
+                        </Link>
+                      ))}
+                      {isSuperAdmin(user) && (
+                        <Link
+                          href="/users"
+                          className={linkClass(pathname.startsWith('/users'))}
+                          role="menuitem"
+                          onClick={() => setManageOpen(false)}
+                        >
+                          {t('users')}
+                        </Link>
+                      )}
+                      {isSuperAdmin(user) && (
+                        <Link
+                          href="/superiors"
+                          className={linkClass(
+                            pathname.startsWith('/superiors'),
+                          )}
+                          role="menuitem"
+                          onClick={() => setManageOpen(false)}
+                        >
+                          {t('superiors')}
+                        </Link>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {prefIcons(true)}
+
+                <div className="nav-session">
+                  <div
+                    className={`nav-session-menu${sessionOpen ? ' is-open' : ''}`}
+                    ref={sessionRef}
+                  >
+                    <button
+                      type="button"
+                      className="btn nav-account"
+                      aria-haspopup="menu"
+                      aria-expanded={sessionOpen}
+                      title={`${user?.name || user?.username} · ${user?.level || ''}`}
+                      onClick={() => {
+                        setManageOpen(false)
+                        setSessionOpen((v) => !v)
+                      }}
+                    >
+                      <UserIcon />
+                      <span className="nav-user">
+                        <span className="nav-user-name">
+                          {user?.name || user?.username}
+                        </span>
+                        <span className="nav-user-level">
+                          {user?.level || '—'}
+                        </span>
+                      </span>
+                    </button>
+                    {sessionOpen && (
+                      <div className="nav-manage-menu" role="menu">
+                        <button
+                          type="button"
+                          role="menuitem"
+                          className="nav-manage-item"
+                          onClick={openProfile}
+                        >
+                          {t('myProfile')}
+                        </button>
+                        <button
+                          type="button"
+                          role="menuitem"
+                          className="nav-manage-item"
+                          onClick={openLogout}
+                        >
+                          {t('logout')}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="top-actions-mobile">
+                <button
+                  type="button"
+                  className="btn btn-icon top-menu-toggle"
+                  aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+                  aria-expanded={menuOpen}
+                  onClick={() => setMenuOpen((v) => !v)}
+                >
+                  <MenuIcon open={menuOpen} />
+                </button>
+              </div>
             </div>
-          </div>
-
-          <div className="top-actions-mobile">
-            <button
-              type="button"
-              className="btn btn-icon top-menu-toggle"
-              aria-label={menuOpen ? 'Close menu' : 'Open menu'}
-              aria-expanded={menuOpen}
-              onClick={() => setMenuOpen((v) => !v)}
-            >
-              <MenuIcon open={menuOpen} />
-            </button>
-          </div>
-        </div>
+          </>
+        )}
       </header>
 
-      {menuOpen && (
+      {!bootstrapping && menuOpen && (
         <div
           className="top-menu-backdrop"
           role="presentation"
@@ -359,21 +461,30 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         />
       )}
 
-      <div
-        className={`top-actions-panel top-actions-panel--float${menuOpen ? ' is-open' : ''}`}
-      >
-        <div className="nav-user nav-user--menu">
-          <div className="nav-user-text">
-            <span className="nav-user-name">
-              {user?.name || user?.username}
-            </span>
-            <span className="nav-user-level">{user?.level || '—'}</span>
+      {!bootstrapping && (
+        <div
+          className={`top-actions-panel top-actions-panel--float${menuOpen ? ' is-open' : ''}`}
+        >
+          <div className="nav-user nav-user--menu">
+            <div className="nav-user-text">
+              <span className="nav-user-name">
+                {user?.name || user?.username}
+              </span>
+              <span className="nav-user-level">{user?.level || '—'}</span>
+            </div>
           </div>
+          {navLinks}
         </div>
-        {navLinks}
-      </div>
+      )}
 
       <main className="main">{children}</main>
+
+      <ProfileModal open={profileOpen} onClose={() => setProfileOpen(false)} />
+      <LogoutConfirmModal
+        open={logoutOpen}
+        onClose={() => setLogoutOpen(false)}
+        onConfirm={handleLogout}
+      />
     </div>
   )
 }

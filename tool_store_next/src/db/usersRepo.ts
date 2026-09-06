@@ -2,8 +2,11 @@ import type { ResultSetHeader, RowDataPacket } from 'mysql2'
 import { ApiParam } from '@/api/params'
 import { emptyToNull, newId, s } from '@/db/helpers'
 import { getDbPool } from '@/db/pool'
-import type { PaginatedList, SuperiorRow, UserRow } from '@/types/models'
+import type { PaginatedList, UserRow } from '@/types/models'
 import { USER_PAGE_SIZE } from '@/types/models'
+
+export type { SuperiorListFilters } from '@/db/superiors'
+export { dbListSuperiors } from '@/db/superiors'
 
 export type UserListFilters = {
   page?: number
@@ -27,13 +30,6 @@ export type SaveUserInput = {
   token?: string
 }
 
-export type SuperiorListFilters = {
-  page?: number
-  limit?: number
-  keyword?: string
-  searchField?: string
-}
-
 type UserPacket = RowDataPacket & Record<string, unknown>
 
 function mapUser(row: UserPacket): UserRow {
@@ -52,16 +48,6 @@ function mapUser(row: UserPacket): UserRow {
     namaSuperior: s(row.nama_superior),
     valueResponse: '',
     messageResponse: '',
-  }
-}
-
-function mapSuperior(row: UserPacket): SuperiorRow {
-  return {
-    superiorId: s(row.superior_id ?? row.id_users),
-    namaSuperior: s(row.nama_superior ?? row.nama_user),
-    statusSuperior: s(row.status_superior ?? row.status),
-    username: s(row.username),
-    namaUser: s(row.nama_user),
   }
 }
 
@@ -198,46 +184,6 @@ export async function dbMutateUser(
   }
 
   throw new Error(`Param user tidak dikenal: ${param}`)
-}
-
-export async function dbListSuperiors(
-  filters: SuperiorListFilters = {},
-): Promise<PaginatedList<SuperiorRow>> {
-  const pool = getDbPool()
-  const page = Math.max(1, filters.page ?? 1)
-  const limit = Math.max(1, filters.limit ?? USER_PAGE_SIZE)
-  const offset = (page - 1) * limit
-  const where: string[] = [`UPPER(u.level) = 'SUPERIOR'`]
-  const params: unknown[] = []
-  const kw = filters.keyword?.trim() ?? ''
-  if (kw) {
-    where.push('(u.nama_user LIKE ? OR u.username LIKE ?)')
-    params.push(`%${kw}%`, `%${kw}%`)
-  }
-  const whereSql = `WHERE ${where.join(' AND ')}`
-
-  const [countRows] = await pool.query<RowDataPacket[]>(
-    `SELECT COUNT(*) AS total FROM users u ${whereSql}`,
-    params,
-  )
-  const [rows] = await pool.query<UserPacket[]>(
-    `SELECT
-       u.id_users AS superior_id,
-       u.nama_user AS nama_superior,
-       u.status AS status_superior,
-       u.username,
-       u.nama_user
-     FROM users u
-     ${whereSql}
-     ORDER BY u.nama_user ASC
-     LIMIT ? OFFSET ?`,
-    [...params, limit, offset],
-  )
-
-  return {
-    items: rows.map(mapSuperior),
-    total: Number(countRows[0]?.total ?? 0),
-  }
 }
 
 export async function dbSaveFcmToken(input: {

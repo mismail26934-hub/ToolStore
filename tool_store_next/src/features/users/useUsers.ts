@@ -1,7 +1,6 @@
 'use client'
 
 import {
-  useInfiniteQuery,
   useMutation,
   useQuery,
   useQueryClient,
@@ -19,23 +18,15 @@ import {
   type UserListFilters,
 } from './usersApi'
 
-export function useUsersInfinite(filters: Omit<UserListFilters, 'page'>) {
-  return useInfiniteQuery({
+export function useUsersList(filters: UserListFilters) {
+  return useQuery({
     queryKey: queryKeys.users(filters),
-    initialPageParam: 1,
-    queryFn: ({ pageParam }) =>
+    queryFn: () =>
       fetchUsers({
         ...filters,
-        page: pageParam,
+        page: filters.page ?? 1,
         limit: filters.limit ?? USER_PAGE_SIZE,
       }),
-    getNextPageParam: (lastPage, allPages) => {
-      const loaded = allPages.reduce((n, p) => n + p.items.length, 0)
-      const limit = filters.limit ?? USER_PAGE_SIZE
-      if (lastPage.items.length < limit) return undefined
-      if (lastPage.total != null && loaded >= lastPage.total) return undefined
-      return allPages.length + 1
-    },
   })
 }
 

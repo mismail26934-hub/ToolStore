@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/auth/AuthContext'
 import { updateSessionProfile } from '@/auth/session'
 import { SuperiorPickerModal } from '@/components/SuperiorPickerModal'
+import { PageHeader } from '@/components/PageHeader'
 import { useUser, useUserMutations } from '@/features/users/useUsers'
 
 type FormState = {
@@ -129,21 +130,18 @@ export function ProfilePage() {
 
   return (
     <div className="page">
-      <header className="page-header">
-        <div>
-          <h1>My Profile</h1>
-          <p className="muted">Edit akun login Anda (level tidak dapat diubah)</p>
-        </div>
-        <div className="page-header-actions">
-          <button
-            type="button"
-            className="btn btn-ghost"
-            onClick={() => router.back()}
-          >
-            Back
-          </button>
-        </div>
-      </header>
+      <PageHeader
+        title="My Profile"
+        subtitle="Edit akun login Anda (level tidak dapat diubah)"
+      >
+        <button
+          type="button"
+          className="btn btn-ghost"
+          onClick={() => router.back()}
+        >
+          Back
+        </button>
+      </PageHeader>
 
       {remote.isLoading && !form && <div className="panel">Loading profile…</div>}
       {remote.isError && (

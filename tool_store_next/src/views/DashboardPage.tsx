@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { PageHeader } from '@/components/PageHeader'
 import { useDashboardCounts } from '@/features/forms/useForms'
 import type { DashboardCounts } from '@/types/models'
 
@@ -43,22 +44,16 @@ export function DashboardPage() {
 
   return (
     <div className="page">
-      <header className="page-header">
-        <div>
-          <h1>Dashboard</h1>
-          <p className="muted">Ringkasan milestone form</p>
-        </div>
-        <div className="page-header-actions">
-          <button
-            type="button"
-            className="btn btn-secondary"
-            onClick={() => refetch()}
-            disabled={isFetching}
-          >
-            {isFetching ? 'Refreshing…' : 'Refresh'}
-          </button>
-        </div>
-      </header>
+      <PageHeader title="Dashboard" subtitle="Ringkasan milestone form">
+        <button
+          type="button"
+          className="btn btn-secondary"
+          onClick={() => refetch()}
+          disabled={isFetching}
+        >
+          {isFetching ? 'Refreshing…' : 'Refresh'}
+        </button>
+      </PageHeader>
 
       {isLoading && <div className="panel">Loading counts…</div>}
       {isError && (

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import { useAuth } from '@/auth/AuthContext'
+import { PageHeader } from '@/components/PageHeader'
 import {
   useToolDetailMutations,
   useToolDetails,
@@ -162,25 +163,19 @@ export function ToolDetailPage() {
 
   return (
     <div className="page">
-      <header className="page-header">
-        <div>
-          <h1>{isAdd ? 'Add Tool Items' : 'Edit Tool Item'}</h1>
-          <p className="muted">
-            {isAdd ? 'Multiple Detail Input' : 'Single Detail Input'} · Form{' '}
-            {idForm}
-          </p>
-        </div>
-        <div className="page-header-actions">
-          {isAdd && (
-            <button type="button" className="btn btn-secondary" onClick={addRow}>
-              + Row
-            </button>
-          )}
-          <Link className="btn btn-ghost" href={`/forms?expand=${idForm}`}>
-            Back
-          </Link>
-        </div>
-      </header>
+      <PageHeader
+        title={isAdd ? 'Add Tool Items' : 'Edit Tool Item'}
+        subtitle={`${isAdd ? 'Multiple Detail Input' : 'Single Detail Input'} · Form ${idForm}`}
+      >
+        {isAdd && (
+          <button type="button" className="btn btn-secondary" onClick={addRow}>
+            + Row
+          </button>
+        )}
+        <Link className="btn btn-ghost" href={`/forms?expand=${idForm}`}>
+          Back
+        </Link>
+      </PageHeader>
 
       {!isAdd && existing.isLoading && (
         <div className="panel">Loading item…</div>

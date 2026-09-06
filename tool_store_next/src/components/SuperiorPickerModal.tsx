@@ -1,8 +1,10 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { SuperiorRow } from '../types/models'
 import { useSuperiors } from '../features/users/useUsers'
+import { usePrefs } from '@/prefs/PreferencesContext'
+import { ClearIcon, SearchTextInput } from '@/components/SearchTextInput'
 
 type Props = {
   open: boolean
@@ -14,13 +16,55 @@ function displayName(row: SuperiorRow) {
   return row.namaSuperior || row.namaUser || row.username || row.superiorId || '—'
 }
 
+function SearchIcon() {
+  return (
+    <svg
+      className="btn-icon-svg"
+      viewBox="0 0 24 24"
+      width="18"
+      height="18"
+      aria-hidden
+      fill="none"
+    >
+      <circle cx="11" cy="11" r="6.5" stroke="currentColor" strokeWidth="1.8" />
+      <path
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        d="m16.2 16.2 3.3 3.3"
+      />
+    </svg>
+  )
+}
+
 export function SuperiorPickerModal({ open, onClose, onSelect }: Props) {
+  const { t } = usePrefs()
   const [keyword, setKeyword] = useState('')
   const [searchField, setSearchField] = useState('all')
+  const [searchOpen, setSearchOpen] = useState(false)
   const [applied, setApplied] = useState({ keyword: '', searchField: 'all' })
+  const searchInputRef = useRef<HTMLInputElement>(null)
 
   const query = useSuperiors(applied, open)
   const items = useMemo(() => query.data?.items ?? [], [query.data])
+  const searchResultCount = query.isLoading
+    ? null
+    : (query.data?.total ?? items.length)
+
+  useEffect(() => {
+    if (!open) {
+      setKeyword('')
+      setSearchField('all')
+      setSearchOpen(false)
+      setApplied({ keyword: '', searchField: 'all' })
+    }
+  }, [open])
+
+  useEffect(() => {
+    if (!open || !searchOpen) return
+    const id = window.setTimeout(() => searchInputRef.current?.focus(), 50)
+    return () => window.clearTimeout(id)
+  }, [open, searchOpen])
 
   if (!open) return null
 
@@ -35,40 +79,97 @@ export function SuperiorPickerModal({ open, onClose, onSelect }: Props) {
       >
         <div className="section-title-row">
           <h3>Pilih Superior</h3>
-          <button type="button" className="btn btn-ghost btn-sm" onClick={onClose}>
-            Close
-          </button>
+          <div className="row-gap">
+            <button
+              type="button"
+              className={`btn btn-ghost btn-sm btn-with-icon${searchOpen || applied.keyword ? ' btn-filter-active' : ''}`}
+              title={t('search')}
+              aria-label={t('search')}
+              aria-expanded={searchOpen}
+              onClick={() => setSearchOpen((v) => !v)}
+            >
+              <SearchIcon />
+              <span className="btn-label">{t('search')}</span>
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              onClick={onClose}
+            >
+              Close
+            </button>
+          </div>
         </div>
 
-        <form
-          className="toolbar"
-          onSubmit={(e) => {
-            e.preventDefault()
-            setApplied({
-              keyword: keyword.trim(),
-              searchField,
-            })
-          }}
-        >
-          <select
-            value={searchField}
-            onChange={(e) => setSearchField(e.target.value)}
+        {searchOpen && (
+          <form
+            className="toolbar"
+            onSubmit={(e) => {
+              e.preventDefault()
+              if (!keyword.trim()) return
+              setApplied({
+                keyword: keyword.trim(),
+                searchField,
+              })
+            }}
           >
-            <option value="all">All</option>
-            <option value="name">Name</option>
-            <option value="username">Username</option>
-          </select>
-          <input
-            placeholder="Search superior…"
-            value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
-          />
-          <button type="submit" className="btn btn-primary">
-            Search
-          </button>
-        </form>
+            <select
+              value={searchField}
+              onChange={(e) => setSearchField(e.target.value)}
+              aria-label="Search field"
+            >
+              <option value="all">All</option>
+              <option value="name">Name</option>
+              <option value="username">Username</option>
+            </select>
+            <SearchTextInput
+              ref={searchInputRef}
+              placeholder="Search superior…"
+              value={keyword}
+              onChange={(e) => setKeyword(e.target.value)}
+              aria-label={t('search')}
+              required
+              clearLabel={t('clearSearch')}
+              onClear={() => {
+                setKeyword('')
+                setSearchField('all')
+                setApplied({ keyword: '', searchField: 'all' })
+              }}
+              showClear={!!keyword || !!applied.keyword}
+            />
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={!keyword.trim()}
+            >
+              {t('search')}
+            </button>
+          </form>
+        )}
 
-        {query.isLoading && <p className="muted">Loading…</p>}
+        {applied.keyword ? (
+          <div className="filter-chip-row">
+            <span className="chip chip-filter">
+              {t('search')}: {applied.keyword}
+              {searchResultCount != null
+                ? ` · ${t('dataCount').replace('{n}', String(searchResultCount))}`
+                : query.isFetching
+                  ? ' · …'
+                  : ''}
+              <ClearIcon
+                label={t('clearSearch')}
+                onClick={() => {
+                  setKeyword('')
+                  setSearchField('all')
+                  setApplied({ keyword: '', searchField: 'all' })
+                }}
+                className="chip-clear-icon"
+              />
+            </span>
+          </div>
+        ) : null}
+
+        {query.isLoading && <p className="muted">{t('loading')}</p>}
         {query.isError && (
           <div className="alert alert-error">
             {(query.error as Error)?.message}
@@ -97,7 +198,7 @@ export function SuperiorPickerModal({ open, onClose, onSelect }: Props) {
         </ul>
 
         {!query.isLoading && items.length === 0 && (
-          <p className="muted">Tidak ada data superior.</p>
+          <p className="muted">{t('noData')}</p>
         )}
       </div>
     </div>

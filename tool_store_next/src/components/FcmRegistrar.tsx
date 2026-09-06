@@ -34,6 +34,11 @@ function BellIcon({ active }: { active?: boolean }) {
   )
 }
 
+/** SSR-safe initial status (env only — no window/navigator). */
+function initialFcmStatus(): FcmStatus {
+  return isFcmConfigured() ? 'ready' : 'not_configured'
+}
+
 export function FcmRegistrar({
   auto = true,
   variant = 'card',
@@ -43,17 +48,7 @@ export function FcmRegistrar({
 }) {
   const { user, ready } = useAuth()
   const { t } = usePrefs()
-  const [status, setStatus] = useState<FcmStatus>(() => {
-    if (!isFcmSupported()) return 'unsupported'
-    if (!isFcmConfigured()) return 'not_configured'
-    if (
-      typeof window !== 'undefined' &&
-      localStorage.getItem('toolstore:fcm_token')
-    ) {
-      return 'saved'
-    }
-    return 'ready'
-  })
+  const [status, setStatus] = useState<FcmStatus>(initialFcmStatus)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -66,6 +61,22 @@ export function FcmRegistrar({
     if (result.message) setError(result.message)
     setBusy(false)
   }
+
+  useEffect(() => {
+    if (!isFcmConfigured()) {
+      setStatus('not_configured')
+      return
+    }
+    if (!isFcmSupported()) {
+      setStatus('unsupported')
+      return
+    }
+    if (localStorage.getItem('toolstore:fcm_token')) {
+      setStatus('saved')
+      return
+    }
+    setStatus('ready')
+  }, [])
 
   useEffect(() => {
     if (!auto || !ready || !user) return

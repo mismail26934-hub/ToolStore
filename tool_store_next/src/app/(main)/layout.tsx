@@ -1,5 +1,6 @@
 import { Suspense } from 'react'
 import { AuthGuard } from '@/components/AuthGuard'
+import { AppChromeFallback } from '@/components/AppBoot'
 
 export default function MainLayout({
   children,
@@ -7,7 +8,7 @@ export default function MainLayout({
   children: React.ReactNode
 }) {
   return (
-    <Suspense fallback={<div className="panel">Loading…</div>}>
+    <Suspense fallback={<AppChromeFallback />}>
       <AuthGuard>{children}</AuthGuard>
     </Suspense>
   )
