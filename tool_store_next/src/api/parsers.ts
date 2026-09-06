@@ -46,6 +46,7 @@ export function parseFormRow(json: Record<string, unknown>): FormRow {
     formMilestone: s(json.form_milestone),
     formStatusOrder: s(json.form_status_order),
     superiorId: s(json.superior_id),
+    toolItemCount: readInt(json.tool_item_count ?? json.toolItemCount),
   }
 }
 

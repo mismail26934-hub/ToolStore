@@ -29,6 +29,7 @@ import { ToolRelatedSections } from '@/components/ToolRelatedSections'
 import { usePrefs } from '@/prefs/PreferencesContext'
 import { formatActionNote } from '@/lib/actionNotes'
 import { formatDateDisplay } from '@/lib/dateFormat'
+import { formatThousands } from '@/lib/numberFormat'
 import { resolveFormIdByFormNo } from '@/features/forms/exportApi'
 import {
   inboxTitle,
@@ -102,7 +103,7 @@ function FormCardDetails({
       )}
       {details.data && details.data.length > 0 && (
         <div className="tool-items-stack">
-          {details.data.map((row) => (
+          {details.data.map((row, index) => (
             <article
               key={row.idFormDetail || `${row.pnGroup}-${row.pnDesc}`}
               className="tool-item-block-card"
@@ -110,7 +111,7 @@ function FormCardDetails({
               <div className="tool-item-block-head">
                 <div>
                   <div className="tool-item-card-title">
-                    {row.pnGroup || '—'}
+                    {index + 1}. {row.pnGroup || '—'}
                   </div>
                   <div className="muted">
                     qty {row.qty || '0'} · {row.pnDesc || '—'}
@@ -127,7 +128,9 @@ function FormCardDetails({
               <div className="tool-item-block-grid">
                 <div>
                   <span className="muted">Price</span>
-                  <div className="meta-value">{row.partValue || '—'}</div>
+                  <div className="meta-value">
+                    {formatThousands(row.partValue)}
+                  </div>
                 </div>
                 <div>
                   <span className="muted">Cat / Vendor</span>
@@ -202,7 +205,9 @@ function FormCard({
             </div>
           </div>
           <div className="muted">
-            {form.formServName || 'No serviceman'} · {form.formMilestone || '—'}
+            {form.formServName || 'No serviceman'} ·{' '}
+            {form.formMilestone?.trim() || 'DRAFT'} ·{' '}
+            {form.toolItemCount} item{form.toolItemCount === 1 ? '' : 's'}
           </div>
           {!expanded && <OrderTimeline form={form} compact />}
         </div>
@@ -722,6 +727,7 @@ export function FormsPage() {
                   <th>Status</th>
                   <th>Category</th>
                   <th>Serviceman</th>
+                  <th>Items</th>
                   <th>Milestone</th>
                   <th>Updated</th>
                   <th className="actions">{t('actions')}</th>
@@ -751,7 +757,8 @@ export function FormsPage() {
                           </span>
                         </td>
                         <td>{form.formServName || '—'}</td>
-                        <td>{form.formMilestone || '—'}</td>
+                        <td>{form.toolItemCount}</td>
+                        <td>{form.formMilestone?.trim() || 'DRAFT'}</td>
                         <td>{formatDateDisplay(form.fromDateUpdate)}</td>
                         <td className="actions" onClick={(e) => e.stopPropagation()}>
                           {canEdit && (
@@ -774,7 +781,7 @@ export function FormsPage() {
                       </tr>
                       {expanded && (
                         <tr className="data-table-detail">
-                          <td colSpan={7}>
+                          <td colSpan={8}>
                             <div className="data-table-detail-inner">
                               <FormCardDetails
                                 form={form}

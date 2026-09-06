@@ -35,6 +35,8 @@ export type FormRow = {
   formMilestone: string
   formStatusOrder: string
   superiorId: string
+  /** Jumlah baris tool item (form_details) pada form ini */
+  toolItemCount: number
 }
 
 export type ToolDetailRow = {

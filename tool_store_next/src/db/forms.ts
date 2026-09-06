@@ -30,6 +30,7 @@ function mapForm(row: FormPacket): FormRow {
     formMilestone: s(row.form_milestone),
     formStatusOrder: s(row.form_status_order),
     superiorId: s(row.superior_id),
+    toolItemCount: Number(row.tool_item_count ?? 0) || 0,
   }
 }
 
@@ -89,7 +90,9 @@ export async function dbListForms(
   const total = Number(countRows[0]?.total ?? 0)
 
   const [rows] = await pool.query<FormPacket[]>(
-    `SELECT * FROM forms ${whereSql}
+    `SELECT forms.*,
+      (SELECT COUNT(*) FROM form_details d WHERE d.id_form = forms.id_form) AS tool_item_count
+     FROM forms ${whereSql}
      ORDER BY COALESCE(from_date_update, created_at) DESC, created_at DESC
      LIMIT ? OFFSET ?`,
     [...params, limit, offset],
@@ -101,7 +104,9 @@ export async function dbListForms(
 export async function dbGetFormById(idForm: string): Promise<FormRow | null> {
   const pool = getDbPool()
   const [rows] = await pool.query<FormPacket[]>(
-    `SELECT * FROM forms WHERE id_form = ? LIMIT 1`,
+    `SELECT forms.*,
+      (SELECT COUNT(*) FROM form_details d WHERE d.id_form = forms.id_form) AS tool_item_count
+     FROM forms WHERE id_form = ? LIMIT 1`,
     [idForm.trim()],
   )
   return rows[0] ? mapForm(rows[0]) : null
