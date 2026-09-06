@@ -184,7 +184,7 @@ export function UserPickerModal({
               >
                 <strong>{displayName(row)}</strong>
                 <span className="muted">
-                  {row.username}
+                  ID TU: {row.idTu || '—'}
                   {row.level ? ` · ${row.level}` : ''}
                 </span>
               </button>

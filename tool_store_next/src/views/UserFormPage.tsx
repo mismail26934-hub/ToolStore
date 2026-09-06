@@ -4,8 +4,10 @@ import { useEffect, useState, type FormEvent } from 'react'
 import Link from 'next/link'
 import { useParams, usePathname, useRouter } from 'next/navigation'
 import { SuperiorPickerModal } from '@/components/SuperiorPickerModal'
+import { SuperiorPickField } from '@/components/SuperiorPickField'
 import { PageHeader } from '@/components/PageHeader'
 import { useUser, useUserMutations } from '@/features/users/useUsers'
+import { superiorDisplayName } from '@/lib/displayLabel'
 import type { UserRow } from '@/types/models'
 import { USER_LEVELS } from '@/types/models'
 
@@ -51,7 +53,9 @@ function fromUser(user: UserRow): FormState {
     level: user.level || 'USER',
     status: user.status,
     superiorId: user.superiorId,
-    namaSuperior: user.namaSuperior,
+    namaSuperior: superiorDisplayName({
+      namaSuperior: user.namaSuperior,
+    }),
   }
 }
 
@@ -147,16 +151,6 @@ export function UserFormPage() {
         title={isAdd ? 'Add User' : 'Edit User'}
         subtitle="Informasi user & akses role"
       >
-        {!isAdd && (
-          <button
-            type="button"
-            className="btn btn-danger"
-            onClick={onDelete}
-            disabled={submitting}
-          >
-            Delete
-          </button>
-        )}
         <Link className="btn btn-ghost" href="/users">
           Back
         </Link>
@@ -172,7 +166,35 @@ export function UserFormPage() {
       )}
 
       <form className="panel stack" onSubmit={onSubmit}>
-        <h3>User Information</h3>
+        <div className="form-panel-header">
+          <h3>User Information</h3>
+          {!isAdd && (
+            <button
+              type="button"
+              className="btn btn-danger btn-sm btn-with-icon"
+              onClick={onDelete}
+              disabled={submitting}
+            >
+              <svg
+                className="btn-icon-svg"
+                viewBox="0 0 24 24"
+                width="18"
+                height="18"
+                aria-hidden
+                fill="none"
+              >
+                <path
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M10 11v6M14 11v6"
+                />
+              </svg>
+              <span className="btn-label">Delete</span>
+            </button>
+          )}
+        </div>
         <div className="grid-2">
           <label className="field">
             <span>Username</span>
@@ -252,33 +274,12 @@ export function UserFormPage() {
           </label>
           <label className="field">
             <span>Superior</span>
-            <div className="password-row">
-              <input
-                value={
-                  form.namaSuperior
-                    ? `${form.namaSuperior} (${form.superiorId})`
-                    : form.superiorId
-                }
-                readOnly
-                placeholder="Pilih superior…"
-              />
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={() => setPickerOpen(true)}
-              >
-                Pick
-              </button>
-              {form.superiorId && (
-                <button
-                  type="button"
-                  className="btn btn-ghost"
-                  onClick={() => patch({ superiorId: '', namaSuperior: '' })}
-                >
-                  Clear
-                </button>
-              )}
-            </div>
+            <SuperiorPickField
+              value={form.namaSuperior || ''}
+              showClear={!!form.superiorId}
+              onOpen={() => setPickerOpen(true)}
+              onClear={() => patch({ superiorId: '', namaSuperior: '' })}
+            />
           </label>
         </div>
 
@@ -299,8 +300,7 @@ export function UserFormPage() {
         onSelect={(row) =>
           patch({
             superiorId: row.superiorId,
-            namaSuperior:
-              row.namaSuperior || row.namaUser || row.username || '',
+            namaSuperior: superiorDisplayName(row),
           })
         }
       />

@@ -3,17 +3,26 @@
 import { ApiParam } from '@/api/params'
 import {
   dbGetUserById,
+  dbImportUsers,
   dbListUsers,
   dbMutateUser,
   dbSaveFcmToken,
   type SaveUserInput,
   type SuperiorListFilters,
+  type UserImportResult,
+  type UserImportRow,
   type UserListFilters,
 } from '@/db/usersRepo'
 import { fetchSuperiors as fetchSuperiorsFromMasters } from '@/server/superiors'
 import type { PaginatedList, SuperiorRow, UserRow } from '@/types/models'
 
-export type { SaveUserInput, SuperiorListFilters, UserListFilters }
+export type {
+  SaveUserInput,
+  SuperiorListFilters,
+  UserImportResult,
+  UserImportRow,
+  UserListFilters,
+}
 
 export async function fetchUsers(
   filters: UserListFilters = {},
@@ -54,6 +63,17 @@ export async function deleteUser(input: SaveUserInput): Promise<string> {
     return await dbMutateUser(ApiParam.deleteUser, input)
   } catch (e) {
     throw new Error(e instanceof Error ? e.message : 'Gagal menghapus user')
+  }
+}
+
+export async function importUsers(
+  rows: UserImportRow[],
+): Promise<UserImportResult> {
+  try {
+    if (!rows.length) throw new Error('Tidak ada baris untuk diimport')
+    return await dbImportUsers(rows)
+  } catch (e) {
+    throw new Error(e instanceof Error ? e.message : 'Gagal import user')
   }
 }
 

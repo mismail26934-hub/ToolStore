@@ -44,6 +44,7 @@ function mapSuperior(row: SuperiorPacket): SuperiorRow {
     statusSuperior: s(row.status_superior),
     username: s(row.username),
     namaUser: s(row.nama_user),
+    idTu: s(row.id_tu),
   }
 }
 
@@ -90,10 +91,15 @@ export async function dbListSuperiors(
        s.nama_superior,
        s.status_superior,
        s.username,
-       s.nama_user
+       COALESCE(NULLIF(TRIM(s.nama_user), ''), NULLIF(TRIM(u.nama_user), ''), '') AS nama_user,
+       COALESCE(NULLIF(TRIM(u.id_tu), ''), '') AS id_tu
      FROM superiors s
+     LEFT JOIN users u
+       ON u.id_users = s.superior_id
+       OR (NULLIF(TRIM(s.username), '') IS NOT NULL AND u.username = s.username)
      ${whereSql}
-     ORDER BY s.nama_superior ASC
+     ORDER BY
+       COALESCE(NULLIF(TRIM(s.nama_user), ''), NULLIF(TRIM(u.nama_user), ''), s.nama_superior) ASC
      LIMIT ? OFFSET ?`,
     [...params, limit, offset],
   )
@@ -110,13 +116,17 @@ export async function dbGetSuperiorById(
   const pool = getDbPool()
   const [rows] = await pool.query<SuperiorPacket[]>(
     `SELECT
-       superior_id,
-       nama_superior,
-       status_superior,
-       username,
-       nama_user
-     FROM superiors
-     WHERE superior_id = ?
+       s.superior_id,
+       s.nama_superior,
+       s.status_superior,
+       s.username,
+       COALESCE(NULLIF(TRIM(s.nama_user), ''), NULLIF(TRIM(u.nama_user), ''), '') AS nama_user,
+       COALESCE(NULLIF(TRIM(u.id_tu), ''), '') AS id_tu
+     FROM superiors s
+     LEFT JOIN users u
+       ON u.id_users = s.superior_id
+       OR (NULLIF(TRIM(s.username), '') IS NOT NULL AND u.username = s.username)
+     WHERE s.superior_id = ?
      LIMIT 1`,
     [superiorId.trim()],
   )

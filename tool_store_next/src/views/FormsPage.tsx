@@ -1,6 +1,13 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
+import {
+  Fragment,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+} from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/auth/AuthContext'
@@ -33,6 +40,201 @@ import { useFormRelated, useRelatedMutations } from '@/features/related/useRelat
 import { useToolDetails } from '@/features/tools/useToolDetails'
 import type { FormRow } from '@/types/models'
 
+function FormCardDetails({
+  form,
+  canEditForm,
+}: {
+  form: FormRow
+  canEditForm: boolean
+}) {
+  const details = useToolDetails(form.idForm, true)
+  const related = useFormRelated(form.idForm, true)
+  const mut = useRelatedMutations(form.idForm)
+  const hasTools = (details.data?.length ?? 0) > 0
+
+  return (
+    <div className="form-card-body">
+      <div className="meta-grid">
+        <div>
+          <span className="muted">ID Form</span>
+          <div>{form.idForm}</div>
+        </div>
+        <div>
+          <span className="muted">Updated</span>
+          <div>{formatDateDisplay(form.fromDateUpdate)}</div>
+        </div>
+      </div>
+
+      {canEditForm && (
+        <div className="section-title-row">
+          <h3>Request</h3>
+          <Link
+            className="btn btn-secondary btn-sm"
+            href={`/forms/${form.idForm}/edit`}
+          >
+            Edit request
+          </Link>
+        </div>
+      )}
+
+      <FormApprovalSection form={form} hasTools={hasTools} />
+
+      <div className="section-title-row">
+        <h3>Tool items</h3>
+        <Link
+          className="btn btn-primary btn-sm"
+          href={`/forms/${form.idForm}/tools/new`}
+        >
+          + Add item
+        </Link>
+      </div>
+
+      {details.isLoading && <p className="muted">Loading items…</p>}
+      {details.isError && (
+        <div className="alert alert-error">
+          {(details.error as Error)?.message}
+        </div>
+      )}
+      {details.data && details.data.length === 0 && (
+        <p className="muted">Belum ada tool item.</p>
+      )}
+      {details.data && details.data.length > 0 && (
+        <>
+          <ul className="tool-list show-mobile">
+            {details.data.map((row) => (
+              <li key={row.idFormDetail || `${row.pnGroup}-${row.pnDesc}`}>
+                <article className="tool-item-card">
+                  <Link
+                    className="tool-item-card-link"
+                    href={`/forms/${form.idForm}/tools/${row.idFormDetail}`}
+                  >
+                    <div className="tool-item-card-title">
+                      {row.pnGroup || '—'}
+                    </div>
+                    <div className="meta-grid tool-item-card-meta">
+                      <div>
+                        <span className="muted">Qty</span>
+                        <div className="meta-value">{row.qty || '0'}</div>
+                      </div>
+                      <div>
+                        <span className="muted">Description</span>
+                        <div className="meta-value">{row.pnDesc || '—'}</div>
+                      </div>
+                      <div>
+                        <span className="muted">Price</span>
+                        <div className="meta-value">{row.partValue || '—'}</div>
+                      </div>
+                      <div>
+                        <span className="muted">Cat / Vendor</span>
+                        <div className="meta-value">{row.valType || '—'}</div>
+                      </div>
+                      <div>
+                        <span className="muted">Brand</span>
+                        <div className="meta-value">{row.brand || '—'}</div>
+                      </div>
+                      <div>
+                        <span className="muted">Spesifikasi</span>
+                        <div className="meta-value">
+                          {row.spesifikasi || '—'}
+                        </div>
+                      </div>
+                      <div>
+                        <span className="muted">Explanation</span>
+                        <div className="meta-value">{row.explan || '—'}</div>
+                      </div>
+                      <div>
+                        <span className="muted">Action note</span>
+                        <div className="meta-value">{row.actionNote || '—'}</div>
+                      </div>
+                      <div>
+                        <span className="muted">Comment</span>
+                        <div className="meta-value">
+                          {row.formComment || '—'}
+                        </div>
+                      </div>
+                      <div>
+                        <span className="muted">Date</span>
+                        <div className="meta-value">
+                          {formatDateDisplay(row.formDetailDate)}
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                  <ToolRelatedSections tool={row} related={related} mut={mut} />
+                </article>
+              </li>
+            ))}
+          </ul>
+
+          <div className="tool-items-desktop show-desktop">
+            <div className="data-table-wrap">
+              <table className="data-table data-table-compact">
+                <thead>
+                  <tr>
+                    <th>PN Group</th>
+                    <th>Qty</th>
+                    <th>Description</th>
+                    <th>Price</th>
+                    <th>Cat / Vendor</th>
+                    <th>Brand</th>
+                    <th>Spesifikasi</th>
+                    <th>Explanation</th>
+                    <th>Action note</th>
+                    <th>Comment</th>
+                    <th>Date</th>
+                    <th className="actions">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {details.data.map((row) => (
+                    <tr
+                      key={row.idFormDetail || `${row.pnGroup}-${row.pnDesc}`}
+                      className="data-table-row"
+                    >
+                      <td>
+                        <strong>{row.pnGroup || '—'}</strong>
+                      </td>
+                      <td>{row.qty || '0'}</td>
+                      <td>{row.pnDesc || '—'}</td>
+                      <td>{row.partValue || '—'}</td>
+                      <td>{row.valType || '—'}</td>
+                      <td>{row.brand || '—'}</td>
+                      <td>{row.spesifikasi || '—'}</td>
+                      <td>{row.explan || '—'}</td>
+                      <td>{row.actionNote || '—'}</td>
+                      <td>{row.formComment || '—'}</td>
+                      <td>{formatDateDisplay(row.formDetailDate)}</td>
+                      <td className="actions">
+                        <Link
+                          className="btn btn-secondary btn-sm"
+                          href={`/forms/${form.idForm}/tools/${row.idFormDetail}`}
+                        >
+                          Open
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {details.data.map((row) => (
+              <div
+                key={`rel-${row.idFormDetail || row.pnGroup}`}
+                className="tool-item-related"
+              >
+                <div className="muted tool-item-related-label">
+                  {row.pnGroup || 'Tool'} · related
+                </div>
+                <ToolRelatedSections tool={row} related={related} mut={mut} />
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
 function FormCard({
   form,
   expanded,
@@ -46,8 +248,6 @@ function FormCard({
 }) {
   const details = useToolDetails(form.idForm, expanded)
   const related = useFormRelated(form.idForm, expanded)
-  const mut = useRelatedMutations(form.idForm)
-  const hasTools = (details.data?.length ?? 0) > 0
 
   return (
     <article className="form-card">
@@ -55,7 +255,12 @@ function FormCard({
         <div className="form-card-head-main">
           <div className="form-card-title-row">
             <div className="form-card-title">{form.formNo || '—'}</div>
-            <span className="chip">{form.formStatusOrder || '—'}</span>
+            <div className="chip-row">
+              <span className="chip">{form.formStatusOrder || '—'}</span>
+              {form.formServComment ? (
+                <span className="chip">{form.formServComment}</span>
+              ) : null}
+            </div>
           </div>
           <div className="muted">
             {form.formServName || 'No serviceman'} · {form.formMilestone || '—'}
@@ -71,74 +276,7 @@ function FormCard({
       </button>
 
       {expanded && (
-        <div className="form-card-body">
-          <div className="meta-grid">
-            <div>
-              <span className="muted">ID Form</span>
-              <div>{form.idForm}</div>
-            </div>
-            <div>
-              <span className="muted">Updated</span>
-              <div>{formatDateDisplay(form.fromDateUpdate)}</div>
-            </div>
-          </div>
-
-          {canEditForm && (
-            <div className="section-title-row">
-              <h3>Request</h3>
-              <Link
-                className="btn btn-secondary btn-sm"
-                href={`/forms/${form.idForm}/edit`}
-              >
-                Edit request
-              </Link>
-            </div>
-          )}
-
-          <FormApprovalSection form={form} hasTools={hasTools} />
-
-          <div className="section-title-row">
-            <h3>Tool items</h3>
-            <Link
-              className="btn btn-primary btn-sm"
-              href={`/forms/${form.idForm}/tools/new`}
-            >
-              + Add item
-            </Link>
-          </div>
-
-          {details.isLoading && <p className="muted">Loading items…</p>}
-          {details.isError && (
-            <div className="alert alert-error">
-              {(details.error as Error)?.message}
-            </div>
-          )}
-          {details.data && details.data.length === 0 && (
-            <p className="muted">Belum ada tool item.</p>
-          )}
-          {details.data && details.data.length > 0 && (
-            <ul className="tool-list">
-              {details.data.map((row) => (
-                <li key={row.idFormDetail || `${row.pnGroup}-${row.pnDesc}`}>
-                  <div className="tool-item-block">
-                    <Link href={`/forms/${form.idForm}/tools/${row.idFormDetail}`}>
-                      <strong>{row.pnGroup || '—'}</strong>
-                      <span className="muted">
-                        {' '}
-                        · qty {row.qty || '0'} · {row.pnDesc || ''}
-                      </span>
-                    </Link>
-                    <ToolRelatedSections
-                      tool={row}
-                      related={related}
-                      mut={mut}
-                    />
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+        <FormCardDetails form={form} canEditForm={canEditForm} />
       )}
     </article>
   )
@@ -626,19 +764,104 @@ export function FormsPage() {
       )}
 
       {!query.isLoading && !query.isError && forms.length > 0 && (
-        <div className="stack">
-          {forms.map((form) => (
-            <FormCard
-              key={form.idForm}
-              form={form}
-              expanded={expandedId === form.idForm}
-              canEditForm={canEdit}
-              onToggle={() =>
-                setExpandedId((id) => (id === form.idForm ? null : form.idForm))
-              }
-            />
-          ))}
-        </div>
+        <>
+          <div className="stack show-mobile">
+            {forms.map((form) => (
+              <FormCard
+                key={form.idForm}
+                form={form}
+                expanded={expandedId === form.idForm}
+                canEditForm={canEdit}
+                onToggle={() =>
+                  setExpandedId((id) =>
+                    id === form.idForm ? null : form.idForm,
+                  )
+                }
+              />
+            ))}
+          </div>
+
+          <div className="data-table-wrap show-desktop">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Form No</th>
+                  <th>Status</th>
+                  <th>Category</th>
+                  <th>Serviceman</th>
+                  <th>Milestone</th>
+                  <th>Updated</th>
+                  <th className="actions">{t('actions')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {forms.map((form) => {
+                  const expanded = expandedId === form.idForm
+                  const toggle = () =>
+                    setExpandedId((id) =>
+                      id === form.idForm ? null : form.idForm,
+                    )
+                  return (
+                    <Fragment key={form.idForm}>
+                      <tr
+                        className={`data-table-row is-clickable${expanded ? ' is-active' : ''}`}
+                        onClick={toggle}
+                      >
+                        <td>
+                          <strong>{form.formNo || '—'}</strong>
+                        </td>
+                        <td>
+                          <span className="chip">
+                            {form.formStatusOrder || '—'}
+                          </span>
+                        </td>
+                        <td>
+                          <span className="chip">
+                            {form.formServComment || '—'}
+                          </span>
+                        </td>
+                        <td>{form.formServName || '—'}</td>
+                        <td>{form.formMilestone || '—'}</td>
+                        <td>{formatDateDisplay(form.fromDateUpdate)}</td>
+                        <td className="actions" onClick={(e) => e.stopPropagation()}>
+                          {canEdit && (
+                            <Link
+                              className="btn btn-secondary btn-sm"
+                              href={`/forms/${form.idForm}/edit`}
+                            >
+                              Edit
+                            </Link>
+                          )}
+                          <button
+                            type="button"
+                            className="btn btn-ghost btn-sm"
+                            onClick={toggle}
+                            aria-expanded={expanded}
+                          >
+                            {expanded ? 'Hide' : 'Detail'}
+                          </button>
+                        </td>
+                      </tr>
+                      {expanded && (
+                        <tr className="data-table-detail">
+                          <td colSpan={7}>
+                            <div className="data-table-detail-inner">
+                              <OrderTimeline form={form} compact={false} />
+                              <FormCardDetails
+                                form={form}
+                                canEditForm={canEdit}
+                              />
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
 
       <Pagination

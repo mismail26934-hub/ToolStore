@@ -105,6 +105,7 @@ export type SuperiorRow = {
   statusSuperior: string
   username: string
   namaUser: string
+  idTu: string
 }
 
 export type PoRow = {

@@ -30,6 +30,25 @@ export type SaveUserInput = {
   token?: string
 }
 
+export type UserImportRow = {
+  idUsers?: string
+  username: string
+  password?: string
+  namaUser: string
+  idTu?: string
+  noTelp?: string
+  level?: string
+  status?: string
+  superiorId?: string
+}
+
+export type UserImportResult = {
+  inserted: number
+  updated: number
+  skipped: number
+  errors: { row: number; message: string }[]
+}
+
 type UserPacket = RowDataPacket & Record<string, unknown>
 
 function mapUser(row: UserPacket): UserRow {
@@ -88,10 +107,18 @@ export async function dbListUsers(
   const [rows2] = await pool.query<UserPacket[]>(
     `SELECT
        u.*,
-       COALESCE(s.nama_superior, su.nama_user, '') AS nama_superior
+       COALESCE(
+         NULLIF(NULLIF(TRIM(s.nama_user), ''), '-'),
+         NULLIF(NULLIF(TRIM(s.nama_superior), ''), '-'),
+         NULLIF(NULLIF(TRIM(su.nama_user), ''), '-'),
+         NULLIF(NULLIF(TRIM(su.username), ''), '-'),
+         ''
+       ) AS nama_superior
      FROM users u
      LEFT JOIN superiors s ON s.superior_id = u.superior_id
-     LEFT JOIN users su ON su.id_users = u.superior_id
+     LEFT JOIN users su
+       ON su.id_users = u.superior_id
+       OR (NULLIF(TRIM(s.username), '') IS NOT NULL AND su.username = s.username)
      ${whereSql}
      ORDER BY u.nama_user ASC
      LIMIT ? OFFSET ?`,
@@ -109,10 +136,18 @@ export async function dbGetUserById(idUsers: string): Promise<UserRow | null> {
   const [rows] = await pool.query<UserPacket[]>(
     `SELECT
        u.*,
-       COALESCE(s.nama_superior, su.nama_user, '') AS nama_superior
+       COALESCE(
+         NULLIF(NULLIF(TRIM(s.nama_user), ''), '-'),
+         NULLIF(NULLIF(TRIM(s.nama_superior), ''), '-'),
+         NULLIF(NULLIF(TRIM(su.nama_user), ''), '-'),
+         NULLIF(NULLIF(TRIM(su.username), ''), '-'),
+         ''
+       ) AS nama_superior
      FROM users u
      LEFT JOIN superiors s ON s.superior_id = u.superior_id
-     LEFT JOIN users su ON su.id_users = u.superior_id
+     LEFT JOIN users su
+       ON su.id_users = u.superior_id
+       OR (NULLIF(TRIM(s.username), '') IS NOT NULL AND su.username = s.username)
      WHERE u.id_users = ?
      LIMIT 1`,
     [idUsers.trim()],
@@ -184,6 +219,139 @@ export async function dbMutateUser(
   }
 
   throw new Error(`Param user tidak dikenal: ${param}`)
+}
+
+export async function dbImportUsers(
+  rows: UserImportRow[],
+): Promise<UserImportResult> {
+  const pool = getDbPool()
+  const result: UserImportResult = {
+    inserted: 0,
+    updated: 0,
+    skipped: 0,
+    errors: [],
+  }
+  const conn = await pool.getConnection()
+  try {
+    await conn.beginTransaction()
+    for (let i = 0; i < rows.length; i++) {
+      const rowNum = i + 2
+      const raw = rows[i]
+      const username = (raw.username ?? '').trim()
+      const namaUser = (raw.namaUser ?? '').trim()
+      if (!username) {
+        result.skipped += 1
+        result.errors.push({ row: rowNum, message: 'username kosong' })
+        continue
+      }
+      if (!namaUser) {
+        result.skipped += 1
+        result.errors.push({ row: rowNum, message: 'nama_user kosong' })
+        continue
+      }
+      try {
+        const idUsers = (raw.idUsers ?? '').trim()
+        const password = (raw.password ?? '').trim()
+        const level = (raw.level ?? '').trim() || 'USER'
+        const status = emptyToNull(raw.status) ?? 'ACTIVE'
+        const idTu = emptyToNull(raw.idTu)
+        const noTelp = emptyToNull(raw.noTelp)
+        const superiorId = emptyToNull(raw.superiorId)
+
+        let existingId: string | null = null
+        if (idUsers) {
+          const [byId] = await conn.query<RowDataPacket[]>(
+            `SELECT id_users, password FROM users WHERE id_users = ? LIMIT 1`,
+            [idUsers],
+          )
+          if (byId[0]) existingId = String(byId[0].id_users)
+        }
+        if (!existingId) {
+          const [byUser] = await conn.query<RowDataPacket[]>(
+            `SELECT id_users, password FROM users WHERE username = ? LIMIT 1`,
+            [username],
+          )
+          if (byUser[0]) existingId = String(byUser[0].id_users)
+        }
+
+        if (existingId) {
+          const [curr] = await conn.query<RowDataPacket[]>(
+            `SELECT password FROM users WHERE id_users = ? LIMIT 1`,
+            [existingId],
+          )
+          const nextPassword = password || String(curr[0]?.password ?? '')
+          if (!nextPassword) {
+            result.skipped += 1
+            result.errors.push({
+              row: rowNum,
+              message: 'password wajib untuk update tanpa password lama',
+            })
+            continue
+          }
+          await conn.query(
+            `UPDATE users SET
+              username = ?, password = ?, nama_user = ?, id_tu = ?,
+              no_telp = ?, level = ?, status = ?, superior_id = ?
+             WHERE id_users = ?`,
+            [
+              username,
+              nextPassword,
+              namaUser,
+              idTu,
+              noTelp,
+              level,
+              status,
+              superiorId,
+              existingId,
+            ],
+          )
+          result.updated += 1
+        } else {
+          if (!password) {
+            result.skipped += 1
+            result.errors.push({
+              row: rowNum,
+              message: 'password wajib untuk user baru',
+            })
+            continue
+          }
+          await conn.query(
+            `INSERT INTO users (
+              id_users, username, password, nama_user, foto, id_tu, no_telp,
+              token, level, status, superior_id
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
+            [
+              idUsers || newId(),
+              username,
+              password,
+              namaUser,
+              null,
+              idTu,
+              noTelp,
+              null,
+              level,
+              status,
+              superiorId,
+            ],
+          )
+          result.inserted += 1
+        }
+      } catch (e) {
+        result.skipped += 1
+        result.errors.push({
+          row: rowNum,
+          message: e instanceof Error ? e.message : String(e),
+        })
+      }
+    }
+    await conn.commit()
+  } catch (e) {
+    await conn.rollback()
+    throw e
+  } finally {
+    conn.release()
+  }
+  return result
 }
 
 export async function dbSaveFcmToken(input: {

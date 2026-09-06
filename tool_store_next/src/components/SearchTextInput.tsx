@@ -17,7 +17,11 @@ export function ClearIcon({
       className={className}
       aria-label={label}
       title={label}
-      onClick={onClick}
+      onClick={(e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        onClick()
+      }}
     >
       <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden fill="none">
         <path

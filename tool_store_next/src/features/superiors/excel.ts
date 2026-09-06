@@ -79,3 +79,59 @@ export function downloadSuperiorsTemplate() {
   a.click()
   URL.revokeObjectURL(url)
 }
+
+export type SuperiorPreviewRow = {
+  rowNum: number
+  data: SuperiorImportRow
+  errors: string[]
+  warnings: string[]
+  valid: boolean
+}
+
+export function buildSuperiorPreview(
+  rows: SuperiorImportRow[],
+): SuperiorPreviewRow[] {
+  const seenId = new Map<string, number>()
+  const seenName = new Map<string, number>()
+  return rows.map((data, i) => {
+    const rowNum = i + 2
+    const errors: string[] = []
+    const warnings: string[] = []
+    const namaSuperior = (data.namaSuperior ?? '').trim()
+    const superiorId = (data.superiorId ?? '').trim()
+
+    if (!namaSuperior) errors.push('nama_superior kosong')
+
+    if (superiorId) {
+      const key = superiorId.toLowerCase()
+      const prev = seenId.get(key)
+      if (prev != null) {
+        errors.push(`superior_id duplikat (baris ${prev})`)
+      } else {
+        seenId.set(key, rowNum)
+      }
+    }
+
+    if (namaSuperior) {
+      const key = namaSuperior.toLowerCase()
+      const prev = seenName.get(key)
+      if (prev != null) {
+        warnings.push(`nama_superior sama dengan baris ${prev}`)
+      } else {
+        seenName.set(key, rowNum)
+      }
+    }
+
+    return {
+      rowNum,
+      data: {
+        ...data,
+        namaSuperior,
+        superiorId: superiorId || undefined,
+      },
+      errors,
+      warnings,
+      valid: errors.length === 0,
+    }
+  })
+}

@@ -2,13 +2,13 @@
 
 import { useMemo, useRef, useState } from 'react'
 import {
-  buildSuperiorPreview,
-  downloadSuperiorsTemplate,
-  parseSuperiorsExcel,
-  type SuperiorPreviewRow,
-} from '@/features/superiors/excel'
-import { useSuperiorMutations } from '@/features/superiors/useSuperiors'
-import type { SuperiorImportResult } from '@/features/superiors/superiorsApi'
+  buildUserPreview,
+  downloadUsersTemplate,
+  parseUsersExcel,
+  type UserPreviewRow,
+} from '@/features/users/excel'
+import { useUserMutations } from '@/features/users/useUsers'
+import type { UserImportResult } from '@/features/users/usersApi'
 import { usePrefs } from '@/prefs/PreferencesContext'
 
 type Props = {
@@ -16,14 +16,14 @@ type Props = {
   onClose: () => void
 }
 
-export function SuperiorExcelImportModal({ open, onClose }: Props) {
+export function UserExcelImportModal({ open, onClose }: Props) {
   const { t } = usePrefs()
   const inputRef = useRef<HTMLInputElement>(null)
-  const { importRows } = useSuperiorMutations()
+  const { importRows } = useUserMutations()
   const [error, setError] = useState<string | null>(null)
-  const [result, setResult] = useState<SuperiorImportResult | null>(null)
+  const [result, setResult] = useState<UserImportResult | null>(null)
   const [fileName, setFileName] = useState<string | null>(null)
-  const [preview, setPreview] = useState<SuperiorPreviewRow[] | null>(null)
+  const [preview, setPreview] = useState<UserPreviewRow[] | null>(null)
   const [selected, setSelected] = useState<Set<number>>(new Set())
 
   const validCount = useMemo(
@@ -56,8 +56,8 @@ export function SuperiorExcelImportModal({ open, onClose }: Props) {
     setFileName(file.name)
     try {
       const buf = await file.arrayBuffer()
-      const rows = parseSuperiorsExcel(buf)
-      const built = buildSuperiorPreview(rows)
+      const rows = parseUsersExcel(buf)
+      const built = buildUserPreview(rows)
       setPreview(built)
       setSelected(new Set(built.filter((r) => r.valid).map((r) => r.rowNum)))
     } catch (e) {
@@ -114,16 +114,17 @@ export function SuperiorExcelImportModal({ open, onClose }: Props) {
         </div>
 
         <p className="muted">
-          Kolom: <code>superior_id</code> (opsional),{' '}
-          <code>nama_superior</code> (wajib), <code>status_superior</code>,{' '}
-          <code>username</code>, <code>nama_user</code>.
+          Kolom: <code>username</code> + <code>nama_user</code> (wajib),{' '}
+          <code>password</code> (wajib untuk user baru), <code>no_telp</code>,{' '}
+          <code>id_tu</code>, <code>level</code>, <code>status</code>,{' '}
+          <code>superior_id</code>, <code>id_users</code> (opsional).
         </p>
 
         <div className="row-gap">
           <button
             type="button"
             className="btn btn-secondary"
-            onClick={() => downloadSuperiorsTemplate()}
+            onClick={() => downloadUsersTemplate()}
           >
             {t('downloadTemplate')}
           </button>
@@ -204,10 +205,10 @@ export function SuperiorExcelImportModal({ open, onClose }: Props) {
                       />
                     </th>
                     <th>#</th>
-                    <th>Nama superior</th>
-                    <th>Status</th>
                     <th>Username</th>
-                    <th>Nama user</th>
+                    <th>Nama</th>
+                    <th>Level</th>
+                    <th>Password</th>
                     <th>Validasi</th>
                   </tr>
                 </thead>
@@ -240,11 +241,13 @@ export function SuperiorExcelImportModal({ open, onClose }: Props) {
                         </td>
                         <td>{row.rowNum}</td>
                         <td>
-                          <strong>{row.data.namaSuperior || '—'}</strong>
+                          <strong>{row.data.username || '—'}</strong>
                         </td>
-                        <td>{row.data.statusSuperior || '—'}</td>
-                        <td>{row.data.username || '—'}</td>
                         <td>{row.data.namaUser || '—'}</td>
+                        <td>{row.data.level || '—'}</td>
+                        <td className="muted">
+                          {row.data.password ? '••••' : '—'}
+                        </td>
                         <td>
                           <span
                             className={`chip ${statusClass}`}

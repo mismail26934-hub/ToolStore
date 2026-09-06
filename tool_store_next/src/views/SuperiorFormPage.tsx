@@ -107,16 +107,6 @@ export function SuperiorFormPage() {
         title={isAdd ? t('addSuperior') : t('editSuperior')}
         subtitle={t('superiorsSubtitle')}
       >
-        {!isAdd && (
-          <button
-            type="button"
-            className="btn btn-danger"
-            onClick={onDelete}
-            disabled={submitting}
-          >
-            Delete
-          </button>
-        )}
         <Link className="btn btn-ghost" href="/superiors">
           Back
         </Link>
@@ -132,6 +122,35 @@ export function SuperiorFormPage() {
       )}
 
       <form className="panel stack" onSubmit={onSubmit}>
+        <div className="form-panel-header">
+          <h3>{isAdd ? t('addSuperior') : t('editSuperior')}</h3>
+          {!isAdd && (
+            <button
+              type="button"
+              className="btn btn-danger btn-sm btn-with-icon"
+              onClick={onDelete}
+              disabled={submitting}
+            >
+              <svg
+                className="btn-icon-svg"
+                viewBox="0 0 24 24"
+                width="18"
+                height="18"
+                aria-hidden
+                fill="none"
+              >
+                <path
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M10 11v6M14 11v6"
+                />
+              </svg>
+              <span className="btn-label">Delete</span>
+            </button>
+          )}
+        </div>
         {!isAdd && (
           <label className="field">
             <span>Superior ID</span>

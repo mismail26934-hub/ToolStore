@@ -11,6 +11,7 @@ import {
 import { PageHeader } from '@/components/PageHeader'
 import { ClearIcon, SearchTextInput } from '@/components/SearchTextInput'
 import { Pagination } from '@/components/Pagination'
+import { UserExcelImportModal } from '@/components/UserExcelImportModal'
 import { usePrefs } from '@/prefs/PreferencesContext'
 import { useUsersList } from '@/features/users/useUsers'
 import type { UserRow } from '@/types/models'
@@ -43,14 +44,14 @@ function UserCard({ user, index }: { user: UserRow; index: number }) {
       <div className="form-card-body">
         <div className="meta-grid">
           <div>
-            <span className="muted">No. Telp</span>
-            <div className="meta-value">{user.noTelp || '—'}</div>
-          </div>
-          <div>
             <span className="muted">Superior</span>
             <div className="meta-value">
               {user.namaSuperior || user.superiorId || '—'}
             </div>
+          </div>
+          <div>
+            <span className="muted">No. Telp</span>
+            <div className="meta-value">{user.noTelp || '—'}</div>
           </div>
           <div>
             <span className="muted">ID TU</span>
@@ -84,6 +85,7 @@ export function UsersPage() {
   const [keyword, setKeyword] = useState(params.get('q') ?? '')
   const [searchField, setSearchField] = useState(params.get('field') ?? 'all')
   const [searchOpen, setSearchOpen] = useState(() => !!params.get('q')?.trim())
+  const [importOpen, setImportOpen] = useState(false)
   const searchInputRef = useRef<HTMLInputElement>(null)
   const hasActiveSearch = !!params.get('q')?.trim()
 
@@ -176,6 +178,31 @@ export function UsersPage() {
             />
           </svg>
           <span className="btn-label">{t('search')}</span>
+        </button>
+        <button
+          type="button"
+          className="btn btn-ghost btn-with-icon"
+          title={t('importExcel')}
+          aria-label={t('importExcel')}
+          onClick={() => setImportOpen(true)}
+        >
+          <svg
+            className="btn-icon-svg"
+            viewBox="0 0 24 24"
+            width="18"
+            height="18"
+            aria-hidden
+            fill="none"
+          >
+            <path
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M12 3v12M8 11l4 4 4-4M5 19h14"
+            />
+          </svg>
+          <span className="btn-label">{t('importExcel')}</span>
         </button>
         <Link
           className="btn btn-secondary btn-with-icon"
@@ -275,15 +302,70 @@ export function UsersPage() {
       )}
 
       {!query.isLoading && !query.isError && users.length > 0 && (
-        <div className="card-grid">
-          {users.map((user, i) => (
-            <UserCard
-              key={user.idUsers || `${user.username}-${i}`}
-              user={user}
-              index={(page - 1) * USER_PAGE_SIZE + i}
-            />
-          ))}
-        </div>
+        <>
+          <div className="card-grid show-mobile">
+            {users.map((user, i) => (
+              <UserCard
+                key={user.idUsers || `${user.username}-${i}`}
+                user={user}
+                index={(page - 1) * USER_PAGE_SIZE + i}
+              />
+            ))}
+          </div>
+
+          <div className="data-table-wrap show-desktop">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Username</th>
+                  <th>Nama</th>
+                  <th>Superior</th>
+                  <th>Level</th>
+                  <th>Status</th>
+                  <th>No. Telp</th>
+                  <th className="actions">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.map((user, i) => {
+                  const tone = statusTone(user.status)
+                  const index = (page - 1) * USER_PAGE_SIZE + i
+                  return (
+                    <tr
+                      key={user.idUsers || `${user.username}-${i}`}
+                      className="data-table-row"
+                    >
+                      <td>{index + 1}</td>
+                      <td>
+                        <strong>{user.username || '—'}</strong>
+                      </td>
+                      <td>{user.namaUser || '—'}</td>
+                      <td>{user.namaSuperior || user.superiorId || '—'}</td>
+                      <td>
+                        <span className="chip">{user.level || '—'}</span>
+                      </td>
+                      <td>
+                        <span className={`chip chip-${tone}`}>
+                          {user.status || '—'}
+                        </span>
+                      </td>
+                      <td>{user.noTelp || '—'}</td>
+                      <td className="actions">
+                        <Link
+                          className="btn btn-secondary btn-sm"
+                          href={`/users/${encodeURIComponent(user.idUsers)}/edit`}
+                        >
+                          Edit
+                        </Link>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
 
       <Pagination
@@ -293,6 +375,11 @@ export function UsersPage() {
         pageSize={USER_PAGE_SIZE}
         onPageChange={setPage}
         disabled={query.isFetching}
+      />
+
+      <UserExcelImportModal
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
       />
     </div>
   )

@@ -177,16 +177,6 @@ export function FormHeaderPage() {
         title={isAdd ? 'Add Form' : 'Edit Form'}
         subtitle="Request header"
       >
-        {!isAdd && allowed && (
-          <button
-            type="button"
-            className="btn btn-danger"
-            onClick={onDelete}
-            disabled={mutate.isPending}
-          >
-            Delete
-          </button>
-        )}
         <Link className="btn btn-ghost" href="/forms">
           Back
         </Link>
@@ -198,6 +188,35 @@ export function FormHeaderPage() {
       )}
 
       <form className="panel stack" onSubmit={onSubmit}>
+        <div className="form-panel-header">
+          <h3>Request header</h3>
+          {!isAdd && allowed && (
+            <button
+              type="button"
+              className="btn btn-danger btn-sm btn-with-icon"
+              onClick={onDelete}
+              disabled={mutate.isPending}
+            >
+              <svg
+                className="btn-icon-svg"
+                viewBox="0 0 24 24"
+                width="18"
+                height="18"
+                aria-hidden
+                fill="none"
+              >
+                <path
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M10 11v6M14 11v6"
+                />
+              </svg>
+              <span className="btn-label">Delete</span>
+            </button>
+          )}
+        </div>
         <div className="grid-2">
           <label className="field">
             <span>Form Number</span>

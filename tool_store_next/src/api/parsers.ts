@@ -261,6 +261,7 @@ export function parseSuperiorRow(json: Record<string, unknown>): SuperiorRow {
     statusSuperior: s(json.status_superior),
     username: s(json.username),
     namaUser: s(json.nama_user),
+    idTu: s(json.id_tu),
   }
 }
 

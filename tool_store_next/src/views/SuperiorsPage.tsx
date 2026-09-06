@@ -22,8 +22,8 @@ function SuperiorCard({ row }: { row: SuperiorRow }) {
     <article className="form-card user-card">
       <div className="form-card-head user-card-head">
         <div>
-          <div className="form-card-title">{row.namaSuperior || '—'}</div>
-          <div className="muted mono">{row.superiorId || '—'}</div>
+          <div className="form-card-title">{row.username || '—'}</div>
+          <div className="muted">{row.namaUser || '—'}</div>
         </div>
         <div className="chip-row">
           <span className="chip">{row.statusSuperior || '—'}</span>
@@ -32,12 +32,8 @@ function SuperiorCard({ row }: { row: SuperiorRow }) {
       <div className="form-card-body">
         <div className="meta-grid">
           <div>
-            <span className="muted">Username</span>
-            <div className="meta-value">{row.username || '—'}</div>
-          </div>
-          <div>
-            <span className="muted">Nama user</span>
-            <div className="meta-value">{row.namaUser || '—'}</div>
+            <span className="muted">Nama superior</span>
+            <div className="meta-value">{row.namaSuperior || '—'}</div>
           </div>
         </div>
         <div className="section-title-row">
@@ -268,11 +264,49 @@ export function SuperiorsPage() {
       )}
 
       {!query.isLoading && !query.isError && items.length > 0 && (
-        <div className="card-grid">
-          {items.map((row) => (
-            <SuperiorCard key={row.superiorId} row={row} />
-          ))}
-        </div>
+        <>
+          <div className="card-grid show-mobile">
+            {items.map((row) => (
+              <SuperiorCard key={row.superiorId} row={row} />
+            ))}
+          </div>
+
+          <div className="data-table-wrap show-desktop">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Username</th>
+                  <th>Nama user</th>
+                  <th>Nama superior</th>
+                  <th>Status</th>
+                  <th className="actions">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((row) => (
+                  <tr key={row.superiorId} className="data-table-row">
+                    <td>{row.username || '—'}</td>
+                    <td>{row.namaUser || '—'}</td>
+                    <td>
+                      <strong>{row.namaSuperior || '—'}</strong>
+                    </td>
+                    <td>
+                      <span className="chip">{row.statusSuperior || '—'}</span>
+                    </td>
+                    <td className="actions">
+                      <Link
+                        className="btn btn-secondary btn-sm"
+                        href={`/superiors/${encodeURIComponent(row.superiorId)}/edit`}
+                      >
+                        Edit
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
 
       <Pagination

@@ -4,8 +4,10 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { useAuth } from '@/auth/AuthContext'
 import { updateSessionProfile } from '@/auth/session'
 import { SuperiorPickerModal } from '@/components/SuperiorPickerModal'
+import { SuperiorPickField } from '@/components/SuperiorPickField'
 import { usePrefs } from '@/prefs/PreferencesContext'
 import { useUser, useUserMutations } from '@/features/users/useUsers'
+import { superiorDisplayName } from '@/lib/displayLabel'
 
 type FormState = {
   idUsers: string
@@ -57,7 +59,9 @@ export function ProfileModal({ open, onClose }: Props) {
         level: remote.data.level,
         status: remote.data.status,
         superiorId: remote.data.superiorId,
-        namaSuperior: remote.data.namaSuperior,
+        namaSuperior: superiorDisplayName({
+          namaSuperior: remote.data.namaSuperior,
+        }),
       })
       return
     }
@@ -73,7 +77,9 @@ export function ProfileModal({ open, onClose }: Props) {
         level: user.level,
         status: user.status,
         superiorId: user.superiorId,
-        namaSuperior: user.namaSuperior,
+        namaSuperior: superiorDisplayName({
+          namaSuperior: user.namaSuperior,
+        }),
       })
     }
   }, [open, remote.data, remote.isLoading, user])
@@ -241,24 +247,12 @@ export function ProfileModal({ open, onClose }: Props) {
                 </label>
                 <label className="field">
                   <span>Superior</span>
-                  <div className="password-row">
-                    <input
-                      value={
-                        form.namaSuperior
-                          ? `${form.namaSuperior} (${form.superiorId})`
-                          : form.superiorId
-                      }
-                      readOnly
-                      placeholder="Pilih superior…"
-                    />
-                    <button
-                      type="button"
-                      className="btn btn-secondary"
-                      onClick={() => setPickerOpen(true)}
-                    >
-                      Pick
-                    </button>
-                  </div>
+                  <SuperiorPickField
+                    value={form.namaSuperior || ''}
+                    showClear={!!form.superiorId}
+                    onOpen={() => setPickerOpen(true)}
+                    onClear={() => patch({ superiorId: '', namaSuperior: '' })}
+                  />
                 </label>
               </div>
 
@@ -291,8 +285,7 @@ export function ProfileModal({ open, onClose }: Props) {
           onSelect={(row) =>
             patch({
               superiorId: row.superiorId,
-              namaSuperior:
-                row.namaSuperior || row.namaUser || row.username || '',
+              namaSuperior: superiorDisplayName(row),
             })
           }
         />

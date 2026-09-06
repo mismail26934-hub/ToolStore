@@ -5,6 +5,10 @@ import type { SuperiorRow } from '../types/models'
 import { useSuperiors } from '../features/users/useUsers'
 import { usePrefs } from '@/prefs/PreferencesContext'
 import { ClearIcon, SearchTextInput } from '@/components/SearchTextInput'
+import {
+  meaningfulLabel,
+  superiorDisplayName,
+} from '@/lib/displayLabel'
 
 type Props = {
   open: boolean
@@ -13,7 +17,7 @@ type Props = {
 }
 
 function displayName(row: SuperiorRow) {
-  return row.namaSuperior || row.namaUser || row.username || row.superiorId || '—'
+  return superiorDisplayName(row) || '—'
 }
 
 function SearchIcon() {
@@ -189,8 +193,10 @@ export function SuperiorPickerModal({ open, onClose, onSelect }: Props) {
               >
                 <strong>{displayName(row)}</strong>
                 <span className="muted">
-                  {row.superiorId}
-                  {row.statusSuperior ? ` · ${row.statusSuperior}` : ''}
+                  ID TU: {meaningfulLabel(row.idTu) || '—'}
+                  {meaningfulLabel(row.statusSuperior)
+                    ? ` · ${row.statusSuperior}`
+                    : ''}
                 </span>
               </button>
             </li>

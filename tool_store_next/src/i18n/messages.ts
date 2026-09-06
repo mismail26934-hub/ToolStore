@@ -18,6 +18,13 @@ export type MessageKey =
   | 'importExcel'
   | 'downloadTemplate'
   | 'chooseFile'
+  | 'importSelected'
+  | 'selectAllValid'
+  | 'clearSelection'
+  | 'previewReady'
+  | 'rowOk'
+  | 'rowError'
+  | 'rowWarn'
   | 'prevPage'
   | 'nextPage'
   | 'showingRange'
@@ -97,6 +104,13 @@ const id: Dictionary = {
   importExcel: 'Import Excel',
   downloadTemplate: 'Download template',
   chooseFile: 'Pilih file',
+  importSelected: 'Import terpilih',
+  selectAllValid: 'Pilih semua valid',
+  clearSelection: 'Hapus pilihan',
+  previewReady: 'Preview {n} baris — centang data yang akan diimport',
+  rowOk: 'OK',
+  rowError: 'Error',
+  rowWarn: 'Peringatan',
   prevPage: 'Sebelumnya',
   nextPage: 'Berikutnya',
   showingRange: 'Menampilkan {from}–{to} dari {total}',
@@ -176,6 +190,13 @@ const en: Dictionary = {
   importExcel: 'Import Excel',
   downloadTemplate: 'Download template',
   chooseFile: 'Choose file',
+  importSelected: 'Import selected',
+  selectAllValid: 'Select all valid',
+  clearSelection: 'Clear selection',
+  previewReady: 'Preview {n} rows — check rows to import',
+  rowOk: 'OK',
+  rowError: 'Error',
+  rowWarn: 'Warning',
   prevPage: 'Previous',
   nextPage: 'Next',
   showingRange: 'Showing {from}–{to} of {total}',

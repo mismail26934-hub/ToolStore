@@ -14,7 +14,9 @@ import {
   editUser,
   fetchUserById,
   fetchUsers,
+  importUsers,
   type SaveUserInput,
+  type UserImportRow,
   type UserListFilters,
 } from './usersApi'
 
@@ -79,6 +81,10 @@ export function useUserMutations() {
     mutationFn: (input: SaveUserInput) => deleteUser(input),
     onSuccess: invalidate,
   })
+  const importRows = useMutation({
+    mutationFn: (rows: UserImportRow[]) => importUsers(rows),
+    onSuccess: invalidate,
+  })
 
-  return { add, edit, remove }
+  return { add, edit, remove, importRows }
 }
