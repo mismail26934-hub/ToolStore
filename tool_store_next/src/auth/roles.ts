@@ -21,9 +21,16 @@ export function canMutatePo(user: SessionUser | null) {
   return lv === 'SUPERADMIN' || lv === 'TOOL_KEEPER'
 }
 
-export function canMutateSo(user: SessionUser | null) {
-  const lv = levelOf(user)
-  return lv === 'SUPERADMIN' || lv === 'COUNTER' || lv === 'GA'
+export function canMutateSo(
+  user: { level?: string } | null,
+  valType?: string | null,
+) {
+  const lv = (user?.level ?? '').toUpperCase()
+  if (lv === 'SUPERADMIN') return true
+  const vt = (valType ?? '').trim().toUpperCase()
+  if (lv === 'COUNTER') return vt === 'CAT'
+  if (lv === 'GA') return vt === 'VENDOR'
+  return false
 }
 
 export function canMutateRcvWh(user: SessionUser | null) {

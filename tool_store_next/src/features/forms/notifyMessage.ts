@@ -1,6 +1,7 @@
 import { formatActionNote } from '@/lib/actionNotes'
 import { formatDateDisplay } from '@/lib/dateFormat'
 import { formatThousands, parseQtyNumber } from '@/lib/numberFormat'
+import { soNoteLabel, soSectionLabel } from '@/lib/orderDocLabel'
 import type {
   PoRow,
   RcvToolRow,
@@ -115,9 +116,9 @@ function itemBlock(
     field('Explanation', tool.explan),
     field('Action note', formatActionNote(tool.actionNote)),
     field('PO', joinUnique(related.pos.map((r) => r.poNo))),
-    field('SO/PR', joinUnique(related.sos.map((r) => r.so))),
+    field(soSectionLabel(tool.valType), joinUnique(related.sos.map((r) => r.so))),
     field('ETA', joinUnique(related.sos.map((r) => formatDateDisplay(r.eta)))),
-    field('Note SO/PR', joinUnique(related.sos.map((r) => r.noteSo))),
+    field(soNoteLabel(tool.valType), joinUnique(related.sos.map((r) => r.noteSo))),
     field('Qty WH Received', formatReceivedQty(whQty, orderQty, whDates)),
     field(
       'Qty Tool Room Received',

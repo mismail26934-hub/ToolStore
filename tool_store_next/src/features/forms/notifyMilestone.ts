@@ -14,6 +14,11 @@ import {
 } from '@/features/forms/formMilestones'
 import { buildNotifyMessage } from '@/features/forms/notifyMessage'
 import {
+  formValTypeMix,
+  processorLevels,
+  processorRoleLabel,
+} from '@/lib/orderDocLabel'
+import {
   isWhacenterEnabled,
   normalizeWaNumber,
   sendWhacenterMessage,
@@ -134,6 +139,92 @@ const RULES: Record<string, NotifyRule> = {
     includeServiceman: true,
     includeSuperior: true,
   },
+}
+
+type ProgressPlan = {
+  action: string
+  info: string
+  infoOnly?: boolean
+  actorLevels: string[]
+  includeSuperiorActor?: boolean
+  includeServicemanInfo?: boolean
+  includeSuperiorInfo?: boolean
+}
+
+function progressPlan(next: string, mix: ReturnType<typeof formValTypeMix>): ProgressPlan | null {
+  const processor = processorRoleLabel(mix)
+  const orderLevels = processorLevels(mix)
+
+  if (next === 'CHECK BY TOOL STORE') {
+    return {
+      action: 'Superior: Mohon Approval',
+      info: 'Request Anda sudah diajukan ke superior',
+      actorLevels: [],
+      includeSuperiorActor: true,
+      includeServicemanInfo: true,
+    }
+  }
+  if (next === 'SUPERIOR APPROVED') {
+    return {
+      action: 'Service Admin: Mohon review',
+      info: 'Superior sudah approve. Menunggu Review Service Admin',
+      actorLevels: ['SERVICE_ADMIN'],
+      includeServicemanInfo: true,
+    }
+  }
+  if (next === 'REVIEWED BY SERVICE ADMIN') {
+    return {
+      action: 'Dept Head: Mohon approval',
+      info: 'Service Admin sudah review. Menunggu Approval Dept Head',
+      actorLevels: ['HEAD_SERVICE'],
+      includeServicemanInfo: true,
+    }
+  }
+  if (next === 'APPROVED BY SERVICE DEPT HEAD') {
+    return {
+      action: `${processor}: Silahkan Diproses Order.`,
+      info: 'Dept Head sudah approve. Menunggu proses order tool',
+      actorLevels: orderLevels,
+      includeServicemanInfo: true,
+    }
+  }
+  if (next === 'PROCESSING ORDER' || next === 'ORDER PROCESSED') {
+    const line = `${processor} sudah melakukan proses order.`
+    return {
+      action: line,
+      info: line,
+      actorLevels: ['WH'],
+      includeServicemanInfo: true,
+    }
+  }
+  if (next === 'PARTIAL RECEIVED BY WH/GA' || next === 'RECEIVED BY WH/GA') {
+    const amount = next.startsWith('PARTIAL') ? 'sebagian' : 'semua'
+    const line = `Tool sudah diterima WH (${amount})`
+    return {
+      action: line,
+      info: line,
+      actorLevels: ['TOOL_KEEPER'],
+      includeServicemanInfo: true,
+    }
+  }
+  if (
+    next === 'PARTIAL RECEIVED TOOL STORE' ||
+    next === 'PARTIAL RECEIVED BY TOOL STORE' ||
+    next === 'RECEIVED TOOL STORE' ||
+    next === 'RECEIVED BY TOOL STORE'
+  ) {
+    const amount = next.includes('PARTIAL') ? 'sebagian' : 'semua'
+    const line = `Tool sudah diterima tool room (${amount})`
+    return {
+      action: line,
+      info: line,
+      infoOnly: true,
+      actorLevels: [],
+      includeServicemanInfo: true,
+      includeSuperiorInfo: true,
+    }
+  }
+  return null
 }
 
 type UserPhone = {
@@ -295,27 +386,52 @@ export async function notifyFormMilestoneChange(input: {
     ? await findUserById(serviceman.superiorId)
     : null
 
-  const phones = new Map<string, string>()
-  if (rule.includeServiceman && serviceman) {
-    addPhone(phones, serviceman.noTelp, 'serviceman')
-  }
-  if (rule.includeSuperior && superior) {
-    addPhone(phones, superior.noTelp, 'superior')
-  }
-  if (rule.levels?.length) {
-    const roleUsers = await findUsersByLevels(rule.levels)
-    for (const u of roleUsers) addPhone(phones, u.noTelp, u.namaUser || u.idUsers)
+  const mix = formValTypeMix(tools.map((t) => t.valType))
+  const plan = isBlocked ? null : progressPlan(next, mix)
+
+  const actionPhones = new Map<string, string>()
+  const infoPhones = new Map<string, string>()
+
+  if (plan) {
+    if (plan.includeSuperiorActor && superior) {
+      addPhone(actionPhones, superior.noTelp, 'superior')
+    }
+    if (plan.actorLevels.length) {
+      const roleUsers = await findUsersByLevels(plan.actorLevels)
+      for (const u of roleUsers) {
+        addPhone(actionPhones, u.noTelp, u.namaUser || u.idUsers)
+      }
+    }
+    if (plan.includeServicemanInfo && serviceman) {
+      addPhone(infoPhones, serviceman.noTelp, 'serviceman')
+    }
+    if (plan.includeSuperiorInfo && superior) {
+      addPhone(infoPhones, superior.noTelp, 'superior')
+    }
+    for (const number of actionPhones.keys()) infoPhones.delete(number)
+  } else {
+    if (rule.includeServiceman && serviceman) {
+      addPhone(actionPhones, serviceman.noTelp, 'serviceman')
+    }
+    if (rule.includeSuperior && superior) {
+      addPhone(actionPhones, superior.noTelp, 'superior')
+    }
+    if (rule.levels?.length) {
+      const roleUsers = await findUsersByLevels(rule.levels)
+      for (const u of roleUsers) {
+        addPhone(actionPhones, u.noTelp, u.namaUser || u.idUsers)
+      }
+    }
   }
 
-  if (phones.size === 0) {
+  if (actionPhones.size === 0 && infoPhones.size === 0) {
     console.warn(
       `[whacenter] skip form ${input.idForm}: tidak ada nomor untuk ${next}`,
     )
     return
   }
 
-  const message = buildNotifyMessage({
-    rule,
+  const payload = {
     formNo,
     formStatusOrder: form?.formStatusOrder || '',
     formCategory: form?.formCategory || '',
@@ -329,10 +445,32 @@ export async function notifyFormMilestoneChange(input: {
     sos,
     whs,
     rooms,
+  }
+
+  const actionText = plan?.action ?? rule.action
+  const infoText = plan?.info ?? rule.action
+  const actionMessage = buildNotifyMessage({
+    rule: { ...rule, action: actionText },
+    ...payload,
+  })
+  const infoMessage = buildNotifyMessage({
+    rule: { ...rule, action: infoText },
+    ...payload,
   })
 
+  const jobs: Array<{ number: string; message: string }> = [
+    ...[...actionPhones.keys()].map((number) => ({
+      number,
+      message: actionMessage,
+    })),
+    ...[...infoPhones.keys()].map((number) => ({
+      number,
+      message: infoMessage,
+    })),
+  ]
+
   const results = await Promise.allSettled(
-    [...phones.keys()].map((number) => sendWhacenterMessage({ number, message })),
+    jobs.map((job) => sendWhacenterMessage(job)),
   )
   let sent = 0
   for (const [i, result] of results.entries()) {
@@ -341,8 +479,7 @@ export async function notifyFormMilestoneChange(input: {
       continue
     }
     if (!result.value.ok) {
-      const number = [...phones.keys()][i]
-      console.error('[whacenter] send failed', number, result.value.error)
+      console.error('[whacenter] send failed', jobs[i]?.number, result.value.error)
       continue
     }
     sent += 1

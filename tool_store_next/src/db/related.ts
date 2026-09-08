@@ -1,5 +1,6 @@
 import type { ResultSetHeader, RowDataPacket } from 'mysql2'
 import { ApiParam } from '@/api/params'
+import { canMutateSo } from '@/auth/roles'
 import { backupRowBeforeChange } from '@/db/backup'
 import { emptyToNull, newId, s } from '@/db/helpers'
 import { getDbPool } from '@/db/pool'
@@ -156,6 +157,34 @@ export async function dbListSoByForm(idForm: string): Promise<SoRow[]> {
   return rows.map(mapSo)
 }
 
+async function assertCanMutateSo(idFormDetail: string, userId?: string) {
+  const pool = getDbPool()
+  const id = idFormDetail.trim()
+  if (!id) throw new Error('id_form_detail wajib diisi')
+
+  const [toolRows] = await pool.query<RowDataPacket[]>(
+    `SELECT val_type FROM form_details WHERE id_form_detail = ? LIMIT 1`,
+    [id],
+  )
+  const valType = s(toolRows[0]?.val_type)
+
+  const uid = userId?.trim() ?? ''
+  let level = ''
+  if (uid) {
+    const [userRows] = await pool.query<RowDataPacket[]>(
+      `SELECT level FROM users WHERE TRIM(id_users) = ? LIMIT 1`,
+      [uid],
+    )
+    level = s(userRows[0]?.level)
+  }
+
+  if (!canMutateSo({ level }, valType)) {
+    throw new Error(
+      'SO / PR: CAT hanya Counter, VENDOR hanya GA. Super Admin boleh keduanya.',
+    )
+  }
+}
+
 export async function dbMutateSo(input: {
   param: string
   idSo?: string
@@ -167,6 +196,8 @@ export async function dbMutateSo(input: {
   idUpdateSo?: string
 }): Promise<string> {
   const pool = getDbPool()
+  await assertCanMutateSo(input.idFormDetail, input.idUpdateSo)
+
   if (input.param === ApiParam.deleteSo) {
     const id = input.idSo?.trim() ?? ''
     await backupRowBeforeChange({

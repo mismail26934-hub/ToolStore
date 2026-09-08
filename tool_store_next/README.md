@@ -104,11 +104,19 @@ Dokumentasi ringkas semua perubahan UI/UX dan perilaku aplikasi di branch Next.j
 - UI inline: label + tombol **+**, nilai + ikon **edit**.
 - Add/Edit lewat **modal**; **Delete** hanya di dalam modal (header, kanan judul) agar tidak terklik tidak sengaja.
 - Modal actions: **Close** kiri, **Save** kanan.
+- Label dokumen order (`so` table) mengikuti `val_type`:
+  - **CAT** → **SO (Sales Order Internal)**
+  - **VENDOR** → **PO (Purchase Order)**
+  - Kosong / lain → SO / PR
 - **SO / PR** ditampilkan sebagai **mini-tabel** full-width dengan kolom:
-  - SO / PR number
+  - Number
   - ETA (`dd/mm/yyyy`)
-  - Note SO / PR
+  - Note
   - Edit
+- Isi dokumen itu mengikuti `form_details.val_type`:
+  - **CAT** → `COUNTER` (dan SUPERADMIN)
+  - **VENDOR** → `GA` (dan SUPERADMIN)
+  - Kosong / nilai lain → hanya SUPERADMIN
 - Lock cascade tetap:
   - PO terkunci jika SO sudah ada
   - SO terkunci jika WH sudah ada
@@ -258,22 +266,24 @@ Termasuk:
 
 #### Mapping penerima
 
-| Step | Milestone (disimpan) | Alias yang juga dikenali | Kirim ke |
-|------|----------------------|--------------------------|----------|
-| 1 | `CHECK BY TOOL STORE` | — | **Superior serviceman** |
-| 2 | `SUPERIOR APPROVED` | — | Semua user aktif `SERVICE_ADMIN` |
-| 3 | `REVIEWED BY SERVICE ADMIN` | — | Semua user aktif `HEAD_SERVICE` |
-| 4 | `APPROVED BY SERVICE DEPT. HEAD` | (titik dihapus saat match) | Semua user aktif `COUNTER` **dan** `GA` |
-| 5 | `PROCESSING ORDER` | `ORDER PROCESSED` | Semua user aktif `WH` **+ serviceman** |
-| 6 | `RECEIVED BY WH/GA` | — | Semua user aktif `TOOL_KEEPER` **+ serviceman** |
-| 6 (partial) | `PARTIAL RECEIVED BY WH/GA` | — | sama seperti step 6 |
-| 7 | `RECEIVED TOOL STORE` | `RECEIVED BY TOOL STORE` | **Serviceman + superior** |
-| 7 (partial) | `PARTIAL RECEIVED TOOL STORE` | `PARTIAL RECEIVED BY TOOL STORE` | sama seperti step 7 |
-| — | `REJECTED BY SUPERIOR` | — | **Serviceman** |
-| — | `HOLD BY SERVICE ADMIN` | — | **Serviceman + superior** |
-| — | `REJECTED BY SERVICE DEPT. HEAD` | (titik dihapus saat match) | **Serviceman + superior** |
+Step 1–7 memakai **dua teks**: instruksi (penerima aksi) dan info (serviceman). Nomor yang sama dikirim **sekali**, memakai versi **instruksi** jika orang itu juga penerima aksi.
 
-Nomor duplikat (orang yang sama / nomor yang sama) dikirim **sekali**.
+| Step | Milestone (disimpan) | Instruksi (penerima aksi) | Info (serviceman) |
+|------|----------------------|---------------------------|-------------------|
+| 1 | `CHECK BY TOOL STORE` | Superior: Mohon Approval | Request Anda sudah diajukan ke superior |
+| 2 | `SUPERIOR APPROVED` | Service Admin: Mohon review | Superior sudah approve. Menunggu Review Service Admin |
+| 3 | `REVIEWED BY SERVICE ADMIN` | Dept Head: Mohon approval | Service Admin sudah review. Menunggu Approval Dept Head |
+| 4 | `APPROVED BY SERVICE DEPT. HEAD` | CAT → Counter; VENDOR → GA; campuran / kosong → Counter/GA: Silahkan Diproses Order. | Dept Head sudah approve. Menunggu proses order tool |
+| 5 | `PROCESSING ORDER` | WH: Counter / GA / Counter/GA sudah melakukan proses order. | teks yang sama |
+| 6 | `RECEIVED BY WH/GA` / partial | Tool Keeper: Tool sudah diterima WH (semua/sebagian) | teks yang sama |
+| 7 | `RECEIVED TOOL STORE` / partial | — (info saja) | Serviceman + superior: Tool sudah diterima tool room (semua/sebagian) |
+| — | `REJECTED BY SUPERIOR` | — | Serviceman (satu teks tolak) |
+| — | `HOLD BY SERVICE ADMIN` | — | Serviceman + superior |
+| — | `REJECTED BY SERVICE DEPT. HEAD` | — | Serviceman + superior |
+
+Step 4–5: `val_type` dihitung dari **semua item** form (`formValTypeMix`). Semua CAT → Counter; semua VENDOR → GA; selain itu Counter **dan** GA.
+
+Nomor duplikat dikirim **sekali**.
 
 #### Lookup Superior dan Serviceman
 
@@ -318,13 +328,14 @@ Contoh struktur:
 
 ```
 🔧 Tool Store — Step 4/7
-Dept Head sudah approve. Silakan proses SO / PR (Counter / GA).
+Counter: Silahkan Diproses Order.
 
 Form *0002*  ·  HOLDER / DAMAGE
 Serviceman: Mekanik1
 Items: *2*
 Status: APPROVED BY SERVICE DEPT. HEAD
 Qty Order: 22
+```
 
 Buka di browser:
 https://host/forms?form_no=0002
@@ -357,19 +368,17 @@ Comment approval (hanya jika terisi), di bawah Qty Order / tautan:
 
 **Link browser:** diletakkan **langsung di bawah Qty Order**, URL di baris sendiri (tanpa markdown). `APP_BASE_URL` harus `https://` + domain agar WhatsApp menjadikannya tautan (bukan `localhost`). `AuthGuard` menyimpan query di `login?from=` agar setelah login tetap expand.
 
-Teks aksi per step:
+Teks aksi per step (baris di bawah banner):
 
-| Step | Judul di pesan | Teks aksi |
-|------|----------------|-----------|
-| 1 | Permintaan Order | Request diajukan. Silakan approval superior. |
-| 2 | Persetujuan Order 1 | Superior sudah approve. Silakan review Service Admin. |
-| 3 | Review Order | Service Admin sudah review. Silakan approval Dept Head. |
-| 4 | Persetujuan Order 2 | Dept Head sudah approve. Silakan proses SO / PR (Counter / GA). |
-| 5 | Proses Order | SO / PR sudah ada. Menunggu penerimaan gudang (WH). |
-| 6 partial | WH Received (sebagian) | Sebagian tool sudah diterima WH. Silakan serah terima tool room. |
-| 6 | WH Received | Semua tool sudah diterima WH. Silakan serah terima tool room. |
-| 7 partial | Tool Received (sebagian) | Sebagian tool sudah diterima tool room. |
-| 7 | Tool Received | Semua tool sudah diterima tool room. |
+| Step | Instruksi | Info serviceman |
+|------|-----------|-----------------|
+| 1 | Superior: Mohon Approval | Request Anda sudah diajukan ke superior |
+| 2 | Service Admin: Mohon review | Superior sudah approve. Menunggu Review Service Admin |
+| 3 | Dept Head: Mohon approval | Service Admin sudah review. Menunggu Approval Dept Head |
+| 4 | Counter / GA / Counter/GA: Silahkan Diproses Order. | Dept Head sudah approve. Menunggu proses order tool |
+| 5 | Counter / GA / Counter/GA sudah melakukan proses order. | sama |
+| 6 | Tool sudah diterima WH (sebagian/semua) | sama |
+| 7 | — | Tool sudah diterima tool room (sebagian/semua) |
 
 #### Konfigurasi env
 

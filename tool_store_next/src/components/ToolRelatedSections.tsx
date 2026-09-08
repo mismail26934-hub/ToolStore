@@ -14,6 +14,11 @@ import {
 import { DateInput } from '@/components/DateInput'
 import { syncFormProcessMilestone } from '@/features/forms/syncFormProcessMilestone'
 import { formatDateDisplay } from '@/lib/dateFormat'
+import {
+  soNoteLabel,
+  soNumberLabel,
+  soSectionLabel,
+} from '@/lib/orderDocLabel'
 import { useFormRelated, useRelatedMutations } from '@/features/related/useRelated'
 import type {
   FormRow,
@@ -217,6 +222,10 @@ export function ToolRelatedSections({
   const sos = byDetail(related.so.data, tool.idFormDetail)
   const whs = byDetail(related.rcvWh.data, tool.idFormDetail)
   const rooms = byDetail(related.rcvTool.data, tool.idFormDetail)
+  const canSo = canMutateSo(user, tool.valType)
+  const soLabel = soSectionLabel(tool.valType)
+  const soNumLabel = soNumberLabel(tool.valType)
+  const soNote = soNoteLabel(tool.valType)
 
   const busy =
     mut.po.isPending ||
@@ -296,10 +305,15 @@ export function ToolRelatedSections({
     const so = String(fd.get('so') ?? '').trim()
     const noteSo = String(fd.get('note_so') ?? '').trim()
     const eta = dateField.trim()
-    if (!so) return setError('SO / PR number wajib diisi')
+    if (!so) return setError(`${soNumLabel} wajib diisi`)
     if (!eta) return setError('ETA wajib diisi')
     if (whs.length > 0)
       return setError('SO terkunci karena WH receive sudah ada')
+    if (!canMutateSo(user, tool.valType)) {
+      return setError(
+        'SO / PR: CAT hanya Counter, VENDOR hanya GA. Super Admin boleh keduanya.',
+      )
+    }
     try {
       await mut.so.mutateAsync({
         param:
@@ -397,7 +411,8 @@ export function ToolRelatedSections({
 
   const removeSo = async (row: SoRow) => {
     if (whs.length > 0) return
-    if (!window.confirm(`Hapus SO ${row.so || ''}?`)) return
+    if (!canMutateSo(user, tool.valType)) return
+    if (!window.confirm(`Hapus ${soLabel} ${row.so || ''}?`)) return
     try {
       await mut.so.mutateAsync({
         param: ApiParam.deleteSo,
@@ -483,8 +498,8 @@ export function ToolRelatedSections({
         </RelatedField>
 
         <RelatedField
-          label="SO / PR"
-          canAdd={canMutateSo(user) && !soLocked}
+          label={soLabel}
+          canAdd={canSo && !soLocked}
           onAdd={() => openDialog({ kind: 'so' })}
           wide
         >
@@ -494,10 +509,10 @@ export function ToolRelatedSections({
               <table className="related-data-table">
                 <thead>
                   <tr>
-                    <th>SO / PR number</th>
+                    <th>{soNumLabel}</th>
                     <th>ETA</th>
-                    <th>Note SO / PR</th>
-                    {canMutateSo(user) && !soLocked && <th className="actions" />}
+                    <th>{soNote}</th>
+                    {canSo && !soLocked && <th className="actions" />}
                   </tr>
                 </thead>
                 <tbody>
@@ -506,7 +521,7 @@ export function ToolRelatedSections({
                       <td>{row.so || '—'}</td>
                       <td>{formatDateDisplay(row.eta)}</td>
                       <td>{row.noteSo?.trim() || '—'}</td>
-                      {canMutateSo(user) && !soLocked && (
+                      {canSo && !soLocked && (
                         <td className="actions">
                           <button
                             type="button"
@@ -571,7 +586,7 @@ export function ToolRelatedSections({
             <div className="form-panel-header">
               <h3>
                 {dialog.kind === 'po' && 'PO'}
-                {dialog.kind === 'so' && 'SO / PR'}
+                {dialog.kind === 'so' && soLabel}
                 {dialog.kind === 'rcvWh' && 'Qty WH Received'}
                 {dialog.kind === 'rcvTool' && 'Qty Tool Room Received'}
               </h3>
@@ -621,7 +636,7 @@ export function ToolRelatedSections({
             {dialog.kind === 'so' && (
               <form className="stack" onSubmit={onSoSubmit}>
                 <label className="field">
-                  <span>SO / PR number</span>
+                  <span>{soNumLabel}</span>
                   <input
                     name="so"
                     defaultValue={dialog.row?.so ?? ''}
@@ -638,7 +653,7 @@ export function ToolRelatedSections({
                   />
                 </label>
                 <label className="field">
-                  <span>Note SO / PR</span>
+                  <span>{soNote}</span>
                   <input
                     name="note_so"
                     defaultValue={dialog.row?.noteSo ?? ''}
