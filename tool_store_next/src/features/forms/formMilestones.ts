@@ -27,6 +27,10 @@ export function isCheckByToolStore(milestone: string): boolean {
   return normFormMilestone(milestone) === 'CHECK BY TOOL STORE'
 }
 
+export function isRejectedBySuperior(milestone: string): boolean {
+  return normFormMilestone(milestone) === 'REJECTED BY SUPERIOR'
+}
+
 export function isSuperiorApproved(milestone: string): boolean {
   const m = normFormMilestone(milestone)
   return m === 'SUPERIOR APPROVED' || m === 'HOLD BY SERVICE ADMIN'

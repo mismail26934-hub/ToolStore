@@ -20,7 +20,9 @@ import {
 } from '@/lib/whacenter'
 
 type NotifyRule = {
-  step: number
+  step?: number
+  kind?: 'blocked'
+  banner?: string
   title: string
   action: string
   includeServiceman?: boolean
@@ -106,6 +108,29 @@ const RULES: Record<string, NotifyRule> = {
     step: 7,
     title: 'Tool Received',
     action: 'Semua tool sudah diterima tool room.',
+    includeServiceman: true,
+    includeSuperior: true,
+  },
+  'REJECTED BY SUPERIOR': {
+    kind: 'blocked',
+    banner: '⚠️ Tool Store — Ditolak',
+    title: 'Ditolak Superior',
+    action: 'Superior menolak order ini. Silakan cek comment dan form.',
+    includeServiceman: true,
+  },
+  'HOLD BY SERVICE ADMIN': {
+    kind: 'blocked',
+    banner: '⏸️ Tool Store — Ditahan',
+    title: 'Ditahan Service Admin',
+    action: 'Service Admin menahan order ini. Menunggu review lanjutan.',
+    includeServiceman: true,
+    includeSuperior: true,
+  },
+  'REJECTED BY SERVICE DEPT HEAD': {
+    kind: 'blocked',
+    banner: '⚠️ Tool Store — Ditolak',
+    title: 'Ditolak Dept Head',
+    action: 'Dept Head menolak order ini. Silakan cek comment dan form.',
     includeServiceman: true,
     includeSuperior: true,
   },
@@ -226,7 +251,7 @@ function addPhone(target: Map<string, string>, raw: string, label: string) {
 }
 
 /**
- * Kirim WA Whacenter saat milestone form maju ke step 1–7.
+ * Kirim WA Whacenter saat milestone form maju ke step 1–7, atau reject/hold.
  * Gagal kirim tidak boleh menggagalkan simpan form.
  */
 export async function notifyFormMilestoneChange(input: {
@@ -241,12 +266,17 @@ export async function notifyFormMilestoneChange(input: {
   const prev = normFormMilestone(input.prevMilestone)
   const next = normFormMilestone(input.nextMilestone)
   if (!next || prev === next) return
-  if (milestoneRank(input.nextMilestone) < milestoneRank(input.prevMilestone)) {
-    return
-  }
 
   const rule = RULES[next]
   if (!rule) return
+
+  const isBlocked = rule.kind === 'blocked'
+  if (
+    !isBlocked &&
+    milestoneRank(input.nextMilestone) < milestoneRank(input.prevMilestone)
+  ) {
+    return
+  }
 
   const form = await loadFormNotifyFields(input.idForm)
   const formNo = form?.formNo || input.formNo || ''
@@ -318,8 +348,7 @@ export async function notifyFormMilestoneChange(input: {
     sent += 1
   }
   if (sent > 0) {
-    console.info(
-      `[whacenter] step ${rule.step} form ${input.idForm} → ${sent} nomor`,
-    )
+    const label = isBlocked ? next : `step ${rule.step}`
+    console.info(`[whacenter] ${label} form ${input.idForm} → ${sent} nomor`)
   }
 }

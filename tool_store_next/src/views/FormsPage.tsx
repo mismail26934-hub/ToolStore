@@ -156,10 +156,6 @@ function FormCardDetails({
                   </div>
                 </div>
                 <div>
-                  <span className="muted">Comment</span>
-                  <div className="meta-value">{row.formComment || '—'}</div>
-                </div>
-                <div>
                   <span className="muted">Date</span>
                   <div className="meta-value">
                     {formatDateDisplay(row.formDetailDate)}

@@ -8,7 +8,7 @@ Tool Store web app using **Next.js App Router** + **local MySQL/MariaDB** (no PH
 - TanStack Query
 - MySQL/MariaDB via `mysql2` + Server Actions (`src/server/*`, `src/db/*`)
 - Optional Firebase Messaging (web FCM)
-- Optional WhatsApp via Whacenter (server-side, milestone 1–7)
+- Optional WhatsApp via Whacenter (server-side, milestone 1–7 + reject/hold)
 
 ## Quick start
 
@@ -127,6 +127,7 @@ Dokumentasi ringkas semua perubahan UI/UX dan perilaku aplikasi di branch Next.j
 - Tombol Superior / Dept Head: **Approve** (bukan “Act”).
 - Tombol Service Admin: **Review**.
 - Tanggal Check / Request ditampilkan `dd/mm/yyyy`.
+- Setelah **REJECTED BY SUPERIOR**, tombol **Reopen** muncul untuk **SUPERADMIN** atau **superior serviceman** (`users.superior_id` milik `form_serv_name`). Pilih APPROVED → `SUPERIOR APPROVED` (lanjut Service Admin). User SUPERIOR lain tidak bisa reopen.
 
 ### 6. Order timeline (milestone 1–7)
 
@@ -209,7 +210,7 @@ Notifikasi WA: lihat **§11 WhatsApp Whacenter**.
 | `src/features/forms/orderTimeline.ts` | Hitung step timeline |
 | `src/features/forms/syncFormProcessMilestone.ts` | Update milestone setelah related mutate |
 | `src/lib/whacenter.ts` | Client API Whacenter + normalisasi nomor WA |
-| `src/features/forms/notifyMilestone.ts` | Mapping step 1–7 → penerima + kirim WA |
+| `src/features/forms/notifyMilestone.ts` | Mapping step 1–7 + reject/hold → penerima + kirim WA |
 | `src/features/forms/notifyMessage.ts` | Template pesan WA (item, qty, link) |
 | `src/server/forms.ts` | Hook notify setelah `EDIT DATA FORM` |
 | `src/db/backup.ts` | Snapshot row sebelum UPDATE/DELETE → `data_backups` |
@@ -233,9 +234,9 @@ Notifikasi WA: lihat **§11 WhatsApp Whacenter**.
 - Setelah ubah related data, list forms di-invalidate agar chip milestone & timeline refresh.
 - Setelah ubah `.env.local`, restart `npm run dev` agar env server terbaca.
 
-### 11. WhatsApp Whacenter (milestone 1–7)
+### 11. WhatsApp Whacenter (milestone 1–7 + reject/hold)
 
-Notifikasi WhatsApp dikirim **dari server** (bukan browser) setiap kali `forms.form_milestone` **berubah dan maju** ke salah satu step 1–7. Device ID Whacenter hanya di `.env.local`. Gagal kirim WA **tidak** menggagalkan simpan form.
+Notifikasi WhatsApp dikirim **dari server** (bukan browser) setiap kali `forms.form_milestone` **berubah** ke salah satu step 1–7 **atau** reject/hold. Device ID Whacenter hanya di `.env.local`. Gagal kirim WA **tidak** menggagalkan simpan form.
 
 #### Kapan dikirim
 
@@ -245,20 +246,15 @@ Termasuk:
 
 - Step 1–4: tombol Approvals (`FormApprovalSection`)
 - Step 5–7: sync setelah SO / WH / Tool Room (`syncFormProcessMilestone` → `mutateForm`)
+- Reject / Hold: tombol Approvals (Superior REJECT, Service Admin HOLD, Dept Head REJECT)
 
 **Tidak dikirim** jika:
 
 - `WHACENTER_DEVICE_ID` kosong, atau `WHACENTER_ENABLED=false`
 - Milestone tidak berubah
-- Milestone **mundur** (contoh: semua SO dihapus → kembali ke Dept Head)
-- Milestone bukan step 1–7 (DRAFT, reject, hold)
+- Milestone **mundur** di jalur proses (contoh: semua SO dihapus → kembali ke Dept Head). Reject/hold **tetap** dikirim.
+- Milestone bukan step 1–7 dan bukan reject/hold (contoh: DRAFT)
 - Tidak ada nomor valid untuk penerima
-
-Reject / Hold **belum** dikirimi WA:
-
-- `REJECTED BY SUPERIOR`
-- `HOLD BY SERVICE ADMIN`
-- `REJECTED BY SERVICE DEPT. HEAD`
 
 #### Mapping penerima
 
@@ -273,6 +269,9 @@ Reject / Hold **belum** dikirimi WA:
 | 6 (partial) | `PARTIAL RECEIVED BY WH/GA` | — | sama seperti step 6 |
 | 7 | `RECEIVED TOOL STORE` | `RECEIVED BY TOOL STORE` | **Serviceman + superior** |
 | 7 (partial) | `PARTIAL RECEIVED TOOL STORE` | `PARTIAL RECEIVED BY TOOL STORE` | sama seperti step 7 |
+| — | `REJECTED BY SUPERIOR` | — | **Serviceman** |
+| — | `HOLD BY SERVICE ADMIN` | — | **Serviceman + superior** |
+| — | `REJECTED BY SERVICE DEPT. HEAD` | (titik dihapus saat match) | **Serviceman + superior** |
 
 Nomor duplikat (orang yang sama / nomor yang sama) dikirim **sekali**.
 
@@ -313,7 +312,7 @@ Panjang setelah normalisasi harus 11–15 digit dan diawali `62`. Selain itu ski
 
 #### Isi pesan WA
 
-Judul memakai ikon tool (emoji 🔧), bukan teks `[Tool Store]`. Pesan mencakup header form + blok per tool item (maks. 6 item, sisanya “+N item lain”).
+Judul memakai ikon tool (emoji 🔧) untuk step 1–7. Reject memakai ⚠️ *Ditolak*; hold memakai ⏸️ *Ditahan*. Pesan mencakup header form + blok per tool item (maks. 6 item, sisanya “+N item lain”). Comment Superior / Service Admin / Dept Head ikut jika terisi.
 
 Contoh struktur:
 

@@ -61,6 +61,7 @@ function mapForm(row: FormPacket): FormRow {
     formMilestone: s(row.form_milestone),
     formStatusOrder: s(row.form_status_order),
     superiorId: s(row.superior_id),
+    servicemanSuperiorId: s(row.serviceman_superior_id),
     toolItemCount: Number(row.tool_item_count ?? 0) || 0,
   }
 }
@@ -132,7 +133,8 @@ export async function dbListForms(
     `SELECT forms.*,
       (SELECT COUNT(*) FROM form_details d WHERE d.id_form = forms.id_form) AS tool_item_count,
       ${SERV_NAME_LABEL_SQL} AS form_serv_name_label,
-      ${CHECK_NAME_LABEL_SQL} AS form_check_by_label
+      ${CHECK_NAME_LABEL_SQL} AS form_check_by_label,
+      serv.superior_id AS serviceman_superior_id
      FROM forms
      ${SERV_USER_JOIN}
      ${CHECK_USER_JOIN}
@@ -151,7 +153,8 @@ export async function dbGetFormById(idForm: string): Promise<FormRow | null> {
     `SELECT forms.*,
       (SELECT COUNT(*) FROM form_details d WHERE d.id_form = forms.id_form) AS tool_item_count,
       ${SERV_NAME_LABEL_SQL} AS form_serv_name_label,
-      ${CHECK_NAME_LABEL_SQL} AS form_check_by_label
+      ${CHECK_NAME_LABEL_SQL} AS form_check_by_label,
+      serv.superior_id AS serviceman_superior_id
      FROM forms
      ${SERV_USER_JOIN}
      ${CHECK_USER_JOIN}

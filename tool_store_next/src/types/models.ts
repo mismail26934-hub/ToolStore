@@ -41,6 +41,8 @@ export type FormRow = {
   formMilestone: string
   formStatusOrder: string
   superiorId: string
+  /** `users.superior_id` of the form serviceman (for Superior reopen). */
+  servicemanSuperiorId: string
   /** Jumlah baris tool item (form_details) pada form ini */
   toolItemCount: number
 }

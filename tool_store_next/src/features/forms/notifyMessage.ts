@@ -13,7 +13,9 @@ const DIVIDER = '────────────────'
 const MAX_ITEMS = 6
 
 export type NotifyMessageRule = {
-  step: number
+  step?: number
+  kind?: 'blocked'
+  banner?: string
   title: string
   action: string
 }
@@ -156,7 +158,7 @@ export function buildNotifyMessage(input: {
 
   const link = formLink(input.formNo)
   const header = [
-    `🔧 Tool Store — Step ${input.rule.step}/7`,
+    input.rule.banner ?? `🔧 Tool Store — Step ${input.rule.step ?? '?'}/7`,
     `*${input.rule.title}*`,
     '',
     ...linesOf(

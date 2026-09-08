@@ -9,7 +9,7 @@ import {
   canRequestOrder,
 } from '@/auth/roles'
 import { formEditPayload } from '@/features/forms/formEdit'
-import { Milestone } from '@/features/forms/formMilestones'
+import { isRejectedBySuperior, Milestone } from '@/features/forms/formMilestones'
 import { useFormMutations } from '@/features/forms/useForms'
 import { formatDateDisplay } from '@/lib/dateFormat'
 import { formCheckByDisplay } from '@/lib/displayLabel'
@@ -32,6 +32,7 @@ export function FormApprovalSection({ form, hasTools }: Props) {
 
   const showRequest = canRequestOrder(user, form, hasTools)
   const showSuperior = canAccessSuperiorApproval(user, form)
+  const reopenSuperior = isRejectedBySuperior(form.formMilestone)
   const showSadmin = canAccessServiceAdminApproval(user, form)
   const showDept = canAccessDeptHeadApproval(user, form)
 
@@ -130,7 +131,9 @@ export function FormApprovalSection({ form, hasTools }: Props) {
           title="Superior"
           value={form.formSuperiorAprd || '—'}
           sub={form.formSuperiorComment || ''}
-          actionLabel={showSuperior ? 'Approve' : undefined}
+          actionLabel={
+            showSuperior ? (reopenSuperior ? 'Reopen' : 'Approve') : undefined
+          }
           onAction={
             showSuperior
               ? () => {
@@ -181,7 +184,8 @@ export function FormApprovalSection({ form, hasTools }: Props) {
             <div className="section-title-row">
               <h3>
                 {dialog === 'request' && 'Request Order'}
-                {dialog === 'superior' && 'Superior Approval'}
+                {dialog === 'superior' &&
+                  (reopenSuperior ? 'Reopen Superior Approval' : 'Superior Approval')}
                 {dialog === 'sadmin' && 'Service Admin'}
                 {dialog === 'dept' && 'Dept Head Approval'}
               </h3>
@@ -200,6 +204,12 @@ export function FormApprovalSection({ form, hasTools }: Props) {
 
               {dialog === 'superior' && (
                 <>
+                  {reopenSuperior && (
+                    <p className="muted">
+                      Ubah keputusan Superior. APPROVED akan lanjut ke Service
+                      Admin; REJECTED tetap menahan form.
+                    </p>
+                  )}
                   <label className="field">
                     <span>Decision</span>
                     <select
