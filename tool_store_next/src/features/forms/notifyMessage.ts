@@ -159,7 +159,7 @@ export function buildNotifyMessage(input: {
   const link = formLink(input.formNo)
   const header = [
     input.rule.banner ?? `🔧 Tool Store — Step ${input.rule.step ?? '?'}/7`,
-    `*${input.rule.title}*`,
+    ...linesOf(input.rule.action),
     '',
     ...linesOf(
       formLine,
@@ -201,6 +201,5 @@ export function buildNotifyMessage(input: {
     chunks.push(DIVIDER, itemBlocks.join(`\n${DIVIDER}\n`))
   }
   if (extra) chunks.push(DIVIDER, extra)
-  chunks.push(DIVIDER, input.rule.action)
   return chunks.join('\n')
 }

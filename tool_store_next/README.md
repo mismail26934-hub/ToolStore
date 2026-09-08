@@ -312,23 +312,23 @@ Panjang setelah normalisasi harus 11–15 digit dan diawali `62`. Selain itu ski
 
 #### Isi pesan WA
 
-Judul memakai ikon tool (emoji 🔧) untuk step 1–7. Reject memakai ⚠️ *Ditolak*; hold memakai ⏸️ *Ditahan*. Pesan mencakup header form + blok per tool item (maks. 6 item, sisanya “+N item lain”). Comment Superior / Service Admin / Dept Head ikut jika terisi.
+Judul memakai ikon tool (emoji 🔧) untuk step 1–7. Reject memakai ⚠️ *Ditolak*; hold memakai ⏸️ *Ditahan*. Baris instruksi (`rule.action`) langsung di bawah banner, lalu data form. Pesan mencakup header form + blok per tool item (maks. 6 item, sisanya “+N item lain”). Comment Superior / Service Admin / Dept Head ikut jika terisi.
 
 Contoh struktur:
 
 ```
-🔧 Tool Store — Step 1/7
-*Permintaan Order*
+🔧 Tool Store — Step 4/7
+Dept Head sudah approve. Silakan proses SO / PR (Counter / GA).
 
 Form *0002*  ·  HOLDER / DAMAGE
 Serviceman: Mekanik1
 Items: *2*
-Status: CHECK BY TOOL STORE
+Status: APPROVED BY SERVICE DEPT. HEAD
 Qty Order: 22
 
 Buka di browser:
 https://host/forms?form_no=0002
-Superior: Lanjut Proses
+Dept Head: Lanjut proses
 Qty WH Received: 11 (Partial Received)
 
 ────────────────
@@ -337,8 +337,6 @@ Qty Order: 11
 Description: DESC 11
 Price: 1.100.000
 …
-
-Request diajukan. Silakan approval superior.
 ```
 
 Field kosong (`—`, brand/spec/PO belum ada, qty received 0, comment approval belum diisi) **tidak ditampilkan**.
