@@ -1,6 +1,10 @@
 import type { ResultSetHeader, RowDataPacket } from 'mysql2'
 import { getDbPool } from '@/db/pool'
 import { emptyToNull, newId, s } from '@/db/helpers'
+import {
+  backupFormCascadeDelete,
+  backupRowBeforeChange,
+} from '@/db/backup'
 import type { DashboardCounts, FormRow, PaginatedList } from '@/types/models'
 import { FORM_PAGE_SIZE } from '@/api/params'
 import { ApiParam } from '@/api/params'
@@ -160,7 +164,22 @@ export async function dbMutateForm(input: SaveFormInput): Promise<string> {
   if (param === ApiParam.deleteForm) {
     const id = input.idForm?.trim() ?? ''
     if (!id) throw new Error('id_form wajib diisi')
-    await pool.query(`DELETE FROM forms WHERE id_form = ?`, [id])
+    const conn = await pool.getConnection()
+    try {
+      await conn.beginTransaction()
+      await backupFormCascadeDelete({
+        idForm: id,
+        userId: input.formUserUpdate,
+        conn,
+      })
+      await conn.query(`DELETE FROM forms WHERE id_form = ?`, [id])
+      await conn.commit()
+    } catch (err) {
+      await conn.rollback()
+      throw err
+    } finally {
+      conn.release()
+    }
     return 'Form dihapus'
   }
 
@@ -216,6 +235,12 @@ export async function dbMutateForm(input: SaveFormInput): Promise<string> {
   if (param === ApiParam.editForm) {
     const id = input.idForm?.trim() ?? ''
     if (!id) throw new Error('id_form wajib diisi')
+    await backupRowBeforeChange({
+      tableName: 'forms',
+      recordId: id,
+      action: 'UPDATE',
+      userId: input.formUserUpdate,
+    })
     const [result] = await pool.query<ResultSetHeader>(
       `UPDATE forms SET
         form_no = ?, form_serv_name = ?, form_check_by = ?, form_date_check_by = ?,

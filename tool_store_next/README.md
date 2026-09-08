@@ -198,9 +198,21 @@ Implementasi: `src/components/FormApprovalSection.tsx` + konstanta `Milestone` d
 | `src/features/forms/formMilestones.ts` | Konstanta + resolve process milestone |
 | `src/features/forms/orderTimeline.ts` | Hitung step timeline |
 | `src/features/forms/syncFormProcessMilestone.ts` | Update milestone setelah related mutate |
+| `src/db/backup.ts` | Snapshot row sebelum UPDATE/DELETE → `data_backups` |
 | `src/app/globals.css` | Card border, icon buttons, related table, dll. |
 
-### 9. Catatan teknis
+### 9. Data backup (UPDATE / DELETE)
+
+- Setiap **update** dan **delete** menyimpan snapshot baris **sebelum** berubah ke tabel `data_backups`.
+- Kolom: `table_name`, `record_id`, `action` (`UPDATE`|`DELETE`), `payload` (JSON), `user_id`, `created_at`.
+- Helper: `src/db/backup.ts` (`backupRowBeforeChange`, `backupFormCascadeDelete`, `backupFormDetailCascadeDelete`).
+- Tabel dibuat otomatis saat backup pertama (`CREATE TABLE IF NOT EXISTS`), atau:
+  - fresh install: sudah ada di `sql/schema.sql`
+  - DB lama: `mysql -u root toolstore < sql/migrations/001_data_backups.sql`
+- Cakupan: forms (+ cascade detail/PO/SO/WH/Tool Room), form_details (+ related), po, so, rcv_wh, rcv_tool, users, superiors (termasuk update via import Excel).
+- Bukan UI restore — snapshot untuk audit / restore manual dari JSON.
+
+### 10. Catatan teknis
 
 - Branch kerja Next biasanya: `feat/tool-store-next` (repo nested `ToolStore/`).
 - Jangan commit `.env` / `.env.local`.

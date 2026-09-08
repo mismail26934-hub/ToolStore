@@ -1,5 +1,6 @@
 import type { ResultSetHeader, RowDataPacket } from 'mysql2'
 import { ApiParam } from '@/api/params'
+import { backupRowBeforeChange } from '@/db/backup'
 import { emptyToNull, newId, s } from '@/db/helpers'
 import { getDbPool } from '@/db/pool'
 import type { PoRow, RcvToolRow, RcvWhRow, SoRow } from '@/types/models'
@@ -69,7 +70,14 @@ export async function dbMutatePo(input: {
 }): Promise<string> {
   const pool = getDbPool()
   if (input.param === ApiParam.deletePo) {
-    await pool.query(`DELETE FROM po WHERE id_po = ?`, [input.idPo?.trim()])
+    const id = input.idPo?.trim() ?? ''
+    await backupRowBeforeChange({
+      tableName: 'po',
+      recordId: id,
+      action: 'DELETE',
+      userId: input.userUpdatePo,
+    })
+    await pool.query(`DELETE FROM po WHERE id_po = ?`, [id])
     return 'PO dihapus'
   }
   if (input.param === ApiParam.addPo) {
@@ -87,6 +95,13 @@ export async function dbMutatePo(input: {
     return 'PO ditambahkan'
   }
   if (input.param === ApiParam.editPo) {
+    const id = input.idPo?.trim() ?? ''
+    await backupRowBeforeChange({
+      tableName: 'po',
+      recordId: id,
+      action: 'UPDATE',
+      userId: input.userUpdatePo,
+    })
     const [r] = await pool.query<ResultSetHeader>(
       `UPDATE po SET po_no = ?, date_update_po = ?, user_update_po = ?
        WHERE id_po = ?`,
@@ -94,7 +109,7 @@ export async function dbMutatePo(input: {
         emptyToNull(input.poNo),
         emptyToNull(input.dateUpdatePo),
         emptyToNull(input.userUpdatePo),
-        input.idPo?.trim(),
+        id,
       ],
     )
     if (r.affectedRows === 0) throw new Error('PO tidak ditemukan')
@@ -126,7 +141,14 @@ export async function dbMutateSo(input: {
 }): Promise<string> {
   const pool = getDbPool()
   if (input.param === ApiParam.deleteSo) {
-    await pool.query(`DELETE FROM so WHERE id_so = ?`, [input.idSo?.trim()])
+    const id = input.idSo?.trim() ?? ''
+    await backupRowBeforeChange({
+      tableName: 'so',
+      recordId: id,
+      action: 'DELETE',
+      userId: input.idUpdateSo,
+    })
+    await pool.query(`DELETE FROM so WHERE id_so = ?`, [id])
     return 'SO dihapus'
   }
   if (input.param === ApiParam.addSo) {
@@ -146,6 +168,13 @@ export async function dbMutateSo(input: {
     return 'SO ditambahkan'
   }
   if (input.param === ApiParam.editSo) {
+    const id = input.idSo?.trim() ?? ''
+    await backupRowBeforeChange({
+      tableName: 'so',
+      recordId: id,
+      action: 'UPDATE',
+      userId: input.idUpdateSo,
+    })
     const [r] = await pool.query<ResultSetHeader>(
       `UPDATE so SET so = ?, eta = ?, note_so = ?, date_update_so = ?, id_update_so = ?
        WHERE id_so = ?`,
@@ -155,7 +184,7 @@ export async function dbMutateSo(input: {
         emptyToNull(input.noteSo),
         emptyToNull(input.dateUpdateSo),
         emptyToNull(input.idUpdateSo),
-        input.idSo?.trim(),
+        id,
       ],
     )
     if (r.affectedRows === 0) throw new Error('SO tidak ditemukan')
@@ -185,9 +214,14 @@ export async function dbMutateRcvWh(input: {
 }): Promise<string> {
   const pool = getDbPool()
   if (input.param === ApiParam.deleteRcvWh) {
-    await pool.query(`DELETE FROM rcv_wh WHERE id_rcv_wh = ?`, [
-      input.idRcvWh?.trim(),
-    ])
+    const id = input.idRcvWh?.trim() ?? ''
+    await backupRowBeforeChange({
+      tableName: 'rcv_wh',
+      recordId: id,
+      action: 'DELETE',
+      userId: input.rcvWhIdInput,
+    })
+    await pool.query(`DELETE FROM rcv_wh WHERE id_rcv_wh = ?`, [id])
     return 'Rcv WH dihapus'
   }
   if (input.param === ApiParam.addRcvWh) {
@@ -205,6 +239,13 @@ export async function dbMutateRcvWh(input: {
     return 'Rcv WH ditambahkan'
   }
   if (input.param === ApiParam.editRcvWh) {
+    const id = input.idRcvWh?.trim() ?? ''
+    await backupRowBeforeChange({
+      tableName: 'rcv_wh',
+      recordId: id,
+      action: 'UPDATE',
+      userId: input.rcvWhIdInput,
+    })
     const [r] = await pool.query<ResultSetHeader>(
       `UPDATE rcv_wh SET rcv_wh_date = ?, rcv_wh_id_input = ?, rcv_wh_date_input = ?
        WHERE id_rcv_wh = ?`,
@@ -212,7 +253,7 @@ export async function dbMutateRcvWh(input: {
         emptyToNull(input.rcvWhDate),
         emptyToNull(input.rcvWhIdInput),
         emptyToNull(input.rcvWhDateInput),
-        input.idRcvWh?.trim(),
+        id,
       ],
     )
     if (r.affectedRows === 0) throw new Error('Rcv WH tidak ditemukan')
@@ -242,9 +283,14 @@ export async function dbMutateRcvTool(input: {
 }): Promise<string> {
   const pool = getDbPool()
   if (input.param === ApiParam.deleteRcvTool) {
-    await pool.query(`DELETE FROM rcv_tool WHERE id_rcv_tool = ?`, [
-      input.idRcvTool?.trim(),
-    ])
+    const id = input.idRcvTool?.trim() ?? ''
+    await backupRowBeforeChange({
+      tableName: 'rcv_tool',
+      recordId: id,
+      action: 'DELETE',
+      userId: input.rcvToolIdInput,
+    })
+    await pool.query(`DELETE FROM rcv_tool WHERE id_rcv_tool = ?`, [id])
     return 'Rcv Tool dihapus'
   }
   if (input.param === ApiParam.addRcvTool) {
@@ -262,6 +308,13 @@ export async function dbMutateRcvTool(input: {
     return 'Rcv Tool ditambahkan'
   }
   if (input.param === ApiParam.editRcvTool) {
+    const id = input.idRcvTool?.trim() ?? ''
+    await backupRowBeforeChange({
+      tableName: 'rcv_tool',
+      recordId: id,
+      action: 'UPDATE',
+      userId: input.rcvToolIdInput,
+    })
     const [r] = await pool.query<ResultSetHeader>(
       `UPDATE rcv_tool SET rcv_tool_date = ?, rcv_tool_id_input = ?, rcv_tool_date_input = ?
        WHERE id_rcv_tool = ?`,
@@ -269,7 +322,7 @@ export async function dbMutateRcvTool(input: {
         emptyToNull(input.rcvToolDate),
         emptyToNull(input.rcvToolIdInput),
         emptyToNull(input.rcvToolDateInput),
-        input.idRcvTool?.trim(),
+        id,
       ],
     )
     if (r.affectedRows === 0) throw new Error('Rcv Tool tidak ditemukan')

@@ -1,5 +1,6 @@
 import type { ResultSetHeader, RowDataPacket } from 'mysql2'
 import { ApiParam } from '@/api/params'
+import { backupFormDetailCascadeDelete, backupRowBeforeChange } from '@/db/backup'
 import { emptyToNull, newId, s } from '@/db/helpers'
 import { getDbPool } from '@/db/pool'
 import type { MutatingResult, ToolDetailRow } from '@/types/models'
@@ -62,7 +63,22 @@ export async function dbMutateTool(
   if (param === ApiParam.deleteTool) {
     const id = payload.idFormDetail?.trim() ?? ''
     if (!id) throw new Error('id_form_detail wajib diisi')
-    await pool.query(`DELETE FROM form_details WHERE id_form_detail = ?`, [id])
+    const conn = await pool.getConnection()
+    try {
+      await conn.beginTransaction()
+      await backupFormDetailCascadeDelete({
+        idFormDetail: id,
+        userId: payload.formDetailUser,
+        conn,
+      })
+      await conn.query(`DELETE FROM form_details WHERE id_form_detail = ?`, [id])
+      await conn.commit()
+    } catch (err) {
+      await conn.rollback()
+      throw err
+    } finally {
+      conn.release()
+    }
   } else if (param === ApiParam.addTool) {
     const id = payload.idFormDetail?.trim() || newId()
     await pool.query(
@@ -91,6 +107,12 @@ export async function dbMutateTool(
   } else if (param === ApiParam.editTool) {
     const id = payload.idFormDetail?.trim() ?? ''
     if (!id) throw new Error('id_form_detail wajib diisi')
+    await backupRowBeforeChange({
+      tableName: 'form_details',
+      recordId: id,
+      action: 'UPDATE',
+      userId: payload.formDetailUser,
+    })
     const [result] = await pool.query<ResultSetHeader>(
       `UPDATE form_details SET
         form_comment = ?, pn_group = ?, pn_desc = ?, qty = ?, explan = ?,

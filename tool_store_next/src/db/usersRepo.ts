@@ -1,5 +1,6 @@
 import type { ResultSetHeader, RowDataPacket } from 'mysql2'
 import { ApiParam } from '@/api/params'
+import { backupRowBeforeChange } from '@/db/backup'
 import { emptyToNull, newId, s } from '@/db/helpers'
 import { getDbPool } from '@/db/pool'
 import type { PaginatedList, UserRow } from '@/types/models'
@@ -164,6 +165,12 @@ export async function dbMutateUser(
   if (param === ApiParam.deleteUser) {
     const id = input.idUsers?.trim() ?? ''
     if (!id) throw new Error('id_users wajib diisi')
+    await backupRowBeforeChange({
+      tableName: 'users',
+      recordId: id,
+      action: 'DELETE',
+      userId: id,
+    })
     await pool.query(`DELETE FROM users WHERE id_users = ?`, [id])
     return 'User dihapus'
   }
@@ -195,6 +202,12 @@ export async function dbMutateUser(
   if (param === ApiParam.editUser) {
     const id = input.idUsers?.trim() ?? ''
     if (!id) throw new Error('id_users wajib diisi')
+    await backupRowBeforeChange({
+      tableName: 'users',
+      recordId: id,
+      action: 'UPDATE',
+      userId: id,
+    })
     const [r] = await pool.query<ResultSetHeader>(
       `UPDATE users SET
         username = ?, password = ?, nama_user = ?, foto = ?, id_tu = ?,
@@ -288,6 +301,13 @@ export async function dbImportUsers(
             })
             continue
           }
+          await backupRowBeforeChange({
+            tableName: 'users',
+            recordId: existingId,
+            action: 'UPDATE',
+            userId: existingId,
+            conn,
+          })
           await conn.query(
             `UPDATE users SET
               username = ?, password = ?, nama_user = ?, id_tu = ?,

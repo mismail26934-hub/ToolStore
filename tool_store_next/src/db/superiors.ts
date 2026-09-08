@@ -1,5 +1,6 @@
 import type { ResultSetHeader, RowDataPacket } from 'mysql2'
 import { ApiParam } from '@/api/params'
+import { backupRowBeforeChange } from '@/db/backup'
 import { emptyToNull, newId, s } from '@/db/helpers'
 import { getDbPool } from '@/db/pool'
 import type { PaginatedList, SuperiorRow } from '@/types/models'
@@ -145,6 +146,11 @@ export async function dbMutateSuperior(
   if (param === ApiParam.deleteSuperior) {
     const id = (input.superiorId ?? '').trim()
     if (!id) throw new Error('ID superior wajib')
+    await backupRowBeforeChange({
+      tableName: 'superiors',
+      recordId: id,
+      action: 'DELETE',
+    })
     const [r] = await pool.query<ResultSetHeader>(
       `DELETE FROM superiors WHERE superior_id = ?`,
       [id],
@@ -173,6 +179,11 @@ export async function dbMutateSuperior(
   if (param === ApiParam.editSuperior) {
     const id = (input.superiorId ?? '').trim()
     if (!id) throw new Error('ID superior wajib')
+    await backupRowBeforeChange({
+      tableName: 'superiors',
+      recordId: id,
+      action: 'UPDATE',
+    })
     const [r] = await pool.query<ResultSetHeader>(
       `UPDATE superiors SET
          nama_superior = ?,
@@ -225,6 +236,12 @@ export async function dbImportSuperiors(
             [id],
           )
           if (existing[0]) {
+            await backupRowBeforeChange({
+              tableName: 'superiors',
+              recordId: id,
+              action: 'UPDATE',
+              conn,
+            })
             await conn.query(
               `UPDATE superiors SET
                  nama_superior = ?,

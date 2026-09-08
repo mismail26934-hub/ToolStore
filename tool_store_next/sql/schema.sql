@@ -133,6 +133,19 @@ CREATE TABLE IF NOT EXISTS rcv_tool (
     ON DELETE CASCADE
 );
 
+-- Snapshot before UPDATE / DELETE (restore / audit)
+CREATE TABLE IF NOT EXISTS data_backups (
+  id          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  table_name  VARCHAR(64)  NOT NULL,
+  record_id   VARCHAR(64)  NOT NULL,
+  action      ENUM('UPDATE','DELETE') NOT NULL,
+  payload     JSON         NOT NULL,
+  user_id     VARCHAR(64)  NULL,
+  created_at  TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_data_backups_table_record (table_name, record_id),
+  INDEX idx_data_backups_created (created_at)
+);
+
 -- Local seed: username=admin / password=admin123 (plain text — local only)
 INSERT INTO users (
   id_users, username, password, nama_user, foto, id_tu, no_telp,
