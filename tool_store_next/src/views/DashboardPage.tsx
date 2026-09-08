@@ -6,7 +6,10 @@ import { useDashboardCounts } from '@/features/forms/useForms'
 import type { DashboardCounts } from '@/types/models'
 
 const TILES: {
-  key: keyof Omit<DashboardCounts, 'notificationTotal'>
+  key: keyof Omit<
+    DashboardCounts,
+    'notificationTotal' | 'hold' | 'rejectedSuperior' | 'rejectedDept'
+  >
   label: string
   href: string
 }[] = [

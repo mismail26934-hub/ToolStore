@@ -176,7 +176,10 @@ export async function dbDashboardCounts(): Promise<DashboardCounts> {
         'PARTIAL RECEIVED BY WH/GA',
         'PARTIAL RECEIVED TOOL STORE',
         'PARTIAL RECEIVED BY TOOL STORE'
-      ) THEN 1 ELSE 0 END) AS tool_received_wh_ga
+      ) THEN 1 ELSE 0 END) AS tool_received_wh_ga,
+      SUM(CASE WHEN UPPER(REPLACE(form_milestone, '.', '')) = 'HOLD BY SERVICE ADMIN' THEN 1 ELSE 0 END) AS hold_count,
+      SUM(CASE WHEN UPPER(REPLACE(form_milestone, '.', '')) = 'REJECTED BY SUPERIOR' THEN 1 ELSE 0 END) AS rejected_superior,
+      SUM(CASE WHEN UPPER(REPLACE(form_milestone, '.', '')) = 'REJECTED BY SERVICE DEPT HEAD' THEN 1 ELSE 0 END) AS rejected_dept
      FROM forms`,
   )
   const r = rows[0] ?? {}
@@ -186,6 +189,9 @@ export async function dbDashboardCounts(): Promise<DashboardCounts> {
   const deptHead = Number(r.dept_head ?? 0)
   const counterGa = Number(r.counter_ga ?? 0)
   const toolReceivedWhGa = Number(r.tool_received_wh_ga ?? 0)
+  const hold = Number(r.hold_count ?? 0)
+  const rejectedSuperior = Number(r.rejected_superior ?? 0)
+  const rejectedDept = Number(r.rejected_dept ?? 0)
   return {
     draft,
     superiorApproval,
@@ -193,6 +199,9 @@ export async function dbDashboardCounts(): Promise<DashboardCounts> {
     deptHead,
     counterGa,
     toolReceivedWhGa,
+    hold,
+    rejectedSuperior,
+    rejectedDept,
     notificationTotal:
       draft +
       superiorApproval +

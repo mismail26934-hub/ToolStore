@@ -13,7 +13,9 @@ import {
   usePageHeaderMeta,
 } from '@/components/PageHeader'
 import { ProfileModal } from '@/components/ProfileModal'
+import { useDashboardCounts } from '@/features/forms/useForms'
 import { usePrefs } from '@/prefs/PreferencesContext'
+import type { DashboardCounts } from '@/types/models'
 
 function MenuIcon({ open }: { open: boolean }) {
   return (
@@ -115,6 +117,8 @@ export function AppShell({
     },
   ] as const
 
+  const { data: inboxCounts } = useDashboardCounts()
+
   useEffect(() => {
     setMenuOpen(false)
     setManageOpen(false)
@@ -197,6 +201,33 @@ export function AppShell({
   const linkClass = (active: boolean) =>
     active ? 'nav-manage-item is-active' : 'nav-manage-item'
 
+  const inboxCount = (inbox: string): number | null => {
+    if (!inboxCounts) return null
+    if (inbox === 'hold') return inboxCounts.hold
+    if (inbox === 'rejected-superior') return inboxCounts.rejectedSuperior
+    if (inbox === 'rejected-dept') return inboxCounts.rejectedDept
+    return null
+  }
+
+  const renderFormsLink = (
+    item: (typeof formsLinks)[number],
+    extra?: { role?: 'menuitem'; onClick: () => void },
+  ) => {
+    const count = inboxCount(item.inbox)
+    return (
+      <Link
+        key={item.href}
+        href={item.href}
+        className={linkClass(formsInboxActive(item.inbox))}
+        role={extra?.role}
+        onClick={extra?.onClick}
+      >
+        <span>{item.label}</span>
+        {count != null && <span className="nav-inbox-count">{count}</span>}
+      </Link>
+    )
+  }
+
   const prefIcons = (autoFcm: boolean) => (
     <>
       <button
@@ -238,16 +269,9 @@ export function AppShell({
         {t('dashboard')}
       </Link>
       <div className="nav-menu-label">{t('forms')}</div>
-      {formsLinks.map((item) => (
-        <Link
-          key={item.href}
-          href={item.href}
-          className={linkClass(formsInboxActive(item.inbox))}
-          onClick={() => setMenuOpen(false)}
-        >
-          {item.label}
-        </Link>
-      ))}
+      {formsLinks.map((item) =>
+        renderFormsLink(item, { onClick: () => setMenuOpen(false) }),
+      )}
       {isSuperAdmin(user) && (
         <Link
           href="/users"
@@ -348,17 +372,12 @@ export function AppShell({
                         {t('dashboard')}
                       </Link>
                       <div className="nav-menu-label">{t('forms')}</div>
-                      {formsLinks.map((item) => (
-                        <Link
-                          key={item.href}
-                          href={item.href}
-                          className={linkClass(formsInboxActive(item.inbox))}
-                          role="menuitem"
-                          onClick={() => setManageOpen(false)}
-                        >
-                          {item.label}
-                        </Link>
-                      ))}
+                      {formsLinks.map((item) =>
+                        renderFormsLink(item, {
+                          role: 'menuitem',
+                          onClick: () => setManageOpen(false),
+                        }),
+                      )}
                       {isSuperAdmin(user) && (
                         <Link
                           href="/users"

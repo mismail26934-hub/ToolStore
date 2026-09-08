@@ -34,6 +34,7 @@ function mapRcvWh(row: Packet): RcvWhRow {
     idRcvWh: s(row.id_rcv_wh),
     idFormDetail: s(row.id_form_detail),
     rcvWhDate: s(row.rcv_wh_date),
+    qty: s(row.qty),
     rcvWhIdInput: s(row.rcv_wh_id_input),
     rcvWhDateInput: s(row.rcv_wh_date_input),
   }
@@ -44,9 +45,35 @@ function mapRcvTool(row: Packet): RcvToolRow {
     idRcvTool: s(row.id_rcv_tool),
     idFormDetail: s(row.id_form_detail),
     rcvToolDate: s(row.rcv_tool_date),
+    qty: s(row.qty),
     rcvToolIdInput: s(row.rcv_tool_id_input),
     rcvToolDateInput: s(row.rcv_tool_date_input),
   }
+}
+
+let rcvQtyEnsured = false
+
+async function ensureRcvQtyColumns(): Promise<void> {
+  if (rcvQtyEnsured) return
+  const pool = getDbPool()
+  for (const table of ['rcv_wh', 'rcv_tool'] as const) {
+    const [rows] = await pool.query<RowDataPacket[]>(
+      `SELECT 1 AS ok FROM information_schema.columns
+       WHERE table_schema = DATABASE()
+         AND table_name = ?
+         AND column_name = 'qty'
+       LIMIT 1`,
+      [table],
+    )
+    if (!rows[0]) {
+      await pool.query(
+        `ALTER TABLE \`${table}\` ADD COLUMN qty VARCHAR(50) NULL AFTER ${
+          table === 'rcv_wh' ? 'rcv_wh_date' : 'rcv_tool_date'
+        }`,
+      )
+    }
+  }
+  rcvQtyEnsured = true
 }
 
 export async function dbListPoByForm(idForm: string): Promise<PoRow[]> {
@@ -194,6 +221,7 @@ export async function dbMutateSo(input: {
 }
 
 export async function dbListRcvWhByForm(idForm: string): Promise<RcvWhRow[]> {
+  await ensureRcvQtyColumns()
   const pool = getDbPool()
   const [rows] = await pool.query<Packet[]>(
     `SELECT r.* FROM rcv_wh r
@@ -209,9 +237,11 @@ export async function dbMutateRcvWh(input: {
   idRcvWh?: string
   idFormDetail: string
   rcvWhDate?: string
+  qty?: string
   rcvWhIdInput?: string
   rcvWhDateInput?: string
 }): Promise<string> {
+  await ensureRcvQtyColumns()
   const pool = getDbPool()
   if (input.param === ApiParam.deleteRcvWh) {
     const id = input.idRcvWh?.trim() ?? ''
@@ -226,12 +256,13 @@ export async function dbMutateRcvWh(input: {
   }
   if (input.param === ApiParam.addRcvWh) {
     await pool.query(
-      `INSERT INTO rcv_wh (id_rcv_wh, id_form_detail, rcv_wh_date, rcv_wh_id_input, rcv_wh_date_input)
-       VALUES (?,?,?,?,?)`,
+      `INSERT INTO rcv_wh (id_rcv_wh, id_form_detail, rcv_wh_date, qty, rcv_wh_id_input, rcv_wh_date_input)
+       VALUES (?,?,?,?,?,?)`,
       [
         input.idRcvWh?.trim() || newId(),
         input.idFormDetail,
         emptyToNull(input.rcvWhDate),
+        emptyToNull(input.qty),
         emptyToNull(input.rcvWhIdInput),
         emptyToNull(input.rcvWhDateInput),
       ],
@@ -247,10 +278,11 @@ export async function dbMutateRcvWh(input: {
       userId: input.rcvWhIdInput,
     })
     const [r] = await pool.query<ResultSetHeader>(
-      `UPDATE rcv_wh SET rcv_wh_date = ?, rcv_wh_id_input = ?, rcv_wh_date_input = ?
+      `UPDATE rcv_wh SET rcv_wh_date = ?, qty = ?, rcv_wh_id_input = ?, rcv_wh_date_input = ?
        WHERE id_rcv_wh = ?`,
       [
         emptyToNull(input.rcvWhDate),
+        emptyToNull(input.qty),
         emptyToNull(input.rcvWhIdInput),
         emptyToNull(input.rcvWhDateInput),
         id,
@@ -263,6 +295,7 @@ export async function dbMutateRcvWh(input: {
 }
 
 export async function dbListRcvToolByForm(idForm: string): Promise<RcvToolRow[]> {
+  await ensureRcvQtyColumns()
   const pool = getDbPool()
   const [rows] = await pool.query<Packet[]>(
     `SELECT r.* FROM rcv_tool r
@@ -278,9 +311,11 @@ export async function dbMutateRcvTool(input: {
   idRcvTool?: string
   idFormDetail: string
   rcvToolDate?: string
+  qty?: string
   rcvToolIdInput?: string
   rcvToolDateInput?: string
 }): Promise<string> {
+  await ensureRcvQtyColumns()
   const pool = getDbPool()
   if (input.param === ApiParam.deleteRcvTool) {
     const id = input.idRcvTool?.trim() ?? ''
@@ -295,12 +330,13 @@ export async function dbMutateRcvTool(input: {
   }
   if (input.param === ApiParam.addRcvTool) {
     await pool.query(
-      `INSERT INTO rcv_tool (id_rcv_tool, id_form_detail, rcv_tool_date, rcv_tool_id_input, rcv_tool_date_input)
-       VALUES (?,?,?,?,?)`,
+      `INSERT INTO rcv_tool (id_rcv_tool, id_form_detail, rcv_tool_date, qty, rcv_tool_id_input, rcv_tool_date_input)
+       VALUES (?,?,?,?,?,?)`,
       [
         input.idRcvTool?.trim() || newId(),
         input.idFormDetail,
         emptyToNull(input.rcvToolDate),
+        emptyToNull(input.qty),
         emptyToNull(input.rcvToolIdInput),
         emptyToNull(input.rcvToolDateInput),
       ],
@@ -316,10 +352,11 @@ export async function dbMutateRcvTool(input: {
       userId: input.rcvToolIdInput,
     })
     const [r] = await pool.query<ResultSetHeader>(
-      `UPDATE rcv_tool SET rcv_tool_date = ?, rcv_tool_id_input = ?, rcv_tool_date_input = ?
+      `UPDATE rcv_tool SET rcv_tool_date = ?, qty = ?, rcv_tool_id_input = ?, rcv_tool_date_input = ?
        WHERE id_rcv_tool = ?`,
       [
         emptyToNull(input.rcvToolDate),
+        emptyToNull(input.qty),
         emptyToNull(input.rcvToolIdInput),
         emptyToNull(input.rcvToolDateInput),
         id,

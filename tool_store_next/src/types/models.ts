@@ -69,6 +69,9 @@ export type DashboardCounts = {
   deptHead: number
   counterGa: number
   toolReceivedWhGa: number
+  hold: number
+  rejectedSuperior: number
+  rejectedDept: number
   notificationTotal: number
 }
 
@@ -138,6 +141,7 @@ export type RcvWhRow = {
   idRcvWh: string
   idFormDetail: string
   rcvWhDate: string
+  qty: string
   rcvWhIdInput: string
   rcvWhDateInput: string
 }
@@ -146,6 +150,7 @@ export type RcvToolRow = {
   idRcvTool: string
   idFormDetail: string
   rcvToolDate: string
+  qty: string
   rcvToolIdInput: string
   rcvToolDateInput: string
 }

@@ -8,6 +8,7 @@ Tool Store web app using **Next.js App Router** + **local MySQL/MariaDB** (no PH
 - TanStack Query
 - MySQL/MariaDB via `mysql2` + Server Actions (`src/server/*`, `src/db/*`)
 - Optional Firebase Messaging (web FCM)
+- Optional WhatsApp via Whacenter (server-side, milestone 1–7)
 
 ## Quick start
 
@@ -27,6 +28,12 @@ mysql -u root < sql/schema.sql
 
 ```env
 DATABASE_URL=mysql://root:@127.0.0.1:3306/toolstore
+
+# Optional WhatsApp (Whacenter) — jangan commit device id
+# WHACENTER_DEVICE_ID=
+# WHACENTER_ENABLED=true
+# WHACENTER_API_URL=https://app.whacenter.com/api/send
+# APP_BASE_URL=http://localhost:3000
 ```
 
 Seed login:
@@ -50,6 +57,7 @@ Open http://localhost:3000
 | PO / SO / Rcv WH / Rcv Tool | Server Actions → related tables |
 | Users / superiors / profile | Server Actions → `users` |
 | FCM token | Server Actions → `users.fcm_token` |
+| WhatsApp Whacenter | Server: milestone change → `src/features/forms/notifyMilestone.ts` |
 
 Schema: `sql/schema.sql`
 
@@ -64,6 +72,7 @@ Schema: `sql/schema.sql`
 - Users CRUD + superior picker + My Profile
 - Dark mode + ID/EN
 - Optional web FCM
+- Optional WhatsApp Whacenter (milestone 1–7)
 
 ---
 
@@ -134,6 +143,7 @@ Dokumentasi ringkas semua perubahan UI/UX dan perilaku aplikasi di branch Next.j
 | Dept Head **Reject** | `REJECTED BY SERVICE DEPT. HEAD` | step 3 + tanda merah |
 
 Implementasi: `src/components/FormApprovalSection.tsx` + konstanta `Milestone` di `formMilestones.ts`.
+Notifikasi WA: lihat **§11 WhatsApp Whacenter**.
 
 #### Step 5–7 (process — otomatis setelah Dept Head approve)
 
@@ -198,6 +208,10 @@ Implementasi: `src/components/FormApprovalSection.tsx` + konstanta `Milestone` d
 | `src/features/forms/formMilestones.ts` | Konstanta + resolve process milestone |
 | `src/features/forms/orderTimeline.ts` | Hitung step timeline |
 | `src/features/forms/syncFormProcessMilestone.ts` | Update milestone setelah related mutate |
+| `src/lib/whacenter.ts` | Client API Whacenter + normalisasi nomor WA |
+| `src/features/forms/notifyMilestone.ts` | Mapping step 1–7 → penerima + kirim WA |
+| `src/features/forms/notifyMessage.ts` | Template pesan WA (item, qty, link) |
+| `src/server/forms.ts` | Hook notify setelah `EDIT DATA FORM` |
 | `src/db/backup.ts` | Snapshot row sebelum UPDATE/DELETE → `data_backups` |
 | `src/app/globals.css` | Card border, icon buttons, related table, dll. |
 
@@ -215,5 +229,184 @@ Implementasi: `src/components/FormApprovalSection.tsx` + konstanta `Milestone` d
 ### 10. Catatan teknis
 
 - Branch kerja Next biasanya: `feat/tool-store-next` (repo nested `ToolStore/`).
-- Jangan commit `.env` / `.env.local`.
+- Jangan commit `.env` / `.env.local` (termasuk `WHACENTER_DEVICE_ID`).
 - Setelah ubah related data, list forms di-invalidate agar chip milestone & timeline refresh.
+- Setelah ubah `.env.local`, restart `npm run dev` agar env server terbaca.
+
+### 11. WhatsApp Whacenter (milestone 1–7)
+
+Notifikasi WhatsApp dikirim **dari server** (bukan browser) setiap kali `forms.form_milestone` **berubah dan maju** ke salah satu step 1–7. Device ID Whacenter hanya di `.env.local`. Gagal kirim WA **tidak** menggagalkan simpan form.
+
+#### Kapan dikirim
+
+Hook: `mutateForm` di `src/server/forms.ts` (setelah `EDIT DATA FORM` sukses).
+
+Termasuk:
+
+- Step 1–4: tombol Approvals (`FormApprovalSection`)
+- Step 5–7: sync setelah SO / WH / Tool Room (`syncFormProcessMilestone` → `mutateForm`)
+
+**Tidak dikirim** jika:
+
+- `WHACENTER_DEVICE_ID` kosong, atau `WHACENTER_ENABLED=false`
+- Milestone tidak berubah
+- Milestone **mundur** (contoh: semua SO dihapus → kembali ke Dept Head)
+- Milestone bukan step 1–7 (DRAFT, reject, hold)
+- Tidak ada nomor valid untuk penerima
+
+Reject / Hold **belum** dikirimi WA:
+
+- `REJECTED BY SUPERIOR`
+- `HOLD BY SERVICE ADMIN`
+- `REJECTED BY SERVICE DEPT. HEAD`
+
+#### Mapping penerima
+
+| Step | Milestone (disimpan) | Alias yang juga dikenali | Kirim ke |
+|------|----------------------|--------------------------|----------|
+| 1 | `CHECK BY TOOL STORE` | — | **Superior serviceman** |
+| 2 | `SUPERIOR APPROVED` | — | Semua user aktif `SERVICE_ADMIN` |
+| 3 | `REVIEWED BY SERVICE ADMIN` | — | Semua user aktif `HEAD_SERVICE` |
+| 4 | `APPROVED BY SERVICE DEPT. HEAD` | (titik dihapus saat match) | Semua user aktif `COUNTER` **dan** `GA` |
+| 5 | `PROCESSING ORDER` | `ORDER PROCESSED` | Semua user aktif `WH` **+ serviceman** |
+| 6 | `RECEIVED BY WH/GA` | — | Semua user aktif `TOOL_KEEPER` **+ serviceman** |
+| 6 (partial) | `PARTIAL RECEIVED BY WH/GA` | — | sama seperti step 6 |
+| 7 | `RECEIVED TOOL STORE` | `RECEIVED BY TOOL STORE` | **Serviceman + superior** |
+| 7 (partial) | `PARTIAL RECEIVED TOOL STORE` | `PARTIAL RECEIVED BY TOOL STORE` | sama seperti step 7 |
+
+Nomor duplikat (orang yang sama / nomor yang sama) dikirim **sekali**.
+
+#### Lookup Superior dan Serviceman
+
+**Bukan** `forms.superior_id` (kolom itu ada di schema tapi UI save form **tidak mengisinya**, sering kosong).
+
+Rantai yang dipakai:
+
+```
+forms.form_serv_name  =  users.id_users (serviceman)
+        │
+        ▼
+users.superior_id     =  users.id_users (user level SUPERIOR)
+        │
+        ▼
+users.no_telp         →  nomor WhatsApp
+```
+
+- **Serviceman:** `form_serv_name` dicocokkan ke `users.id_users`, lalu fallback `nama_user` / `username`. Nomor: `users.no_telp`.
+- **Superior:** `superior_id` milik serviceman itu → `users.no_telp` atasan.
+- **Role** (`SERVICE_ADMIN`, `HEAD_SERVICE`, `COUNTER`, `GA`, `WH`, `TOOL_KEEPER`): semua user dengan `level` itu, `status = ACTIVE` (kosong dianggap ACTIVE), dan `no_telp` terisi.
+
+User tanpa `no_telp` / nomor tidak valid dilewati.
+
+#### Normalisasi nomor
+
+`src/lib/whacenter.ts` → `normalizeWaNumber`:
+
+| Input | Hasil |
+|-------|--------|
+| `0812…` | `62812…` |
+| `812…` | `62812…` |
+| `+62812…` | `62812…` |
+| `62812…` | `62812…` |
+
+Panjang setelah normalisasi harus 11–15 digit dan diawali `62`. Selain itu skip.
+
+#### Isi pesan WA
+
+Judul memakai ikon tool (emoji 🔧), bukan teks `[Tool Store]`. Pesan mencakup header form + blok per tool item (maks. 6 item, sisanya “+N item lain”).
+
+Contoh struktur:
+
+```
+🔧 Tool Store — Step 1/7
+*Permintaan Order*
+
+Form *0002*  ·  HOLDER / DAMAGE
+Serviceman: Mekanik1
+Items: *2*
+Status: CHECK BY TOOL STORE
+Qty Order: 22
+
+Buka di browser:
+https://host/forms?form_no=0002
+Superior: Lanjut Proses
+Qty WH Received: 11 (Partial Received)
+
+────────────────
+*Item 1 — PN 11*
+Qty Order: 11
+Description: DESC 11
+Price: 1.100.000
+…
+
+Request diajukan. Silakan approval superior.
+```
+
+Field kosong (`—`, brand/spec/PO belum ada, qty received 0, comment approval belum diisi) **tidak ditampilkan**.
+
+Comment approval (hanya jika terisi), di bawah Qty Order / tautan:
+
+- Superior → `form_superior_comment`
+- Service Admin → `form_sadmin_comment`
+- Dept Head → `form_shead_comment`
+
+**Qty / Partial Received**
+
+- Qty Order = jumlah `form_details.qty`
+- Qty WH Received = jumlah `rcv_wh.qty`
+- Qty Tool Room Received = jumlah `rcv_tool.qty`
+- Label `(Partial Received)` hanya jika **Qty Received < Qty Order** dan received > 0
+- Received 0 / belum ada → baris dihilangkan
+
+**Link browser:** diletakkan **langsung di bawah Qty Order**, URL di baris sendiri (tanpa markdown). `APP_BASE_URL` harus `https://` + domain agar WhatsApp menjadikannya tautan (bukan `localhost`). `AuthGuard` menyimpan query di `login?from=` agar setelah login tetap expand.
+
+Teks aksi per step:
+
+| Step | Judul di pesan | Teks aksi |
+|------|----------------|-----------|
+| 1 | Permintaan Order | Request diajukan. Silakan approval superior. |
+| 2 | Persetujuan Order 1 | Superior sudah approve. Silakan review Service Admin. |
+| 3 | Review Order | Service Admin sudah review. Silakan approval Dept Head. |
+| 4 | Persetujuan Order 2 | Dept Head sudah approve. Silakan proses SO / PR (Counter / GA). |
+| 5 | Proses Order | SO / PR sudah ada. Menunggu penerimaan gudang (WH). |
+| 6 partial | WH Received (sebagian) | Sebagian tool sudah diterima WH. Silakan serah terima tool room. |
+| 6 | WH Received | Semua tool sudah diterima WH. Silakan serah terima tool room. |
+| 7 partial | Tool Received (sebagian) | Sebagian tool sudah diterima tool room. |
+| 7 | Tool Received | Semua tool sudah diterima tool room. |
+
+#### Konfigurasi env
+
+Di `.env.local` (lihat `.env.example`):
+
+| Variabel | Wajib | Keterangan |
+|----------|-------|------------|
+| `WHACENTER_DEVICE_ID` | Ya (agar aktif) | Device ID dari dashboard Whacenter. **Jangan commit.** |
+| `WHACENTER_ENABLED` | Tidak | Default aktif jika device id ada. Set `false` / `0` / `no` untuk mematikan. |
+| `WHACENTER_API_URL` | Tidak | Default `https://app.whacenter.com/api/send` |
+| `APP_BASE_URL` | Untuk link WA | URL yang bisa dibuka HP, mis. `http://192.168.1.29:3000`. Wajib `http://` atau `https://`. `localhost` tidak bisa diklik dari HP. |
+
+API: `POST` `application/x-www-form-urlencoded` dengan `device_id`, `number`, `message`. Timeout 15 detik. Device harus **connected** di dashboard Whacenter.
+
+Setelah mengubah env, **restart** `npm run dev`.
+
+#### File
+
+| File | Peran |
+|------|--------|
+| `src/lib/whacenter.ts` | Enable flag, normalisasi nomor, `POST` ke Whacenter |
+| `src/features/forms/notifyMilestone.ts` | Aturan step, lookup penerima, kirim |
+| `src/features/forms/notifyMessage.ts` | Template pesan (item, qty, Partial Received, link) |
+| `src/lib/safeInternalPath.ts` | Path `login?from=` aman (tetap bawa query form_no) |
+| `src/features/forms/formMilestones.ts` | `normFormMilestone`, `milestoneRank` (cek maju/mundur) |
+| `src/server/forms.ts` | Baca milestone lama → simpan form → panggil notify |
+| `.env.example` | Template variabel Whacenter |
+| `.env.local` | Device ID lokal (gitignored) |
+
+#### Log server
+
+| Log | Artinya |
+|-----|---------|
+| `[whacenter] step N form {id} → X nomor` | Berhasil kirim ke X nomor |
+| `[whacenter] skip form …: tidak ada nomor` | Tidak ada `no_telp` valid |
+| `[whacenter] send failed` | API Whacenter menolak / device disconnect |
+| `[whacenter] notify failed` | Exception di hook; form tetap tersimpan |

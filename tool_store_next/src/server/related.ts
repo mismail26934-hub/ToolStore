@@ -73,6 +73,7 @@ export async function mutateRcvWh(input: {
   idRcvWh?: string
   idFormDetail: string
   rcvWhDate?: string
+  qty?: string
   rcvWhIdInput?: string
   rcvWhDateInput?: string
 }): Promise<string> {
@@ -96,6 +97,7 @@ export async function mutateRcvTool(input: {
   idRcvTool?: string
   idFormDetail: string
   rcvToolDate?: string
+  qty?: string
   rcvToolIdInput?: string
   rcvToolDateInput?: string
 }): Promise<string> {

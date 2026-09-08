@@ -4,6 +4,7 @@ import { useState, type FormEvent } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useLogin } from '@/features/auth/useLogin'
 import { registerWebFcm, isFcmConfigured } from '@/features/fcm/registerWebFcm'
+import { safeInternalPath } from '@/lib/safeInternalPath'
 import { usePrefs } from '@/prefs/PreferencesContext'
 
 function EyeIcon({ open }: { open: boolean }) {
@@ -67,7 +68,7 @@ export function LoginPage() {
   const login = useLogin()
   const router = useRouter()
   const searchParams = useSearchParams()
-  const from = searchParams.get('from') || '/dashboard'
+  const from = safeInternalPath(searchParams.get('from'))
   const { t, isDark, toggleTheme, isEnglish, toggleLocale } = usePrefs()
 
   const onSubmit = async (e: FormEvent) => {

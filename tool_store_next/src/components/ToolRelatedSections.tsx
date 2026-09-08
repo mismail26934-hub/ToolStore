@@ -43,6 +43,13 @@ function dateSlice(value: string | null | undefined, fallback = '') {
   return v || fallback
 }
 
+function receiveQtyLine(qty: string, date: string, index: number, total: number) {
+  const q = qty.trim() || '—'
+  const d = formatDateDisplay(date)
+  const body = d && d !== '—' ? `${q} · ${d}` : q
+  return total > 1 ? `${index + 1}) ${body}` : body
+}
+
 function PlusIcon() {
   return (
     <svg
@@ -204,6 +211,7 @@ export function ToolRelatedSections({
   const [dialog, setDialog] = useState<Dialog>(null)
   const [error, setError] = useState<string | null>(null)
   const [dateField, setDateField] = useState('')
+  const [qtyField, setQtyField] = useState('')
 
   const pos = byDetail(related.po.data, tool.idFormDetail)
   const sos = byDetail(related.so.data, tool.idFormDetail)
@@ -232,12 +240,16 @@ export function ToolRelatedSections({
     setError(null)
     if (next.kind === 'so') {
       setDateField(dateSlice(next.row?.eta))
+      setQtyField('')
     } else if (next.kind === 'rcvWh') {
       setDateField(dateSlice(next.row?.rcvWhDate, todayYmd()))
+      setQtyField(next.row?.qty?.trim() || tool.qty.trim())
     } else if (next.kind === 'rcvTool') {
       setDateField(dateSlice(next.row?.rcvToolDate, todayYmd()))
+      setQtyField(next.row?.qty?.trim() || tool.qty.trim())
     } else {
       setDateField('')
+      setQtyField('')
     }
     setDialog(next)
   }
@@ -246,6 +258,7 @@ export function ToolRelatedSections({
     setDialog(null)
     setError(null)
     setDateField('')
+    setQtyField('')
   }
 
   const onPoSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -311,7 +324,9 @@ export function ToolRelatedSections({
   const onWhSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const date = dateField.trim()
+    const qty = qtyField.trim()
     if (!date) return setError('Tanggal wajib diisi')
+    if (!qty) return setError('Qty WH Received wajib diisi')
     if (rooms.length > 0)
       return setError('WH receive terkunci karena Tool Room sudah ada')
     try {
@@ -323,6 +338,7 @@ export function ToolRelatedSections({
         idRcvWh: dialog?.kind === 'rcvWh' ? (dialog.row?.idRcvWh ?? '') : '',
         idFormDetail: tool.idFormDetail,
         rcvWhDate: date,
+        qty,
         rcvWhIdInput: user?.idUsersApp ?? '',
         rcvWhDateInput: todayYmd(),
       })
@@ -336,7 +352,9 @@ export function ToolRelatedSections({
   const onToolRcvSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const date = dateField.trim()
+    const qty = qtyField.trim()
     if (!date) return setError('Tanggal wajib diisi')
+    if (!qty) return setError('Qty Tool Room Received wajib diisi')
     try {
       await mut.rcvTool.mutateAsync({
         param:
@@ -347,6 +365,7 @@ export function ToolRelatedSections({
           dialog?.kind === 'rcvTool' ? (dialog.row?.idRcvTool ?? '') : '',
         idFormDetail: tool.idFormDetail,
         rcvToolDate: date,
+        qty,
         rcvToolIdInput: user?.idUsersApp ?? '',
         rcvToolDateInput: todayYmd(),
       })
@@ -406,6 +425,7 @@ export function ToolRelatedSections({
         idRcvWh: row.idRcvWh,
         idFormDetail: tool.idFormDetail,
         rcvWhDate: row.rcvWhDate,
+        qty: row.qty,
         rcvWhIdInput: user?.idUsersApp ?? '',
         rcvWhDateInput: todayYmd(),
       })
@@ -424,6 +444,7 @@ export function ToolRelatedSections({
         idRcvTool: row.idRcvTool,
         idFormDetail: tool.idFormDetail,
         rcvToolDate: row.rcvToolDate,
+        qty: row.qty,
         rcvToolIdInput: user?.idUsersApp ?? '',
         rcvToolDateInput: todayYmd(),
       })
@@ -507,7 +528,7 @@ export function ToolRelatedSections({
         </RelatedField>
 
         <RelatedField
-          label="WH Received"
+          label="Qty WH Received"
           canAdd={canMutateRcvWh(user) && !whLocked}
           onAdd={() => openDialog({ kind: 'rcvWh' })}
         >
@@ -515,11 +536,7 @@ export function ToolRelatedSections({
           {whs.map((row, i) => (
             <RelatedItemRow
               key={row.idRcvWh}
-              label={
-                whs.length > 1
-                  ? `${i + 1}) ${formatDateDisplay(row.rcvWhDate)}`
-                  : formatDateDisplay(row.rcvWhDate)
-              }
+              label={receiveQtyLine(row.qty, row.rcvWhDate, i, whs.length)}
               canEdit={canMutateRcvWh(user) && !whLocked}
               onEdit={() => openDialog({ kind: 'rcvWh', row })}
             />
@@ -527,7 +544,7 @@ export function ToolRelatedSections({
         </RelatedField>
 
         <RelatedField
-          label="Tool Room"
+          label="Qty Tool Room Received"
           canAdd={canMutateRcvTool(user)}
           onAdd={() => openDialog({ kind: 'rcvTool' })}
         >
@@ -535,11 +552,7 @@ export function ToolRelatedSections({
           {rooms.map((row, i) => (
             <RelatedItemRow
               key={row.idRcvTool}
-              label={
-                rooms.length > 1
-                  ? `${i + 1}) ${formatDateDisplay(row.rcvToolDate)}`
-                  : formatDateDisplay(row.rcvToolDate)
-              }
+              label={receiveQtyLine(row.qty, row.rcvToolDate, i, rooms.length)}
               canEdit={canMutateRcvTool(user)}
               onEdit={() => openDialog({ kind: 'rcvTool', row })}
             />
@@ -559,8 +572,8 @@ export function ToolRelatedSections({
               <h3>
                 {dialog.kind === 'po' && 'PO'}
                 {dialog.kind === 'so' && 'SO / PR'}
-                {dialog.kind === 'rcvWh' && 'WH Received'}
-                {dialog.kind === 'rcvTool' && 'Tool Room Received'}
+                {dialog.kind === 'rcvWh' && 'Qty WH Received'}
+                {dialog.kind === 'rcvTool' && 'Qty Tool Room Received'}
               </h3>
               {dialog.row && (
                 <button
@@ -648,6 +661,16 @@ export function ToolRelatedSections({
             {dialog.kind === 'rcvWh' && (
               <form className="stack" onSubmit={onWhSubmit}>
                 <label className="field">
+                  <span>Qty WH Received</span>
+                  <input
+                    value={qtyField}
+                    onChange={(e) => setQtyField(e.target.value)}
+                    inputMode="decimal"
+                    required
+                    aria-label="Qty WH Received"
+                  />
+                </label>
+                <label className="field">
                   <span>Date</span>
                   <DateInput
                     value={dateField}
@@ -672,6 +695,16 @@ export function ToolRelatedSections({
             )}
             {dialog.kind === 'rcvTool' && (
               <form className="stack" onSubmit={onToolRcvSubmit}>
+                <label className="field">
+                  <span>Qty Tool Room Received</span>
+                  <input
+                    value={qtyField}
+                    onChange={(e) => setQtyField(e.target.value)}
+                    inputMode="decimal"
+                    required
+                    aria-label="Qty Tool Room Received"
+                  />
+                </label>
                 <label className="field">
                   <span>Date</span>
                   <DateInput

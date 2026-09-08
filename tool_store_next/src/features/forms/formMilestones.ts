@@ -77,7 +77,7 @@ export function filledStepsFromMilestone(milestone: string): number {
 }
 
 /** Progress rank — partials sit between full steps so upgrades are allowed. */
-function milestoneRank(milestone: string): number {
+export function milestoneRank(milestone: string): number {
   const n = normFormMilestone(milestone)
   if (n === 'RECEIVED TOOL STORE' || n === 'RECEIVED BY TOOL STORE') return 70
   if (

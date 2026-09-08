@@ -325,6 +325,10 @@ h3 {
   font-weight: 600;
   cursor: pointer;
   text-decoration: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .nav-manage-item:hover {
@@ -335,6 +339,14 @@ h3 {
 .nav-manage-item.is-active {
   background: color-mix(in srgb, var(--amber) 16%, transparent);
   color: var(--amber);
+}
+
+.nav-inbox-count {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: var(--amber);
+  min-width: 1.25em;
+  text-align: right;
 }
 
 .nav-session {

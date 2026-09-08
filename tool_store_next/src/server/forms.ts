@@ -1,5 +1,6 @@
 'use server'
 
+import { ApiParam } from '@/api/params'
 import {
   dbDashboardCounts,
   dbExportFormDetails,
@@ -7,6 +8,7 @@ import {
   dbListForms,
   dbMutateForm,
 } from '@/db/forms'
+import { notifyFormMilestoneChange } from '@/features/forms/notifyMilestone'
 import type { FormListFilters, SaveFormInput } from '@/features/forms/types'
 import type { DashboardCounts, FormRow, PaginatedList } from '@/types/models'
 
@@ -38,7 +40,26 @@ export async function fetchDashboardCounts(): Promise<DashboardCounts> {
 
 export async function mutateForm(input: SaveFormInput): Promise<string> {
   try {
-    return await dbMutateForm(input)
+    let prevMilestone = ''
+    if (input.param === ApiParam.editForm && input.idForm?.trim()) {
+      const prev = await dbGetFormById(input.idForm)
+      prevMilestone = prev?.formMilestone ?? ''
+    }
+    const msg = await dbMutateForm(input)
+    if (input.param === ApiParam.editForm && input.idForm?.trim()) {
+      try {
+        await notifyFormMilestoneChange({
+          idForm: input.idForm,
+          prevMilestone,
+          nextMilestone: input.formMilestone ?? '',
+          formNo: input.formNo,
+          formServName: input.formServName,
+        })
+      } catch (notifyErr) {
+        console.error('[whacenter] notify failed', notifyErr)
+      }
+    }
+    return msg
   } catch (e) {
     throw new Error(e instanceof Error ? e.message : 'Gagal menyimpan form')
   }

@@ -151,6 +151,11 @@ export function parseDashboardCounts(data: unknown): DashboardCounts {
     toolReceivedWhGa: readInt(
       json.tool_received_wh_ga ?? json.toolReceivedWhGa,
     ),
+    hold: readInt(json.hold ?? json.hold_count),
+    rejectedSuperior: readInt(
+      json.rejected_superior ?? json.rejectedSuperior,
+    ),
+    rejectedDept: readInt(json.rejected_dept ?? json.rejectedDept),
     notificationTotal: readInt(
       json.notification_total ?? json.notificationTotal,
     ),
@@ -184,6 +189,7 @@ export function parseRcvWhRow(json: Record<string, unknown>): RcvWhRow {
     idRcvWh: s(json.id_rcv_wh),
     idFormDetail: s(json.id_form_detail),
     rcvWhDate: s(json.rcv_wh_date),
+    qty: s(json.qty),
     rcvWhIdInput: s(json.rcv_wh_id_input),
     rcvWhDateInput: s(json.rcv_wh_date_input),
   }
@@ -194,6 +200,7 @@ export function parseRcvToolRow(json: Record<string, unknown>): RcvToolRow {
     idRcvTool: s(json.id_rcv_tool),
     idFormDetail: s(json.id_form_detail),
     rcvToolDate: s(json.rcv_tool_date),
+    qty: s(json.qty),
     rcvToolIdInput: s(json.rcv_tool_id_input),
     rcvToolDateInput: s(json.rcv_tool_date_input),
   }

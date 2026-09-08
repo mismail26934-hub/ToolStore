@@ -107,6 +107,7 @@ CREATE TABLE IF NOT EXISTS rcv_wh (
   id_rcv_wh         VARCHAR(36) NOT NULL PRIMARY KEY,
   id_form_detail    VARCHAR(36) NOT NULL,
   rcv_wh_date       DATE NULL,
+  qty               VARCHAR(50) NULL,
   rcv_wh_id_input   VARCHAR(36) NULL,
   rcv_wh_date_input DATE NULL,
   CONSTRAINT fk_rcv_wh_detail
@@ -118,6 +119,7 @@ CREATE TABLE IF NOT EXISTS rcv_tool (
   id_rcv_tool         VARCHAR(36) NOT NULL PRIMARY KEY,
   id_form_detail      VARCHAR(36) NOT NULL,
   rcv_tool_date       DATE NULL,
+  qty                 VARCHAR(50) NULL,
   rcv_tool_id_input   VARCHAR(36) NULL,
   rcv_tool_date_input DATE NULL,
   CONSTRAINT fk_rcv_tool_detail
