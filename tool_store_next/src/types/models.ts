@@ -121,12 +121,12 @@ export type SuperiorRow = {
   idTu: string
 }
 
-export type PoRow = {
-  idPo: string
+export type PrRow = {
+  idPr: string
   idFormDetail: string
-  poNo: string
-  dateUpdatePo: string
-  userUpdatePo: string
+  prNo: string
+  dateUpdatePr: string
+  userUpdatePr: string
 }
 
 export type SoRow = {

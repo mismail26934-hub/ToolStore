@@ -4,17 +4,17 @@ import { canMutateSo } from '@/auth/roles'
 import { backupRowBeforeChange } from '@/db/backup'
 import { emptyToNull, newId, s } from '@/db/helpers'
 import { getDbPool } from '@/db/pool'
-import type { PoRow, RcvToolRow, RcvWhRow, SoRow } from '@/types/models'
+import type { PrRow, RcvToolRow, RcvWhRow, SoRow } from '@/types/models'
 
 type Packet = RowDataPacket & Record<string, unknown>
 
-function mapPo(row: Packet): PoRow {
+function mapPr(row: Packet): PrRow {
   return {
-    idPo: s(row.id_po),
+    idPr: s(row.id_pr) || s(row.id_po),
     idFormDetail: s(row.id_form_detail),
-    poNo: s(row.po_no),
-    dateUpdatePo: s(row.date_update_po),
-    userUpdatePo: s(row.user_update_po),
+    prNo: s(row.pr_no) || s(row.po_no),
+    dateUpdatePr: s(row.date_update_pr) || s(row.date_update_po),
+    userUpdatePr: s(row.user_update_pr) || s(row.user_update_po),
   }
 }
 
@@ -102,73 +102,157 @@ function normBoComplete(value?: string | null): 'YES' | 'NO' {
   return (value ?? '').trim().toUpperCase() === 'YES' ? 'YES' : 'NO'
 }
 
-export async function dbListPoByForm(idForm: string): Promise<PoRow[]> {
+let prTableEnsured = false
+
+async function schemaHasTable(table: string): Promise<boolean> {
+  const pool = getDbPool()
+  const [rows] = await pool.query<RowDataPacket[]>(
+    `SELECT 1 AS ok FROM information_schema.tables
+     WHERE table_schema = DATABASE() AND table_name = ?
+     LIMIT 1`,
+    [table],
+  )
+  return Boolean(rows[0])
+}
+
+async function schemaHasColumn(table: string, column: string): Promise<boolean> {
+  const pool = getDbPool()
+  const [rows] = await pool.query<RowDataPacket[]>(
+    `SELECT 1 AS ok FROM information_schema.columns
+     WHERE table_schema = DATABASE()
+       AND table_name = ?
+       AND column_name = ?
+     LIMIT 1`,
+    [table, column],
+  )
+  return Boolean(rows[0])
+}
+
+/** Rename leftover `po` → `pr` (and columns) if this DB has not been migrated. */
+async function ensurePrTable(): Promise<void> {
+  if (prTableEnsured) return
+  const pool = getDbPool()
+  const hasPr = await schemaHasTable('pr')
+  const hasPo = await schemaHasTable('po')
+  if (!hasPr && hasPo) {
+    await pool.query('RENAME TABLE `po` TO `pr`')
+  }
+  if (!(await schemaHasTable('pr'))) {
+    await pool.query(
+      `CREATE TABLE IF NOT EXISTS pr (
+         id_pr          VARCHAR(36)  NOT NULL PRIMARY KEY,
+         id_form_detail VARCHAR(36)  NOT NULL,
+         pr_no          VARCHAR(100) NULL,
+         date_update_pr DATE NULL,
+         user_update_pr VARCHAR(36)  NULL,
+         CONSTRAINT fk_pr_detail
+           FOREIGN KEY (id_form_detail) REFERENCES form_details (id_form_detail)
+           ON DELETE CASCADE
+       )`,
+    )
+  }
+  if (await schemaHasColumn('pr', 'id_po')) {
+    await pool.query(
+      'ALTER TABLE pr CHANGE COLUMN id_po id_pr VARCHAR(36) NOT NULL',
+    )
+  }
+  if (await schemaHasColumn('pr', 'po_no')) {
+    await pool.query(
+      'ALTER TABLE pr CHANGE COLUMN po_no pr_no VARCHAR(100) NULL',
+    )
+  }
+  if (await schemaHasColumn('pr', 'date_update_po')) {
+    await pool.query(
+      'ALTER TABLE pr CHANGE COLUMN date_update_po date_update_pr DATE NULL',
+    )
+  }
+  if (await schemaHasColumn('pr', 'user_update_po')) {
+    await pool.query(
+      'ALTER TABLE pr CHANGE COLUMN user_update_po user_update_pr VARCHAR(36) NULL',
+    )
+  }
+  prTableEnsured = true
+}
+
+function isPrAdd(param: string) {
+  return param === ApiParam.addPr || param === 'ADD DATA PO'
+}
+function isPrEdit(param: string) {
+  return param === ApiParam.editPr || param === 'EDIT DATA PO'
+}
+function isPrDelete(param: string) {
+  return param === ApiParam.deletePr || param === 'DELETED DATA PO'
+}
+
+export async function dbListPrByForm(idForm: string): Promise<PrRow[]> {
+  await ensurePrTable()
   const pool = getDbPool()
   const [rows] = await pool.query<Packet[]>(
-    `SELECT p.* FROM po p
+    `SELECT p.* FROM pr p
      INNER JOIN form_details d ON d.id_form_detail = p.id_form_detail
      WHERE d.id_form = ?`,
     [idForm.trim()],
   )
-  return rows.map(mapPo)
+  return rows.map(mapPr)
 }
 
-export async function dbMutatePo(input: {
+export async function dbMutatePr(input: {
   param: string
-  idPo?: string
+  idPr?: string
   idFormDetail: string
-  poNo?: string
-  dateUpdatePo?: string
-  userUpdatePo?: string
+  prNo?: string
+  dateUpdatePr?: string
+  userUpdatePr?: string
 }): Promise<string> {
+  await ensurePrTable()
   const pool = getDbPool()
-  if (input.param === ApiParam.deletePo) {
-    const id = input.idPo?.trim() ?? ''
+  if (isPrDelete(input.param)) {
+    const id = input.idPr?.trim() ?? ''
     await backupRowBeforeChange({
-      tableName: 'po',
+      tableName: 'pr',
       recordId: id,
       action: 'DELETE',
-      userId: input.userUpdatePo,
+      userId: input.userUpdatePr,
     })
-    await pool.query(`DELETE FROM po WHERE id_po = ?`, [id])
-    return 'PO dihapus'
+    await pool.query(`DELETE FROM pr WHERE id_pr = ?`, [id])
+    return 'PR dihapus'
   }
-  if (input.param === ApiParam.addPo) {
+  if (isPrAdd(input.param)) {
     await pool.query(
-      `INSERT INTO po (id_po, id_form_detail, po_no, date_update_po, user_update_po)
+      `INSERT INTO pr (id_pr, id_form_detail, pr_no, date_update_pr, user_update_pr)
        VALUES (?,?,?,?,?)`,
       [
-        input.idPo?.trim() || newId(),
+        input.idPr?.trim() || newId(),
         input.idFormDetail,
-        emptyToNull(input.poNo),
-        emptyToNull(input.dateUpdatePo),
-        emptyToNull(input.userUpdatePo),
+        emptyToNull(input.prNo),
+        emptyToNull(input.dateUpdatePr),
+        emptyToNull(input.userUpdatePr),
       ],
     )
-    return 'PO ditambahkan'
+    return 'PR ditambahkan'
   }
-  if (input.param === ApiParam.editPo) {
-    const id = input.idPo?.trim() ?? ''
+  if (isPrEdit(input.param)) {
+    const id = input.idPr?.trim() ?? ''
     await backupRowBeforeChange({
-      tableName: 'po',
+      tableName: 'pr',
       recordId: id,
       action: 'UPDATE',
-      userId: input.userUpdatePo,
+      userId: input.userUpdatePr,
     })
     const [r] = await pool.query<ResultSetHeader>(
-      `UPDATE po SET po_no = ?, date_update_po = ?, user_update_po = ?
-       WHERE id_po = ?`,
+      `UPDATE pr SET pr_no = ?, date_update_pr = ?, user_update_pr = ?
+       WHERE id_pr = ?`,
       [
-        emptyToNull(input.poNo),
-        emptyToNull(input.dateUpdatePo),
-        emptyToNull(input.userUpdatePo),
+        emptyToNull(input.prNo),
+        emptyToNull(input.dateUpdatePr),
+        emptyToNull(input.userUpdatePr),
         id,
       ],
     )
-    if (r.affectedRows === 0) throw new Error('PO tidak ditemukan')
-    return 'PO diperbarui'
+    if (r.affectedRows === 0) throw new Error('PR tidak ditemukan')
+    return 'PR diperbarui'
   }
-  throw new Error(`Param PO tidak dikenal: ${input.param}`)
+  throw new Error(`Param PR tidak dikenal: ${input.param}`)
 }
 
 export async function dbListSoByForm(idForm: string): Promise<SoRow[]> {

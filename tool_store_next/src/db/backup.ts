@@ -9,7 +9,7 @@ export type Queryable = Pool | PoolConnection
 export const BACKUP_TABLE_PK = {
   forms: 'id_form',
   form_details: 'id_form_detail',
-  po: 'id_po',
+  pr: 'id_pr',
   so: 'id_so',
   rcv_wh: 'id_rcv_wh',
   rcv_tool: 'id_rcv_tool',
@@ -111,7 +111,7 @@ export async function backupRowBeforeChange(input: {
   return true
 }
 
-/** Before deleting a form: backup form + details + PO/SO/WH/Tool Room (CASCADE). */
+/** Before deleting a form: backup form + details + PR/SO/WH/Tool Room (CASCADE). */
 export async function backupFormCascadeDelete(input: {
   idForm: string
   userId?: string | null
@@ -168,7 +168,7 @@ async function backupRelatedForDetail(input: {
     sql: string
     idKey: string
   }> = [
-    { table: 'po', sql: `SELECT * FROM po WHERE id_form_detail = ?`, idKey: 'id_po' },
+    { table: 'pr', sql: `SELECT * FROM pr WHERE id_form_detail = ?`, idKey: 'id_pr' },
     { table: 'so', sql: `SELECT * FROM so WHERE id_form_detail = ?`, idKey: 'id_so' },
     {
       table: 'rcv_wh',

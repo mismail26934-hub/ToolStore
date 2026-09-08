@@ -5,7 +5,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { ApiParam } from '@/api/params'
 import { useAuth } from '@/auth/AuthContext'
 import {
-  canMutatePo,
+  canMutatePr,
   canMutateRcvTool,
   canMutateRcvWh,
   canMutateSo,
@@ -22,7 +22,7 @@ import {
 import { useFormRelated, useRelatedMutations } from '@/features/related/useRelated'
 import type {
   FormRow,
-  PoRow,
+  PrRow,
   RcvToolRow,
   RcvWhRow,
   SoRow,
@@ -30,7 +30,7 @@ import type {
 } from '@/types/models'
 
 type Dialog =
-  | { kind: 'po'; row?: PoRow }
+  | { kind: 'pr'; row?: PrRow }
   | { kind: 'so'; row?: SoRow }
   | { kind: 'rcvWh'; row?: RcvWhRow }
   | { kind: 'rcvTool'; row?: RcvToolRow }
@@ -218,7 +218,7 @@ export function ToolRelatedSections({
   const [dateField, setDateField] = useState('')
   const [qtyField, setQtyField] = useState('')
 
-  const pos = byDetail(related.po.data, tool.idFormDetail)
+  const prs = byDetail(related.pr.data, tool.idFormDetail)
   const sos = byDetail(related.so.data, tool.idFormDetail)
   const whs = byDetail(related.rcvWh.data, tool.idFormDetail)
   const rooms = byDetail(related.rcvTool.data, tool.idFormDetail)
@@ -228,7 +228,7 @@ export function ToolRelatedSections({
   const soNote = soNoteLabel(tool.valType)
 
   const busy =
-    mut.po.isPending ||
+    mut.pr.isPending ||
     mut.so.isPending ||
     mut.rcvWh.isPending ||
     mut.rcvTool.isPending
@@ -270,27 +270,27 @@ export function ToolRelatedSections({
     setQtyField('')
   }
 
-  const onPoSubmit = async (e: FormEvent<HTMLFormElement>) => {
+  const onPrSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const fd = new FormData(e.currentTarget)
-    const poNo = String(fd.get('po_no') ?? '').trim()
-    if (!poNo) return setError('PO number wajib diisi')
-    if (sos.length > 0) return setError('PO terkunci karena SO sudah ada')
+    const prNo = String(fd.get('pr_no') ?? '').trim()
+    if (!prNo) return setError('PR number wajib diisi')
+    if (sos.length > 0) return setError('PR terkunci karena SO sudah ada')
     try {
-      await mut.po.mutateAsync({
+      await mut.pr.mutateAsync({
         param:
           dialog &&
           'row' in dialog &&
           dialog.row &&
-          'idPo' in dialog.row &&
-          dialog.row.idPo
-            ? ApiParam.editPo
-            : ApiParam.addPo,
-        idPo: dialog?.kind === 'po' ? (dialog.row?.idPo ?? '') : '',
+          'idPr' in dialog.row &&
+          dialog.row.idPr
+            ? ApiParam.editPr
+            : ApiParam.addPr,
+        idPr: dialog?.kind === 'pr' ? (dialog.row?.idPr ?? '') : '',
         idFormDetail: tool.idFormDetail,
-        poNo,
-        dateUpdatePo: todayYmd(),
-        userUpdatePo: user?.idUsersApp ?? '',
+        prNo,
+        dateUpdatePr: todayYmd(),
+        userUpdatePr: user?.idUsersApp ?? '',
       })
       await syncMilestone()
       close()
@@ -392,17 +392,17 @@ export function ToolRelatedSections({
     }
   }
 
-  const removePo = async (row: PoRow) => {
+  const removePr = async (row: PrRow) => {
     if (sos.length > 0) return
-    if (!window.confirm(`Hapus PO ${row.poNo || ''}?`)) return
+    if (!window.confirm(`Hapus PR ${row.prNo || ''}?`)) return
     try {
-      await mut.po.mutateAsync({
-        param: ApiParam.deletePo,
-        idPo: row.idPo,
+      await mut.pr.mutateAsync({
+        param: ApiParam.deletePr,
+        idPr: row.idPr,
         idFormDetail: tool.idFormDetail,
-        poNo: row.poNo,
-        dateUpdatePo: todayYmd(),
-        userUpdatePo: user?.idUsersApp ?? '',
+        prNo: row.prNo,
+        dateUpdatePr: todayYmd(),
+        userUpdatePr: user?.idUsersApp ?? '',
       })
       await syncMilestone()
       close()
@@ -473,7 +473,7 @@ export function ToolRelatedSections({
     }
   }
 
-  const poLocked = sos.length > 0
+  const prLocked = sos.length > 0
   const soLocked = whs.length > 0
   const whLocked = rooms.length > 0
 
@@ -481,21 +481,21 @@ export function ToolRelatedSections({
     <div className="related-inline-wrap">
       <div className="tool-item-block-grid related-inline-grid">
         <RelatedField
-          label="PO"
-          canAdd={canMutatePo(user) && !poLocked}
-          onAdd={() => openDialog({ kind: 'po' })}
+          label="PR"
+          canAdd={canMutatePr(user) && !prLocked}
+          onAdd={() => openDialog({ kind: 'pr' })}
         >
-          {pos.length === 0 && <div className="meta-value muted">—</div>}
-          {pos.map((row, i) => (
+          {prs.length === 0 && <div className="meta-value muted">—</div>}
+          {prs.map((row, i) => (
             <RelatedItemRow
-              key={row.idPo}
+              key={row.idPr}
               label={
-                pos.length > 1
-                  ? `${i + 1}) ${row.poNo || '—'}`
-                  : row.poNo || '—'
+                prs.length > 1
+                  ? `${i + 1}) ${row.prNo || '—'}`
+                  : row.prNo || '—'
               }
-              canEdit={canMutatePo(user) && !poLocked}
-              onEdit={() => openDialog({ kind: 'po', row })}
+              canEdit={canMutatePr(user) && !prLocked}
+              onEdit={() => openDialog({ kind: 'pr', row })}
             />
           ))}
         </RelatedField>
@@ -590,7 +590,7 @@ export function ToolRelatedSections({
           >
             <div className="form-panel-header">
               <h3>
-                {dialog.kind === 'po' && 'PO'}
+                {dialog.kind === 'pr' && 'PR'}
                 {dialog.kind === 'so' && soLabel}
                 {dialog.kind === 'rcvWh' && 'Qty WH Received'}
                 {dialog.kind === 'rcvTool' && 'Qty Tool Room Received'}
@@ -601,7 +601,7 @@ export function ToolRelatedSections({
                   className="btn btn-danger btn-sm btn-with-icon"
                   disabled={busy}
                   onClick={() => {
-                    if (dialog.kind === 'po') void removePo(dialog.row!)
+                    if (dialog.kind === 'pr') void removePr(dialog.row!)
                     if (dialog.kind === 'so') void removeSo(dialog.row!)
                     if (dialog.kind === 'rcvWh') void removeWh(dialog.row!)
                     if (dialog.kind === 'rcvTool') void removeToolRcv(dialog.row!)
@@ -614,13 +614,13 @@ export function ToolRelatedSections({
             </div>
             {error && <div className="alert alert-error">{error}</div>}
 
-            {dialog.kind === 'po' && (
-              <form className="stack" onSubmit={onPoSubmit}>
+            {dialog.kind === 'pr' && (
+              <form className="stack" onSubmit={onPrSubmit}>
                 <label className="field">
-                  <span>PO number</span>
+                  <span>PR number</span>
                   <input
-                    name="po_no"
-                    defaultValue={dialog.row?.poNo ?? ''}
+                    name="pr_no"
+                    defaultValue={dialog.row?.prNo ?? ''}
                     required
                   />
                 </label>

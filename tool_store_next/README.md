@@ -54,7 +54,7 @@ Open http://localhost:3000
 | Login | `POST /api/auth/login` → `users` |
 | Forms / dashboard / export CSV | Server Actions → `forms`, `form_details` |
 | Tool items | Server Actions → `form_details` |
-| PO / SO / Rcv WH / Rcv Tool | Server Actions → related tables |
+| PR / SO / Rcv WH / Rcv Tool | Server Actions → related tables |
 | Users / superiors / profile | Server Actions → `users` |
 | FCM token | Server Actions → `users.fcm_token` |
 | WhatsApp Whacenter | Server: milestone change → `src/features/forms/notifyMilestone.ts` |
@@ -67,7 +67,7 @@ Schema: `sql/schema.sql`
 - Forms CRUD, search, date filter, deep link `form_no`
 - Approvals + order timeline
 - Tool items (BRAND / SPESIFIKASI; Action note dropdown A–D)
-- PO / SO / receive cascades
+- PR / SO / receive cascades
 - Export CSV (local)
 - Users CRUD + superior picker + My Profile
 - Dark mode + ID/EN
@@ -97,9 +97,9 @@ Dokumentasi ringkas semua perubahan UI/UX dan perilaku aplikasi di branch Next.j
 - **Action note** di detail list ditampilkan dengan label lengkap (bukan hanya kode `A`/`B`/`C`/`D`) via `formatActionNote`.
 - Layout tool: tiap item = **block card** (`tool-item-block-card`) dengan grid wrapping (bukan tabel horizontal lebar).
 - Field di dalam block punya **border + background** sendiri agar mudah dibaca.
-- Data terkait PO / SO / WH / Tool Room digabung ke dalam block (bukan section duplikat besar).
+- Data terkait PR / SO / WH / Tool Room digabung ke dalam block (bukan section duplikat besar).
 
-### 3. PO / SO / WH / Tool Room (inline + modal)
+### 3. PR / SO / WH / Tool Room (inline + modal)
 
 - UI inline: label + tombol **+**, nilai + ikon **edit**.
 - Add/Edit lewat **modal**; **Delete** hanya di dalam modal (header, kanan judul) agar tidak terklik tidak sengaja.
@@ -118,8 +118,10 @@ Dokumentasi ringkas semua perubahan UI/UX dan perilaku aplikasi di branch Next.j
   - **CAT** → `COUNTER` (dan SUPERADMIN)
   - **VENDOR** → `GA` (dan SUPERADMIN)
   - Kosong / nilai lain → hanya SUPERADMIN
+- Nomor **PR** (Purchase Requisition) di kartu item memakai tabel `pr` (`pr_no`), bukan dokumen VENDOR di tabel `so`.
+  - DB lama: `mysql -u root toolstore < sql/migrations/004_po_to_pr.sql` (app juga rename otomatis saat load PR)
 - Lock cascade tetap:
-  - PO terkunci jika SO sudah ada
+  - PR terkunci jika SO sudah ada
   - SO terkunci jika WH sudah ada
   - WH terkunci jika Tool Room sudah ada
 - Ikon tombol: CSS `.btn.btn-icon-only` (padding overridden) agar SVG tidak hilang di kotak 28×28.
@@ -211,7 +213,7 @@ Notifikasi WA: lihat **§11 WhatsApp Whacenter**.
 | `src/views/ToolDetailPage.tsx` | Form tambah/edit tool item + Action note dropdown |
 | `src/components/ActionNoteField.tsx` | Dropdown Action note (A–D) |
 | `src/lib/actionNotes.ts` | Opsi + normalize/format Action note |
-| `src/components/ToolRelatedSections.tsx` | Inline PO/SO/WH/Tool Room + modal + sync milestone |
+| `src/components/ToolRelatedSections.tsx` | Inline PR/SO/WH/Tool Room + modal + sync milestone |
 | `src/components/FormApprovalSection.tsx` | Label Approve / Review + tanggal |
 | `src/components/DateInput.tsx` | Input tanggal dd/mm/yyyy |
 | `src/lib/dateFormat.ts` | Format/parse tanggal |
@@ -233,7 +235,7 @@ Notifikasi WA: lihat **§11 WhatsApp Whacenter**.
 - Tabel dibuat otomatis saat backup pertama (`CREATE TABLE IF NOT EXISTS`), atau:
   - fresh install: sudah ada di `sql/schema.sql`
   - DB lama: `mysql -u root toolstore < sql/migrations/001_data_backups.sql`
-- Cakupan: forms (+ cascade detail/PO/SO/WH/Tool Room), form_details (+ related), po, so, rcv_wh, rcv_tool, users (termasuk update via import Excel).
+- Cakupan: forms (+ cascade detail/PR/SO/WH/Tool Room), form_details (+ related), pr, so, rcv_wh, rcv_tool, users (termasuk update via import Excel).
 - Bukan UI restore — snapshot untuk audit / restore manual dari JSON.
 
 ### 10. Catatan teknis
@@ -351,7 +353,7 @@ Price: 1.100.000
 …
 ```
 
-Field kosong (`—`, brand/spec/PO belum ada, qty received 0, comment approval belum diisi) **tidak ditampilkan**.
+Field kosong (`—`, brand/spec/PR belum ada, qty received 0, comment approval belum diisi) **tidak ditampilkan**.
 
 Comment approval (hanya jika terisi), di bawah Qty Order / tautan:
 

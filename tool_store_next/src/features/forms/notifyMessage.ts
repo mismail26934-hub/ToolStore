@@ -3,7 +3,7 @@ import { formatDateDisplay } from '@/lib/dateFormat'
 import { formatThousands, parseQtyNumber } from '@/lib/numberFormat'
 import { soNoteLabel, soSectionLabel } from '@/lib/orderDocLabel'
 import type {
-  PoRow,
+  PrRow,
   RcvToolRow,
   RcvWhRow,
   SoRow,
@@ -89,7 +89,7 @@ function itemBlock(
   index: number,
   tool: ToolDetailRow,
   related: {
-    pos: PoRow[]
+    prs: PrRow[]
     sos: SoRow[]
     whs: RcvWhRow[]
     rooms: RcvToolRow[]
@@ -115,7 +115,7 @@ function itemBlock(
     field('Spesifikasi', tool.spesifikasi),
     field('Explanation', tool.explan),
     field('Action note', formatActionNote(tool.actionNote)),
-    field('PO', joinUnique(related.pos.map((r) => r.poNo))),
+    field('PR', joinUnique(related.prs.map((r) => r.prNo))),
     field(soSectionLabel(tool.valType), joinUnique(related.sos.map((r) => r.so))),
     field('ETA', joinUnique(related.sos.map((r) => formatDateDisplay(r.eta)))),
     field(soNoteLabel(tool.valType), joinUnique(related.sos.map((r) => r.noteSo))),
@@ -142,7 +142,7 @@ export function buildNotifyMessage(input: {
   sadminComment?: string
   sheadComment?: string
   tools: ToolDetailRow[]
-  pos: PoRow[]
+  prs: PrRow[]
   sos: SoRow[]
   whs: RcvWhRow[]
   rooms: RcvToolRow[]
@@ -188,7 +188,7 @@ export function buildNotifyMessage(input: {
     .map((tool, i) => {
       const id = tool.idFormDetail
       return itemBlock(i, tool, {
-        pos: input.pos.filter((r) => r.idFormDetail === id),
+        prs: input.prs.filter((r) => r.idFormDetail === id),
         sos: input.sos.filter((r) => r.idFormDetail === id),
         whs: input.whs.filter((r) => r.idFormDetail === id),
         rooms: input.rooms.filter((r) => r.idFormDetail === id),

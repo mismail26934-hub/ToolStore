@@ -3,7 +3,7 @@ import type {
   FormRow,
   MutatingResult,
   PaginatedList,
-  PoRow,
+  PrRow,
   RcvToolRow,
   RcvWhRow,
   SoRow,
@@ -165,13 +165,13 @@ export function parseDashboardCounts(data: unknown): DashboardCounts {
   }
 }
 
-export function parsePoRow(json: Record<string, unknown>): PoRow {
+export function parsePrRow(json: Record<string, unknown>): PrRow {
   return {
-    idPo: s(json.id_po),
+    idPr: s(json.id_pr ?? json.id_po),
     idFormDetail: s(json.id_form_detail),
-    poNo: s(json.po_no),
-    dateUpdatePo: s(json.date_update_po),
-    userUpdatePo: s(json.user_update_po),
+    prNo: s(json.pr_no ?? json.po_no ?? json.prNo ?? json.poNo),
+    dateUpdatePr: s(json.date_update_pr ?? json.date_update_po),
+    userUpdatePr: s(json.user_update_pr ?? json.user_update_po),
   }
 }
 

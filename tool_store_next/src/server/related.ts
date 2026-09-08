@@ -1,37 +1,37 @@
 'use server'
 
 import {
-  dbListPoByForm,
+  dbListPrByForm,
   dbListRcvToolByForm,
   dbListRcvWhByForm,
   dbListSoByForm,
-  dbMutatePo,
+  dbMutatePr,
   dbMutateRcvTool,
   dbMutateRcvWh,
   dbMutateSo,
 } from '@/db/related'
-import type { PoRow, RcvToolRow, RcvWhRow, SoRow } from '@/types/models'
+import type { PrRow, RcvToolRow, RcvWhRow, SoRow } from '@/types/models'
 
-export async function fetchPoByForm(idForm: string): Promise<PoRow[]> {
+export async function fetchPrByForm(idForm: string): Promise<PrRow[]> {
   try {
-    return await dbListPoByForm(idForm)
+    return await dbListPrByForm(idForm)
   } catch (e) {
-    throw new Error(e instanceof Error ? e.message : 'Gagal memuat PO')
+    throw new Error(e instanceof Error ? e.message : 'Gagal memuat PR')
   }
 }
 
-export async function mutatePo(input: {
+export async function mutatePr(input: {
   param: string
-  idPo?: string
+  idPr?: string
   idFormDetail: string
-  poNo?: string
-  dateUpdatePo?: string
-  userUpdatePo?: string
+  prNo?: string
+  dateUpdatePr?: string
+  userUpdatePr?: string
 }): Promise<string> {
   try {
-    return await dbMutatePo(input)
+    return await dbMutatePr(input)
   } catch (e) {
-    throw new Error(e instanceof Error ? e.message : 'Gagal proses PO')
+    throw new Error(e instanceof Error ? e.message : 'Gagal proses PR')
   }
 }
 

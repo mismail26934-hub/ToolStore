@@ -2,7 +2,7 @@ import type { RowDataPacket } from 'mysql2'
 import { s } from '@/db/helpers'
 import { getDbPool } from '@/db/pool'
 import {
-  dbListPoByForm,
+  dbListPrByForm,
   dbListRcvToolByForm,
   dbListRcvWhByForm,
   dbListSoByForm,
@@ -373,9 +373,9 @@ export async function notifyFormMilestoneChange(input: {
   const formNo = form?.formNo || input.formNo || ''
   const formServName = form?.formServName || input.formServName || ''
 
-  const [tools, pos, sos, whs, rooms] = await Promise.all([
+  const [tools, prs, sos, whs, rooms] = await Promise.all([
     dbListTools(input.idForm),
-    dbListPoByForm(input.idForm),
+    dbListPrByForm(input.idForm),
     dbListSoByForm(input.idForm),
     dbListRcvWhByForm(input.idForm),
     dbListRcvToolByForm(input.idForm),
@@ -441,7 +441,7 @@ export async function notifyFormMilestoneChange(input: {
     sadminComment: form?.sadminComment || '',
     sheadComment: form?.sheadComment || '',
     tools,
-    pos,
+    prs,
     sos,
     whs,
     rooms,

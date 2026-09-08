@@ -16,7 +16,7 @@ export function canAddOrEditForm(user: SessionUser | null) {
   return lv === 'SUPERADMIN' || lv === 'TOOL_KEEPER'
 }
 
-export function canMutatePo(user: SessionUser | null) {
+export function canMutatePr(user: SessionUser | null) {
   const lv = levelOf(user)
   return lv === 'SUPERADMIN' || lv === 'TOOL_KEEPER'
 }

@@ -16,10 +16,10 @@ export const ApiParam = {
   editTool: 'EDIT DATA TOOL',
   deleteTool: 'DELETED DATA TOOL',
 
-  viewPo: 'VIEW DATA PO',
-  addPo: 'ADD DATA PO',
-  editPo: 'EDIT DATA PO',
-  deletePo: 'DELETED DATA PO',
+  viewPr: 'VIEW DATA PR',
+  addPr: 'ADD DATA PR',
+  editPr: 'EDIT DATA PR',
+  deletePr: 'DELETED DATA PR',
 
   viewSo: 'VIEW DATA SO',
   addSo: 'ADD DATA SO',

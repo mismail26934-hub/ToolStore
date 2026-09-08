@@ -1,9 +1,9 @@
 export {
-  fetchPoByForm,
+  fetchPrByForm,
   fetchRcvToolByForm,
   fetchRcvWhByForm,
   fetchSoByForm,
-  mutatePo,
+  mutatePr,
   mutateRcvTool,
   mutateRcvWh,
   mutateSo,

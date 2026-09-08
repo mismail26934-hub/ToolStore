@@ -79,13 +79,13 @@ CREATE TABLE IF NOT EXISTS form_details (
   INDEX idx_detail_form (id_form)
 );
 
-CREATE TABLE IF NOT EXISTS po (
-  id_po          VARCHAR(36)  NOT NULL PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS pr (
+  id_pr          VARCHAR(36)  NOT NULL PRIMARY KEY,
   id_form_detail VARCHAR(36)  NOT NULL,
-  po_no          VARCHAR(100) NULL,
-  date_update_po DATE NULL,
-  user_update_po VARCHAR(36)  NULL,
-  CONSTRAINT fk_po_detail
+  pr_no          VARCHAR(100) NULL,
+  date_update_pr DATE NULL,
+  user_update_pr VARCHAR(36)  NULL,
+  CONSTRAINT fk_pr_detail
     FOREIGN KEY (id_form_detail) REFERENCES form_details (id_form_detail)
     ON DELETE CASCADE
 );

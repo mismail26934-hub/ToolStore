@@ -3,11 +3,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { queryKeys } from '../../api/queryKeys'
 import {
-  fetchPoByForm,
+  fetchPrByForm,
   fetchRcvToolByForm,
   fetchRcvWhByForm,
   fetchSoByForm,
-  mutatePo,
+  mutatePr,
   mutateRcvTool,
   mutateRcvWh,
   mutateSo,
@@ -15,9 +15,9 @@ import {
 
 export function useFormRelated(idForm: string, enabled = true) {
   const on = enabled && idForm.trim().length > 0
-  const po = useQuery({
-    queryKey: queryKeys.po(idForm),
-    queryFn: () => fetchPoByForm(idForm),
+  const pr = useQuery({
+    queryKey: queryKeys.pr(idForm),
+    queryFn: () => fetchPrByForm(idForm),
     enabled: on,
   })
   const so = useQuery({
@@ -36,13 +36,13 @@ export function useFormRelated(idForm: string, enabled = true) {
     enabled: on,
   })
 
-  return { po, so, rcvWh, rcvTool }
+  return { pr, so, rcvWh, rcvTool }
 }
 
 export function useRelatedMutations(idForm: string) {
   const qc = useQueryClient()
   const invalidate = () => {
-    qc.invalidateQueries({ queryKey: queryKeys.po(idForm) })
+    qc.invalidateQueries({ queryKey: queryKeys.pr(idForm) })
     qc.invalidateQueries({ queryKey: queryKeys.so(idForm) })
     qc.invalidateQueries({ queryKey: queryKeys.rcvWh(idForm) })
     qc.invalidateQueries({ queryKey: queryKeys.rcvTool(idForm) })
@@ -50,7 +50,7 @@ export function useRelatedMutations(idForm: string) {
   }
 
   return {
-    po: useMutation({ mutationFn: mutatePo, onSuccess: invalidate }),
+    pr: useMutation({ mutationFn: mutatePr, onSuccess: invalidate }),
     so: useMutation({ mutationFn: mutateSo, onSuccess: invalidate }),
     rcvWh: useMutation({ mutationFn: mutateRcvWh, onSuccess: invalidate }),
     rcvTool: useMutation({ mutationFn: mutateRcvTool, onSuccess: invalidate }),
