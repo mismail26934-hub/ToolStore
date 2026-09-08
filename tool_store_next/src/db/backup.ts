@@ -14,7 +14,6 @@ export const BACKUP_TABLE_PK = {
   rcv_wh: 'id_rcv_wh',
   rcv_tool: 'id_rcv_tool',
   users: 'id_users',
-  superiors: 'superior_id',
 } as const
 
 export type BackupTableName = keyof typeof BACKUP_TABLE_PK

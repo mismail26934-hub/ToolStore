@@ -44,6 +44,7 @@ export function useSuperiorMutations() {
   const invalidate = () => {
     void qc.invalidateQueries({ queryKey: ['superiors'] })
     void qc.invalidateQueries({ queryKey: ['superior'] })
+    void qc.invalidateQueries({ queryKey: ['users'] })
   }
 
   const add = useMutation({

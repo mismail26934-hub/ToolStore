@@ -209,7 +209,7 @@ Implementasi: `src/components/FormApprovalSection.tsx` + konstanta `Milestone` d
 - Tabel dibuat otomatis saat backup pertama (`CREATE TABLE IF NOT EXISTS`), atau:
   - fresh install: sudah ada di `sql/schema.sql`
   - DB lama: `mysql -u root toolstore < sql/migrations/001_data_backups.sql`
-- Cakupan: forms (+ cascade detail/PO/SO/WH/Tool Room), form_details (+ related), po, so, rcv_wh, rcv_tool, users, superiors (termasuk update via import Excel).
+- Cakupan: forms (+ cascade detail/PO/SO/WH/Tool Room), form_details (+ related), po, so, rcv_wh, rcv_tool, users (termasuk update via import Excel).
 - Bukan UI restore — snapshot untuk audit / restore manual dari JSON.
 
 ### 10. Catatan teknis

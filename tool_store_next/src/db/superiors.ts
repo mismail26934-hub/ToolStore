@@ -38,15 +38,31 @@ export type SuperiorImportResult = {
 
 type SuperiorPacket = RowDataPacket & Record<string, unknown>
 
+const SUPERIOR_LEVEL = 'SUPERIOR'
+const LEVEL_SQL = `UPPER(TRIM(u.level)) = 'SUPERIOR'`
+
+function displayNama(input: {
+  namaSuperior?: string
+  namaUser?: string
+}): string {
+  return (input.namaUser ?? '').trim() || (input.namaSuperior ?? '').trim()
+}
+
 function mapSuperior(row: SuperiorPacket): SuperiorRow {
+  const nama = s(row.nama_user)
   return {
-    superiorId: s(row.superior_id),
-    namaSuperior: s(row.nama_superior),
-    statusSuperior: s(row.status_superior),
+    superiorId: s(row.id_users),
+    namaSuperior: nama,
+    statusSuperior: s(row.status) || 'ACTIVE',
     username: s(row.username),
-    namaUser: s(row.nama_user),
+    namaUser: nama,
     idTu: s(row.id_tu),
   }
+}
+
+function statusValue(raw?: string): string {
+  const v = (raw ?? '').trim().toUpperCase()
+  return v === 'INACTIVE' ? 'INACTIVE' : 'ACTIVE'
 }
 
 export async function dbListSuperiors(
@@ -56,51 +72,46 @@ export async function dbListSuperiors(
   const page = Math.max(1, filters.page ?? 1)
   const limit = Math.max(1, filters.limit ?? USER_PAGE_SIZE)
   const offset = (page - 1) * limit
-  const where: string[] = []
+  const where: string[] = [LEVEL_SQL]
   const params: unknown[] = []
   const kw = filters.keyword?.trim() ?? ''
   if (kw) {
     const field = (filters.searchField ?? 'all').trim()
     if (field === 'name' || field === 'nama') {
-      where.push('s.nama_superior LIKE ?')
+      where.push('u.nama_user LIKE ?')
       params.push(`%${kw}%`)
     } else if (field === 'username') {
-      where.push('s.username LIKE ?')
+      where.push('u.username LIKE ?')
       params.push(`%${kw}%`)
     } else if (field === 'status') {
-      where.push('s.status_superior LIKE ?')
+      where.push('u.status LIKE ?')
       params.push(`%${kw}%`)
     } else if (field === 'id') {
-      where.push('s.superior_id LIKE ?')
+      where.push('u.id_users LIKE ?')
       params.push(`%${kw}%`)
     } else {
       where.push(
-        '(s.nama_superior LIKE ? OR s.username LIKE ? OR s.nama_user LIKE ? OR s.superior_id LIKE ?)',
+        '(u.nama_user LIKE ? OR u.username LIKE ? OR u.id_users LIKE ?)',
       )
-      params.push(`%${kw}%`, `%${kw}%`, `%${kw}%`, `%${kw}%`)
+      params.push(`%${kw}%`, `%${kw}%`, `%${kw}%`)
     }
   }
-  const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : ''
+  const whereSql = `WHERE ${where.join(' AND ')}`
 
   const [countRows] = await pool.query<RowDataPacket[]>(
-    `SELECT COUNT(*) AS total FROM superiors s ${whereSql}`,
+    `SELECT COUNT(*) AS total FROM users u ${whereSql}`,
     params,
   )
   const [rows] = await pool.query<SuperiorPacket[]>(
     `SELECT
-       s.superior_id,
-       s.nama_superior,
-       s.status_superior,
-       s.username,
-       COALESCE(NULLIF(TRIM(s.nama_user), ''), NULLIF(TRIM(u.nama_user), ''), '') AS nama_user,
-       COALESCE(NULLIF(TRIM(u.id_tu), ''), '') AS id_tu
-     FROM superiors s
-     LEFT JOIN users u
-       ON u.id_users = s.superior_id
-       OR (NULLIF(TRIM(s.username), '') IS NOT NULL AND u.username = s.username)
+       u.id_users,
+       u.username,
+       u.nama_user,
+       u.status,
+       u.id_tu
+     FROM users u
      ${whereSql}
-     ORDER BY
-       COALESCE(NULLIF(TRIM(s.nama_user), ''), NULLIF(TRIM(u.nama_user), ''), s.nama_superior) ASC
+     ORDER BY COALESCE(NULLIF(TRIM(u.nama_user), ''), u.username) ASC
      LIMIT ? OFFSET ?`,
     [...params, limit, offset],
   )
@@ -117,17 +128,13 @@ export async function dbGetSuperiorById(
   const pool = getDbPool()
   const [rows] = await pool.query<SuperiorPacket[]>(
     `SELECT
-       s.superior_id,
-       s.nama_superior,
-       s.status_superior,
-       s.username,
-       COALESCE(NULLIF(TRIM(s.nama_user), ''), NULLIF(TRIM(u.nama_user), ''), '') AS nama_user,
-       COALESCE(NULLIF(TRIM(u.id_tu), ''), '') AS id_tu
-     FROM superiors s
-     LEFT JOIN users u
-       ON u.id_users = s.superior_id
-       OR (NULLIF(TRIM(s.username), '') IS NOT NULL AND u.username = s.username)
-     WHERE s.superior_id = ?
+       u.id_users,
+       u.username,
+       u.nama_user,
+       u.status,
+       u.id_tu
+     FROM users u
+     WHERE ${LEVEL_SQL} AND u.id_users = ?
      LIMIT 1`,
     [superiorId.trim()],
   )
@@ -140,19 +147,28 @@ export async function dbMutateSuperior(
   input: SaveSuperiorInput,
 ): Promise<string> {
   const pool = getDbPool()
-  const nama = input.namaSuperior.trim()
+  const nama = displayNama(input)
   if (!nama) throw new Error('Nama superior wajib diisi')
 
   if (param === ApiParam.deleteSuperior) {
     const id = (input.superiorId ?? '').trim()
     if (!id) throw new Error('ID superior wajib')
+    const [[used]] = await pool.query<RowDataPacket[]>(
+      `SELECT COUNT(*) AS n FROM users
+       WHERE superior_id = ? AND id_users <> ?`,
+      [id, id],
+    )
+    if (Number(used?.n ?? 0) > 0) {
+      throw new Error('Superior masih dipakai user lain')
+    }
     await backupRowBeforeChange({
-      tableName: 'superiors',
+      tableName: 'users',
       recordId: id,
       action: 'DELETE',
     })
     const [r] = await pool.query<ResultSetHeader>(
-      `DELETE FROM superiors WHERE superior_id = ?`,
+      `DELETE FROM users
+       WHERE id_users = ? AND UPPER(TRIM(level)) = 'SUPERIOR'`,
       [id],
     )
     if (r.affectedRows === 0) throw new Error('Superior tidak ditemukan')
@@ -160,17 +176,25 @@ export async function dbMutateSuperior(
   }
 
   if (param === ApiParam.addSuperior) {
+    const username = (input.username ?? '').trim()
+    if (!username) throw new Error('Username wajib diisi')
+    const [[dup]] = await pool.query<RowDataPacket[]>(
+      `SELECT id_users FROM users WHERE username = ? LIMIT 1`,
+      [username],
+    )
+    if (dup) throw new Error('Username sudah dipakai')
     const id = (input.superiorId ?? '').trim() || newId()
     await pool.query(
-      `INSERT INTO superiors (
-         superior_id, nama_superior, status_superior, username, nama_user
-       ) VALUES (?, ?, ?, ?, ?)`,
+      `INSERT INTO users (
+         id_users, username, password, nama_user, level, status
+       ) VALUES (?, ?, ?, ?, ?, ?)`,
       [
         id,
+        username,
+        username,
         nama,
-        emptyToNull(input.statusSuperior) ?? 'ACTIVE',
-        emptyToNull(input.username),
-        emptyToNull(input.namaUser),
+        SUPERIOR_LEVEL,
+        statusValue(input.statusSuperior),
       ],
     )
     return id
@@ -179,25 +203,26 @@ export async function dbMutateSuperior(
   if (param === ApiParam.editSuperior) {
     const id = (input.superiorId ?? '').trim()
     if (!id) throw new Error('ID superior wajib')
+    const username = (input.username ?? '').trim()
+    if (!username) throw new Error('Username wajib diisi')
+    const [[dup]] = await pool.query<RowDataPacket[]>(
+      `SELECT id_users FROM users WHERE username = ? AND id_users <> ? LIMIT 1`,
+      [username, id],
+    )
+    if (dup) throw new Error('Username sudah dipakai')
     await backupRowBeforeChange({
-      tableName: 'superiors',
+      tableName: 'users',
       recordId: id,
       action: 'UPDATE',
     })
     const [r] = await pool.query<ResultSetHeader>(
-      `UPDATE superiors SET
-         nama_superior = ?,
-         status_superior = ?,
+      `UPDATE users SET
          username = ?,
-         nama_user = ?
-       WHERE superior_id = ?`,
-      [
-        nama,
-        emptyToNull(input.statusSuperior) ?? 'ACTIVE',
-        emptyToNull(input.username),
-        emptyToNull(input.namaUser),
-        id,
-      ],
+         nama_user = ?,
+         status = ?,
+         level = ?
+       WHERE id_users = ? AND UPPER(TRIM(level)) = 'SUPERIOR'`,
+      [username, nama, statusValue(input.statusSuperior), SUPERIOR_LEVEL, id],
     )
     if (r.affectedRows === 0) throw new Error('Superior tidak ditemukan')
     return 'Superior diperbarui'
@@ -220,70 +245,66 @@ export async function dbImportSuperiors(
   try {
     await conn.beginTransaction()
     for (let i = 0; i < rows.length; i++) {
-      const rowNum = i + 2 // header is row 1
+      const rowNum = i + 2
       const raw = rows[i]
-      const nama = (raw.namaSuperior ?? '').trim()
+      const nama = displayNama(raw)
+      const username = (raw.username ?? '').trim()
       if (!nama) {
         result.skipped += 1
         result.errors.push({ row: rowNum, message: 'nama_superior kosong' })
         continue
       }
+      if (!username) {
+        result.skipped += 1
+        result.errors.push({ row: rowNum, message: 'username kosong' })
+        continue
+      }
       try {
         const id = (raw.superiorId ?? '').trim()
-        if (id) {
-          const [existing] = await conn.query<RowDataPacket[]>(
-            `SELECT superior_id FROM superiors WHERE superior_id = ? LIMIT 1`,
-            [id],
+        const [existing] = await conn.query<RowDataPacket[]>(
+          id
+            ? `SELECT id_users, username FROM users
+               WHERE id_users = ? OR username = ? LIMIT 1`
+            : `SELECT id_users, username FROM users WHERE username = ? LIMIT 1`,
+          id ? [id, username] : [username],
+        )
+        const found = existing[0]
+        if (found) {
+          const recordId = String(found.id_users)
+          await backupRowBeforeChange({
+            tableName: 'users',
+            recordId,
+            action: 'UPDATE',
+            conn,
+          })
+          await conn.query(
+            `UPDATE users SET
+               username = ?,
+               nama_user = ?,
+               status = ?,
+               level = ?
+             WHERE id_users = ?`,
+            [
+              username,
+              nama,
+              statusValue(raw.statusSuperior),
+              SUPERIOR_LEVEL,
+              recordId,
+            ],
           )
-          if (existing[0]) {
-            await backupRowBeforeChange({
-              tableName: 'superiors',
-              recordId: id,
-              action: 'UPDATE',
-              conn,
-            })
-            await conn.query(
-              `UPDATE superiors SET
-                 nama_superior = ?,
-                 status_superior = ?,
-                 username = ?,
-                 nama_user = ?
-               WHERE superior_id = ?`,
-              [
-                nama,
-                emptyToNull(raw.statusSuperior) ?? 'ACTIVE',
-                emptyToNull(raw.username),
-                emptyToNull(raw.namaUser),
-                id,
-              ],
-            )
-            result.updated += 1
-          } else {
-            await conn.query(
-              `INSERT INTO superiors (
-                 superior_id, nama_superior, status_superior, username, nama_user
-               ) VALUES (?, ?, ?, ?, ?)`,
-              [
-                id,
-                nama,
-                emptyToNull(raw.statusSuperior) ?? 'ACTIVE',
-                emptyToNull(raw.username),
-                emptyToNull(raw.namaUser),
-              ],
-            )
-            result.inserted += 1
-          }
+          result.updated += 1
         } else {
           await conn.query(
-            `INSERT INTO superiors (
-               superior_id, nama_superior, status_superior, username, nama_user
-             ) VALUES (?, ?, ?, ?, ?)`,
+            `INSERT INTO users (
+               id_users, username, password, nama_user, level, status
+             ) VALUES (?, ?, ?, ?, ?, ?)`,
             [
-              newId(),
+              id || newId(),
+              username,
+              username,
               nama,
-              emptyToNull(raw.statusSuperior) ?? 'ACTIVE',
-              emptyToNull(raw.username),
-              emptyToNull(raw.namaUser),
+              SUPERIOR_LEVEL,
+              statusValue(raw.statusSuperior),
             ],
           )
           result.inserted += 1

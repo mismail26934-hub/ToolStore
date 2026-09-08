@@ -77,7 +77,7 @@ export async function importUsers(
   }
 }
 
-/** List from masters table `superiors` (Option A). */
+/** List users with level SUPERIOR. */
 export async function fetchSuperiors(
   filters: SuperiorListFilters = {},
 ): Promise<PaginatedList<SuperiorRow>> {

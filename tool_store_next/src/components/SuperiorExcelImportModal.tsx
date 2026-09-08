@@ -115,8 +115,9 @@ export function SuperiorExcelImportModal({ open, onClose }: Props) {
 
         <p className="muted">
           Kolom: <code>superior_id</code> (opsional),{' '}
-          <code>nama_superior</code> (wajib), <code>status_superior</code>,{' '}
-          <code>username</code>, <code>nama_user</code>.
+          <code>nama_superior</code> (wajib), <code>username</code> (wajib),{' '}
+          <code>status_superior</code>, <code>nama_user</code>. Password user
+          baru = username.
         </p>
 
         <div className="row-gap">

@@ -21,19 +21,11 @@ CREATE TABLE IF NOT EXISTS users (
   fcm_token       VARCHAR(512) NULL,
   level           VARCHAR(50)  NOT NULL DEFAULT 'USER',
   status          VARCHAR(50)  NULL DEFAULT 'ACTIVE',
-  superior_id     VARCHAR(36)  NULL,
+  superior_id     VARCHAR(36)  NULL COMMENT 'users.id_users of a SUPERIOR user',
   created_at      TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at      TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   INDEX idx_users_level (level),
   INDEX idx_users_superior (superior_id)
-);
-
-CREATE TABLE IF NOT EXISTS superiors (
-  superior_id     VARCHAR(36)  NOT NULL PRIMARY KEY,
-  nama_superior   VARCHAR(150) NOT NULL,
-  status_superior VARCHAR(50)  NULL,
-  username        VARCHAR(100) NULL,
-  nama_user       VARCHAR(150) NULL
 );
 
 CREATE TABLE IF NOT EXISTS forms (

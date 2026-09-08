@@ -65,6 +65,10 @@ export function SuperiorFormPage() {
       setError('Nama superior wajib diisi')
       return
     }
+    if (!form.username.trim()) {
+      setError('Username wajib diisi')
+      return
+    }
     try {
       if (isAdd) {
         await add.mutateAsync({
@@ -181,6 +185,7 @@ export function SuperiorFormPage() {
             <input
               value={form.username}
               onChange={(e) => patch({ username: e.target.value })}
+              required
             />
           </label>
         </div>

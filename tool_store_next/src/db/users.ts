@@ -32,9 +32,13 @@ export async function findUserByUsername(
        u.level,
        u.status,
        u.superior_id,
-       s.nama_superior
+       COALESCE(
+         NULLIF(NULLIF(TRIM(su.nama_user), ''), '-'),
+         NULLIF(NULLIF(TRIM(su.username), ''), '-'),
+         ''
+       ) AS nama_superior
      FROM users u
-     LEFT JOIN superiors s ON s.superior_id = u.superior_id
+     LEFT JOIN users su ON su.id_users = u.superior_id
      WHERE u.username = ?
      LIMIT 1`,
     [username.trim()],

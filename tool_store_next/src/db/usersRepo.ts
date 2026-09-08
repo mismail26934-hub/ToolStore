@@ -109,17 +109,12 @@ export async function dbListUsers(
     `SELECT
        u.*,
        COALESCE(
-         NULLIF(NULLIF(TRIM(s.nama_user), ''), '-'),
-         NULLIF(NULLIF(TRIM(s.nama_superior), ''), '-'),
          NULLIF(NULLIF(TRIM(su.nama_user), ''), '-'),
          NULLIF(NULLIF(TRIM(su.username), ''), '-'),
          ''
        ) AS nama_superior
      FROM users u
-     LEFT JOIN superiors s ON s.superior_id = u.superior_id
-     LEFT JOIN users su
-       ON su.id_users = u.superior_id
-       OR (NULLIF(TRIM(s.username), '') IS NOT NULL AND su.username = s.username)
+     LEFT JOIN users su ON su.id_users = u.superior_id
      ${whereSql}
      ORDER BY u.nama_user ASC
      LIMIT ? OFFSET ?`,
@@ -138,17 +133,12 @@ export async function dbGetUserById(idUsers: string): Promise<UserRow | null> {
     `SELECT
        u.*,
        COALESCE(
-         NULLIF(NULLIF(TRIM(s.nama_user), ''), '-'),
-         NULLIF(NULLIF(TRIM(s.nama_superior), ''), '-'),
          NULLIF(NULLIF(TRIM(su.nama_user), ''), '-'),
          NULLIF(NULLIF(TRIM(su.username), ''), '-'),
          ''
        ) AS nama_superior
      FROM users u
-     LEFT JOIN superiors s ON s.superior_id = u.superior_id
-     LEFT JOIN users su
-       ON su.id_users = u.superior_id
-       OR (NULLIF(TRIM(s.username), '') IS NOT NULL AND su.username = s.username)
+     LEFT JOIN users su ON su.id_users = u.superior_id
      WHERE u.id_users = ?
      LIMIT 1`,
     [idUsers.trim()],

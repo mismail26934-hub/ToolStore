@@ -93,14 +93,17 @@ export function buildSuperiorPreview(
 ): SuperiorPreviewRow[] {
   const seenId = new Map<string, number>()
   const seenName = new Map<string, number>()
+  const seenUsername = new Map<string, number>()
   return rows.map((data, i) => {
     const rowNum = i + 2
     const errors: string[] = []
     const warnings: string[] = []
     const namaSuperior = (data.namaSuperior ?? '').trim()
     const superiorId = (data.superiorId ?? '').trim()
+    const username = (data.username ?? '').trim()
 
     if (!namaSuperior) errors.push('nama_superior kosong')
+    if (!username) errors.push('username kosong')
 
     if (superiorId) {
       const key = superiorId.toLowerCase()
@@ -109,6 +112,16 @@ export function buildSuperiorPreview(
         errors.push(`superior_id duplikat (baris ${prev})`)
       } else {
         seenId.set(key, rowNum)
+      }
+    }
+
+    if (username) {
+      const key = username.toLowerCase()
+      const prev = seenUsername.get(key)
+      if (prev != null) {
+        errors.push(`username duplikat (baris ${prev})`)
+      } else {
+        seenUsername.set(key, rowNum)
       }
     }
 
