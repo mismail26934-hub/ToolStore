@@ -100,14 +100,14 @@ export function milestoneRank(milestone: string): number {
 /**
  * After PO / SO / WH / Tool Room changes, set process milestone (steps 5–7).
  * Requires Dept Head approved. May move forward or back within process
- * milestones (e.g. semua SO dihapus → kembali ke Dept Head).
+ * milestones (e.g. SO belum lengkap → kembali ke Dept Head).
  */
 export function resolveProcessMilestone(input: {
   currentMilestone: string
   formSheadAprd: string
   toolDetailIds: string[]
-  /** True when at least one SO / PR exists for the form. */
-  hasSo: boolean
+  /** Form-detail ids that already have at least one SO / PO row. */
+  soDetailIds: string[]
   whDetailIds: string[]
   toolRcvDetailIds: string[]
 }): string | null {
@@ -121,11 +121,13 @@ export function resolveProcessMilestone(input: {
     input.toolDetailIds.map((id) => id.trim()).filter(Boolean),
   )
   const total = tools.size
+  const so = new Set(input.soDetailIds.map((id) => id.trim()).filter(Boolean))
   const wh = new Set(input.whDetailIds.map((id) => id.trim()).filter(Boolean))
   const rooms = new Set(
     input.toolRcvDetailIds.map((id) => id.trim()).filter(Boolean),
   )
 
+  const soCount = total ? [...tools].filter((id) => so.has(id)).length : 0
   const whCount = total ? [...tools].filter((id) => wh.has(id)).length : 0
   const roomCount = total ? [...tools].filter((id) => rooms.has(id)).length : 0
 
@@ -138,10 +140,10 @@ export function resolveProcessMilestone(input: {
     next = Milestone.receivedByWh
   } else if (whCount > 0) {
     next = Milestone.partialReceivedByWh
-  } else if (input.hasSo) {
+  } else if (total > 0 && soCount === total) {
     next = Milestone.processingOrder
   } else {
-    // Tidak ada SO / WH / Tool Room → kembali ke milestone Dept Head.
+    // SO belum lengkap / tidak ada → tetap (atau kembali) ke Dept Head.
     next = Milestone.approvedByDeptHead
   }
 

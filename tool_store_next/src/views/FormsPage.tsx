@@ -10,6 +10,7 @@ import {
 } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/auth/AuthContext'
 import { canAddOrEditForm } from '@/auth/roles'
 import { FORM_INBOX_FETCH_LIMIT, FORM_PAGE_SIZE } from '@/api/params'
@@ -39,6 +40,7 @@ import {
   resolveInboxMode,
 } from '@/features/forms/formInbox'
 import { useFormsList } from '@/features/forms/useForms'
+import { syncFormProcessMilestone } from '@/features/forms/syncFormProcessMilestone'
 import {
   useFormRelated,
   useRelatedMutations,
@@ -53,10 +55,32 @@ function FormCardDetails({
   form: FormRow
   canEditForm: boolean
 }) {
+  const { user } = useAuth()
+  const queryClient = useQueryClient()
   const details = useToolDetails(form.idForm, true)
   const related = useFormRelated(form.idForm, true)
   const mut = useRelatedMutations(form.idForm)
   const hasTools = (details.data?.length ?? 0) > 0
+
+  const relatedReady =
+    Boolean(details.data) &&
+    related.so.data != null &&
+    related.rcvWh.data != null &&
+    related.rcvTool.data != null
+
+  useEffect(() => {
+    if (!relatedReady) return
+    void syncFormProcessMilestone({
+      form,
+      userId: user?.idUsersApp ?? '',
+      queryClient,
+    })
+  }, [
+    relatedReady,
+    form,
+    user?.idUsersApp,
+    queryClient,
+  ])
 
   return (
     <div className="form-card-body">

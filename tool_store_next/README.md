@@ -112,6 +112,7 @@ Dokumentasi ringkas semua perubahan UI/UX dan perilaku aplikasi di branch Next.j
   - Number
   - ETA (`dd/mm/yyyy`)
   - Note
+  - **BO Complete** (`YES` / `NO`, default `NO`) — SO (CAT) dan PO (VENDOR)
   - Edit
 - Isi dokumen itu mengikuti `form_details.val_type`:
   - **CAT** → `COUNTER` (dan SUPERADMIN)
@@ -158,20 +159,20 @@ Notifikasi WA: lihat **§11 WhatsApp Whacenter**.
 
 | Aksi | Milestone | Step |
 |------|-----------|------|
-| Tambah **SO / PR** | `PROCESSING ORDER` | 5. Proses Order |
+| Tambah **SO / PO pada semua item** | `PROCESSING ORDER` | 5. Proses Order |
 | WH Received (sebagian tool) | `PARTIAL RECEIVED BY WH/GA` | 6 (partial) |
 | WH Received (semua tool) | `RECEIVED BY WH/GA` | 6. WH Received |
 | Tool Room (sebagian tool) | `PARTIAL RECEIVED TOOL STORE` | 7 (partial) |
 | Tool Room (semua tool) | `RECEIVED TOOL STORE` | 7. Tool Received |
-| **Semua SO dihapus** (tanpa WH/Tool Room) | `APPROVED BY SERVICE DEPT. HEAD` | kembali ke step 4 |
+| **SO belum lengkap** atau **semua SO dihapus** (tanpa WH/Tool Room) | `APPROVED BY SERVICE DEPT. HEAD` | tetap / kembali ke step 4 |
 | **Semua Tool Room dihapus** | milestone sebelumnya (WH → SO → Dept Head) | mundur dari step 7 |
 
 - Helper: `resolveProcessMilestone` di `src/features/forms/formMilestones.ts`.
 - Sync setelah mutate related: `src/features/forms/syncFormProcessMilestone.ts` (fetch server langsung, bukan cache).
 - Timeline di detail form memakai `tools` + `so` + `rcvWh` + `rcvTool` (desktop & mobile).
 - Milestone process **boleh mundur** jika data related dihapus:
-  - semua Tool Room → WH (jika ada) / SO / Dept Head
-  - semua SO (tanpa WH/Tool Room) → Dept Head
+  - semua Tool Room → WH (jika ada) / SO lengkap / Dept Head
+  - SO belum di semua item, atau semua SO (tanpa WH/Tool Room) → Dept Head
   - tidak turun di bawah Dept Head.
 
 #### Ringkasan label timeline (ID)
@@ -274,7 +275,7 @@ Step 1–7 memakai **dua teks**: instruksi (penerima aksi) dan info (serviceman)
 | 2 | `SUPERIOR APPROVED` | Service Admin: Mohon review | Superior sudah approve. Menunggu Review Service Admin |
 | 3 | `REVIEWED BY SERVICE ADMIN` | Dept Head: Mohon approval | Service Admin sudah review. Menunggu Approval Dept Head |
 | 4 | `APPROVED BY SERVICE DEPT. HEAD` | CAT → Counter; VENDOR → GA; campuran / kosong → Counter/GA: Silahkan Diproses Order. | Dept Head sudah approve. Menunggu proses order tool |
-| 5 | `PROCESSING ORDER` | WH: Counter / GA / Counter/GA sudah melakukan proses order. | teks yang sama |
+| 5 | `ORDER PROCESSED` | WH: Counter / GA / Counter/GA sudah melakukan proses order. | teks yang sama |
 | 6 | `RECEIVED BY WH/GA` / partial | Tool Keeper: Tool sudah diterima WH (semua/sebagian) | teks yang sama |
 | 7 | `RECEIVED TOOL STORE` / partial | — (info saja) | Serviceman + superior: Tool sudah diterima tool room (semua/sebagian) |
 | — | `REJECTED BY SUPERIOR` | — | Serviceman (satu teks tolak) |

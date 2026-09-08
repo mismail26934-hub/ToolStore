@@ -96,6 +96,7 @@ CREATE TABLE IF NOT EXISTS so (
   so             VARCHAR(100) NULL,
   eta            DATE NULL,
   note_so        TEXT NULL,
+  bo_complete    VARCHAR(10) NULL DEFAULT 'NO',
   date_update_so DATE NULL,
   id_update_so   VARCHAR(36)  NULL,
   CONSTRAINT fk_so_detail

@@ -119,6 +119,10 @@ function itemBlock(
     field(soSectionLabel(tool.valType), joinUnique(related.sos.map((r) => r.so))),
     field('ETA', joinUnique(related.sos.map((r) => formatDateDisplay(r.eta)))),
     field(soNoteLabel(tool.valType), joinUnique(related.sos.map((r) => r.noteSo))),
+    field(
+      'BO Complete',
+      joinUnique(related.sos.map((r) => r.boComplete)),
+    ),
     field('Qty WH Received', formatReceivedQty(whQty, orderQty, whDates)),
     field(
       'Qty Tool Room Received',

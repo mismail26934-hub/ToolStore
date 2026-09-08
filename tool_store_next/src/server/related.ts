@@ -50,6 +50,7 @@ export async function mutateSo(input: {
   so?: string
   eta?: string
   noteSo?: string
+  boComplete?: string
   dateUpdateSo?: string
   idUpdateSo?: string
 }): Promise<string> {

@@ -37,7 +37,7 @@ export async function syncFormProcessMilestone(input: {
     currentMilestone: current.formMilestone,
     formSheadAprd: current.formSheadAprd,
     toolDetailIds: tools.map((t) => t.idFormDetail),
-    hasSo: so.length > 0,
+    soDetailIds: so.map((r) => r.idFormDetail),
     whDetailIds: rcvWh.map((r) => r.idFormDetail),
     toolRcvDetailIds: rcvTool.map((r) => r.idFormDetail),
   })

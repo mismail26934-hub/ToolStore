@@ -304,6 +304,7 @@ export function ToolRelatedSections({
     const fd = new FormData(e.currentTarget)
     const so = String(fd.get('so') ?? '').trim()
     const noteSo = String(fd.get('note_so') ?? '').trim()
+    const boComplete = String(fd.get('bo_complete') ?? 'NO').trim()
     const eta = dateField.trim()
     if (!so) return setError(`${soNumLabel} wajib diisi`)
     if (!eta) return setError('ETA wajib diisi')
@@ -325,6 +326,7 @@ export function ToolRelatedSections({
         so,
         eta,
         noteSo,
+        boComplete,
         dateUpdateSo: todayYmd(),
         idUpdateSo: user?.idUsersApp ?? '',
       })
@@ -421,6 +423,7 @@ export function ToolRelatedSections({
         so: row.so,
         eta: row.eta,
         noteSo: row.noteSo,
+        boComplete: row.boComplete,
         dateUpdateSo: todayYmd(),
         idUpdateSo: user?.idUsersApp ?? '',
       })
@@ -512,6 +515,7 @@ export function ToolRelatedSections({
                     <th>{soNumLabel}</th>
                     <th>ETA</th>
                     <th>{soNote}</th>
+                    <th>BO Complete</th>
                     {canSo && !soLocked && <th className="actions" />}
                   </tr>
                 </thead>
@@ -521,6 +525,7 @@ export function ToolRelatedSections({
                       <td>{row.so || '—'}</td>
                       <td>{formatDateDisplay(row.eta)}</td>
                       <td>{row.noteSo?.trim() || '—'}</td>
+                      <td>{row.boComplete?.trim() || 'NO'}</td>
                       {canSo && !soLocked && (
                         <td className="actions">
                           <button
@@ -658,6 +663,20 @@ export function ToolRelatedSections({
                     name="note_so"
                     defaultValue={dialog.row?.noteSo ?? ''}
                   />
+                </label>
+                <label className="field">
+                  <span>BO Complete</span>
+                  <select
+                    name="bo_complete"
+                    defaultValue={
+                      (dialog.row?.boComplete ?? 'NO').toUpperCase() === 'YES'
+                        ? 'YES'
+                        : 'NO'
+                    }
+                  >
+                    <option value="NO">NO</option>
+                    <option value="YES">YES</option>
+                  </select>
                 </label>
                 <div className="row-gap">
                   <button

@@ -25,6 +25,7 @@ function mapSo(row: Packet): SoRow {
     so: s(row.so),
     eta: s(row.eta),
     noteSo: s(row.note_so),
+    boComplete: s(row.bo_complete) || 'NO',
     dateUpdateSo: s(row.date_update_so),
     idUpdateSo: s(row.id_update_so),
   }
@@ -75,6 +76,30 @@ async function ensureRcvQtyColumns(): Promise<void> {
     }
   }
   rcvQtyEnsured = true
+}
+
+let soBoCompleteEnsured = false
+
+async function ensureSoBoCompleteColumn(): Promise<void> {
+  if (soBoCompleteEnsured) return
+  const pool = getDbPool()
+  const [rows] = await pool.query<RowDataPacket[]>(
+    `SELECT 1 AS ok FROM information_schema.columns
+     WHERE table_schema = DATABASE()
+       AND table_name = 'so'
+       AND column_name = 'bo_complete'
+     LIMIT 1`,
+  )
+  if (!rows[0]) {
+    await pool.query(
+      `ALTER TABLE so ADD COLUMN bo_complete VARCHAR(10) NULL DEFAULT 'NO' AFTER note_so`,
+    )
+  }
+  soBoCompleteEnsured = true
+}
+
+function normBoComplete(value?: string | null): 'YES' | 'NO' {
+  return (value ?? '').trim().toUpperCase() === 'YES' ? 'YES' : 'NO'
 }
 
 export async function dbListPoByForm(idForm: string): Promise<PoRow[]> {
@@ -147,6 +172,7 @@ export async function dbMutatePo(input: {
 }
 
 export async function dbListSoByForm(idForm: string): Promise<SoRow[]> {
+  await ensureSoBoCompleteColumn()
   const pool = getDbPool()
   const [rows] = await pool.query<Packet[]>(
     `SELECT s.* FROM so s
@@ -192,10 +218,12 @@ export async function dbMutateSo(input: {
   so?: string
   eta?: string
   noteSo?: string
+  boComplete?: string
   dateUpdateSo?: string
   idUpdateSo?: string
 }): Promise<string> {
   const pool = getDbPool()
+  await ensureSoBoCompleteColumn()
   await assertCanMutateSo(input.idFormDetail, input.idUpdateSo)
 
   if (input.param === ApiParam.deleteSo) {
@@ -211,14 +239,15 @@ export async function dbMutateSo(input: {
   }
   if (input.param === ApiParam.addSo) {
     await pool.query(
-      `INSERT INTO so (id_so, id_form_detail, so, eta, note_so, date_update_so, id_update_so)
-       VALUES (?,?,?,?,?,?,?)`,
+      `INSERT INTO so (id_so, id_form_detail, so, eta, note_so, bo_complete, date_update_so, id_update_so)
+       VALUES (?,?,?,?,?,?,?,?)`,
       [
         input.idSo?.trim() || newId(),
         input.idFormDetail,
         emptyToNull(input.so),
         emptyToNull(input.eta),
         emptyToNull(input.noteSo),
+        normBoComplete(input.boComplete),
         emptyToNull(input.dateUpdateSo),
         emptyToNull(input.idUpdateSo),
       ],
@@ -234,12 +263,13 @@ export async function dbMutateSo(input: {
       userId: input.idUpdateSo,
     })
     const [r] = await pool.query<ResultSetHeader>(
-      `UPDATE so SET so = ?, eta = ?, note_so = ?, date_update_so = ?, id_update_so = ?
+      `UPDATE so SET so = ?, eta = ?, note_so = ?, bo_complete = ?, date_update_so = ?, id_update_so = ?
        WHERE id_so = ?`,
       [
         emptyToNull(input.so),
         emptyToNull(input.eta),
         emptyToNull(input.noteSo),
+        normBoComplete(input.boComplete),
         emptyToNull(input.dateUpdateSo),
         emptyToNull(input.idUpdateSo),
         id,

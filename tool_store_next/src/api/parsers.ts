@@ -182,6 +182,7 @@ export function parseSoRow(json: Record<string, unknown>): SoRow {
     so: s(json.so),
     eta: s(json.eta),
     noteSo: s(json.note_so),
+    boComplete: s(json.bo_complete ?? json.boComplete),
     dateUpdateSo: s(json.date_update_so ?? json['date_update_so\t']),
     idUpdateSo: s(json.id_update_so),
   }

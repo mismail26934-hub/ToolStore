@@ -135,6 +135,7 @@ export type SoRow = {
   so: string
   eta: string
   noteSo: string
+  boComplete: string
   dateUpdateSo: string
   idUpdateSo: string
 }
