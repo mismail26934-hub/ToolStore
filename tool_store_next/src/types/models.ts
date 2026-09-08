@@ -17,9 +17,15 @@ export type SessionUser = {
 export type FormRow = {
   idForm: string
   formNo: string
+  /** Stored serviceman value: `users.id_users` (legacy rows may still be a name). */
   formServName: string
+  /** Display name resolved from `users` when `formServName` is an id. */
+  formServNameLabel: string
   formServComment: string
+  /** Stored check-by value: `users.id_users` (legacy rows may still be a name). */
   formCheckBy: string
+  /** Display name resolved from `users` when `formCheckBy` is an id. */
+  formCheckByLabel: string
   formDateCheckBy: string
   formDateServName: string
   formSuperiorAprd: string

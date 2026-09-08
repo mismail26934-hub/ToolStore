@@ -12,6 +12,7 @@ import { formEditPayload } from '@/features/forms/formEdit'
 import { Milestone } from '@/features/forms/formMilestones'
 import { useFormMutations } from '@/features/forms/useForms'
 import { formatDateDisplay } from '@/lib/dateFormat'
+import { formCheckByDisplay } from '@/lib/displayLabel'
 import type { FormRow } from '@/types/models'
 
 type Props = {
@@ -59,7 +60,7 @@ export function FormApprovalSection({ form, hasTools }: Props) {
 
     if (dialog === 'request') {
       await run({
-        formCheckBy: user?.name || user?.username || form.formCheckBy,
+        formCheckBy: user?.idUsersApp || form.formCheckBy,
         formDateCheckBy: new Date().toISOString().slice(0, 10),
         formMilestone: Milestone.checkByToolStore,
       })
@@ -116,7 +117,7 @@ export function FormApprovalSection({ form, hasTools }: Props) {
       <div className="approval-grid">
         <ApprovalTile
           title="Check / Request"
-          value={form.formCheckBy || '—'}
+          value={formCheckByDisplay(form) || '—'}
           sub={
             form.formDateCheckBy
               ? formatDateDisplay(form.formDateCheckBy)

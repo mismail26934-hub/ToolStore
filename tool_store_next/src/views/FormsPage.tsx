@@ -29,6 +29,7 @@ import { ToolRelatedSections } from '@/components/ToolRelatedSections'
 import { usePrefs } from '@/prefs/PreferencesContext'
 import { formatActionNote } from '@/lib/actionNotes'
 import { formatDateDisplay } from '@/lib/dateFormat'
+import { servicemanDisplay } from '@/lib/displayLabel'
 import { formatThousands } from '@/lib/numberFormat'
 import { resolveFormIdByFormNo } from '@/features/forms/exportApi'
 import {
@@ -205,7 +206,7 @@ function FormCard({
             </div>
           </div>
           <div className="muted">
-            {form.formServName || 'No serviceman'} ·{' '}
+            {servicemanDisplay(form) || 'No serviceman'} ·{' '}
             {form.formMilestone?.trim() || 'DRAFT'} ·{' '}
             {form.toolItemCount} item{form.toolItemCount === 1 ? '' : 's'}
           </div>
@@ -756,7 +757,7 @@ export function FormsPage() {
                             {form.formServComment || '—'}
                           </span>
                         </td>
-                        <td>{form.formServName || '—'}</td>
+                        <td>{servicemanDisplay(form) || '—'}</td>
                         <td>{form.toolItemCount}</td>
                         <td>{form.formMilestone?.trim() || 'DRAFT'}</td>
                         <td>{formatDateDisplay(form.fromDateUpdate)}</td>

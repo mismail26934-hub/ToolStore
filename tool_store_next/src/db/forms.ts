@@ -9,16 +9,43 @@ import type { DashboardCounts, FormRow, PaginatedList } from '@/types/models'
 import { FORM_PAGE_SIZE } from '@/api/params'
 import { ApiParam } from '@/api/params'
 import type { FormListFilters, SaveFormInput } from '@/features/forms/types'
+import { nameNotId } from '@/lib/displayLabel'
 
 type FormPacket = RowDataPacket & Record<string, unknown>
 
+const SERV_USER_JOIN = `LEFT JOIN users serv ON TRIM(serv.id_users) = TRIM(forms.form_serv_name)`
+const CHECK_USER_JOIN = `LEFT JOIN users chk ON TRIM(chk.id_users) = TRIM(forms.form_check_by)`
+
+const SERV_NAME_LABEL_SQL = `COALESCE(NULLIF(TRIM(serv.nama_user), ''), NULLIF(TRIM(serv.username), ''))`
+const CHECK_NAME_LABEL_SQL = `COALESCE(NULLIF(TRIM(chk.nama_user), ''), NULLIF(TRIM(chk.username), ''))`
+
+function servicemanSearchSql(): string {
+  return `(
+    forms.form_serv_name LIKE ?
+    OR EXISTS (
+      SELECT 1 FROM users u
+      WHERE TRIM(u.id_users) = TRIM(forms.form_serv_name)
+        AND (u.nama_user LIKE ? OR u.username LIKE ?)
+    )
+  )`
+}
+
+function servicemanSearchParams(kw: string): string[] {
+  const like = `%${kw}%`
+  return [like, like, like]
+}
+
 function mapForm(row: FormPacket): FormRow {
+  const storedServ = s(row.form_serv_name)
+  const storedCheck = s(row.form_check_by)
   return {
     idForm: s(row.id_form),
     formNo: s(row.form_no),
-    formServName: s(row.form_serv_name),
+    formServName: storedServ,
+    formServNameLabel: nameNotId(s(row.form_serv_name_label)),
     formServComment: s(row.form_serv_comment),
-    formCheckBy: s(row.form_check_by),
+    formCheckBy: storedCheck,
+    formCheckByLabel: nameNotId(s(row.form_check_by_label)),
     formDateCheckBy: s(row.form_date_check_by),
     formDateServName: s(row.form_date_serv_name),
     formSuperiorAprd: s(row.form_superior_aprd),
@@ -52,7 +79,9 @@ export async function dbListForms(
   const from = filters.fromDateUpdate?.trim() ?? ''
   if (from) {
     const to = (filters.toDateUpdate?.trim() || from)
-    where.push('from_date_update IS NOT NULL AND from_date_update BETWEEN ? AND ?')
+    where.push(
+      'forms.from_date_update IS NOT NULL AND forms.from_date_update BETWEEN ? AND ?',
+    )
     params.push(from, to)
   }
 
@@ -60,16 +89,16 @@ export async function dbListForms(
   if (kw) {
     const field = (filters.searchField ?? 'all').trim()
     if (field === 'formNo') {
-      where.push('form_no LIKE ?')
+      where.push('forms.form_no LIKE ?')
       params.push(`%${kw}%`)
     } else if (field === 'serviceman') {
-      where.push('form_serv_name LIKE ?')
-      params.push(`%${kw}%`)
+      where.push(servicemanSearchSql())
+      params.push(...servicemanSearchParams(kw))
     } else if (field === 'status') {
-      where.push('form_status_order LIKE ?')
+      where.push('forms.form_status_order LIKE ?')
       params.push(`%${kw}%`)
     } else if (field === 'idForm') {
-      where.push('id_form LIKE ?')
+      where.push('forms.id_form LIKE ?')
       params.push(`%${kw}%`)
     } else if (field === 'pnGroup' || field === 'pnDesc') {
       const col = field === 'pnGroup' ? 'pn_group' : 'pn_desc'
@@ -79,9 +108,15 @@ export async function dbListForms(
       params.push(`%${kw}%`)
     } else {
       where.push(
-        `(form_no LIKE ? OR form_serv_name LIKE ? OR form_status_order LIKE ? OR id_form LIKE ? OR form_milestone LIKE ?)`,
+        `(forms.form_no LIKE ? OR ${servicemanSearchSql()} OR forms.form_status_order LIKE ? OR forms.id_form LIKE ? OR forms.form_milestone LIKE ?)`,
       )
-      params.push(`%${kw}%`, `%${kw}%`, `%${kw}%`, `%${kw}%`, `%${kw}%`)
+      params.push(
+        `%${kw}%`,
+        ...servicemanSearchParams(kw),
+        `%${kw}%`,
+        `%${kw}%`,
+        `%${kw}%`,
+      )
     }
   }
 
@@ -95,9 +130,14 @@ export async function dbListForms(
 
   const [rows] = await pool.query<FormPacket[]>(
     `SELECT forms.*,
-      (SELECT COUNT(*) FROM form_details d WHERE d.id_form = forms.id_form) AS tool_item_count
-     FROM forms ${whereSql}
-     ORDER BY COALESCE(from_date_update, created_at) DESC, created_at DESC
+      (SELECT COUNT(*) FROM form_details d WHERE d.id_form = forms.id_form) AS tool_item_count,
+      ${SERV_NAME_LABEL_SQL} AS form_serv_name_label,
+      ${CHECK_NAME_LABEL_SQL} AS form_check_by_label
+     FROM forms
+     ${SERV_USER_JOIN}
+     ${CHECK_USER_JOIN}
+     ${whereSql}
+     ORDER BY COALESCE(forms.from_date_update, forms.created_at) DESC, forms.created_at DESC
      LIMIT ? OFFSET ?`,
     [...params, limit, offset],
   )
@@ -109,8 +149,14 @@ export async function dbGetFormById(idForm: string): Promise<FormRow | null> {
   const pool = getDbPool()
   const [rows] = await pool.query<FormPacket[]>(
     `SELECT forms.*,
-      (SELECT COUNT(*) FROM form_details d WHERE d.id_form = forms.id_form) AS tool_item_count
-     FROM forms WHERE id_form = ? LIMIT 1`,
+      (SELECT COUNT(*) FROM form_details d WHERE d.id_form = forms.id_form) AS tool_item_count,
+      ${SERV_NAME_LABEL_SQL} AS form_serv_name_label,
+      ${CHECK_NAME_LABEL_SQL} AS form_check_by_label
+     FROM forms
+     ${SERV_USER_JOIN}
+     ${CHECK_USER_JOIN}
+     WHERE forms.id_form = ?
+     LIMIT 1`,
     [idForm.trim()],
   )
   return rows[0] ? mapForm(rows[0]) : null
@@ -185,8 +231,8 @@ export async function dbMutateForm(input: SaveFormInput): Promise<string> {
 
   const fields = {
     form_no: emptyToNull(input.formNo),
-    form_serv_name: emptyToNull(input.formServName),
-    form_check_by: emptyToNull(input.formCheckBy),
+    form_serv_name: await resolveStoredUserId(emptyToNull(input.formServName)),
+    form_check_by: await resolveStoredUserId(emptyToNull(input.formCheckBy)),
     form_date_check_by: emptyToNull(input.formDateCheckBy),
     form_date_serv_name: emptyToNull(input.formDateServName),
     form_serv_comment: emptyToNull(input.formServComment),
@@ -281,6 +327,25 @@ export async function dbMutateForm(input: SaveFormInput): Promise<string> {
   throw new Error(`Param form tidak dikenal: ${param}`)
 }
 
+async function resolveStoredUserId(
+  value: string | null,
+): Promise<string | null> {
+  if (value == null) return null
+  const pool = getDbPool()
+  const [rows] = await pool.query<RowDataPacket[]>(
+    `SELECT id_users FROM users
+     WHERE id_users = ? OR nama_user = ? OR username = ?
+     ORDER BY CASE
+       WHEN id_users = ? THEN 0
+       WHEN nama_user = ? THEN 1
+       ELSE 2
+     END
+     LIMIT 1`,
+    [value, value, value, value, value],
+  )
+  return s(rows[0]?.id_users) || value
+}
+
 export async function dbExportFormDetails(input: {
   idForm?: string
   fromDateUpdate?: string
@@ -306,10 +371,13 @@ export async function dbExportFormDetails(input: {
   const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : ''
   const [rows] = await pool.query<RowDataPacket[]>(
     `SELECT
-      f.form_no, f.form_serv_name, f.form_milestone, f.form_status_order,
+      f.form_no,
+      COALESCE(NULLIF(TRIM(serv.nama_user), ''), NULLIF(TRIM(serv.username), ''), f.form_serv_name) AS form_serv_name,
+      f.form_milestone, f.form_status_order,
       f.from_date_update, d.pn_group, d.pn_desc, d.qty, d.brand, d.spesifikasi,
       d.explan, d.action_note, d.val_type, d.part_value
      FROM forms f
+     LEFT JOIN users serv ON TRIM(serv.id_users) = TRIM(f.form_serv_name)
      LEFT JOIN form_details d ON d.id_form = f.id_form
      ${whereSql}
      ORDER BY f.form_no, d.pn_group`,

@@ -11,6 +11,7 @@ import type {
   ToolDetailRow,
   UserRow,
 } from '../types/models'
+import { nameNotId } from '../lib/displayLabel'
 
 function s(value: unknown, fallback = ''): string {
   if (value == null) return fallback
@@ -29,8 +30,14 @@ export function parseFormRow(json: Record<string, unknown>): FormRow {
     idForm: s(json.id_form ?? json.id),
     formNo: s(json.form_no),
     formServName: s(json.form_serv_name),
+    formServNameLabel: nameNotId(
+      s(json.form_serv_name_label || json.formServNameLabel),
+    ),
     formServComment: s(json.form_serv_comment),
     formCheckBy: s(json.form_check_by),
+    formCheckByLabel: nameNotId(
+      s(json.form_check_by_label || json.formCheckByLabel),
+    ),
     formDateCheckBy: s(json.form_date_check_by),
     formDateServName: s(json.form_date_serv_name),
     formSuperiorAprd: s(json.form_superior_aprd),

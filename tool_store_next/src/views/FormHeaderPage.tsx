@@ -11,6 +11,8 @@ import { DateInput } from '@/components/DateInput'
 import { PageHeader } from '@/components/PageHeader'
 import { useForm, useFormMutations } from '@/features/forms/useForms'
 import { useToolDetails } from '@/features/tools/useToolDetails'
+import { formCheckByDisplay, looksLikeUserId, servicemanDisplay, userPickLabel } from '@/lib/displayLabel'
+import { useUser } from '@/features/users/useUsers'
 import type { FormRow } from '@/types/models'
 
 const HOLDER_CATS = ['MISSING', 'DAMAGE', 'ADDITIONAL']
@@ -23,7 +25,9 @@ type FormState = {
   formServComment: string
   formDateServName: string
   formServName: string
+  formServNameLabel: string
   formCheckBy: string
+  formCheckByLabel: string
   formDateCheckBy: string
   formSuperiorAprd: string
   formSuperiorComment: string
@@ -44,7 +48,9 @@ function emptyForm(userId: string): FormState {
     formServComment: '',
     formDateServName: today,
     formServName: '',
+    formServNameLabel: '',
     formCheckBy: '',
+    formCheckByLabel: '',
     formDateCheckBy: today,
     formSuperiorAprd: '',
     formSuperiorComment: '',
@@ -65,7 +71,9 @@ function fromRow(row: FormRow): FormState {
     formServComment: row.formServComment || '',
     formDateServName: row.formDateServName.slice(0, 10),
     formServName: row.formServName,
+    formServNameLabel: servicemanDisplay(row),
     formCheckBy: row.formCheckBy,
+    formCheckByLabel: formCheckByDisplay(row),
     formDateCheckBy: row.formDateCheckBy.slice(0, 10),
     formSuperiorAprd: row.formSuperiorAprd,
     formSuperiorComment: row.formSuperiorComment,
@@ -97,6 +105,23 @@ export function FormHeaderPage() {
   useEffect(() => {
     if (remote.data && !isAdd) setForm(fromRow(remote.data))
   }, [remote.data, isAdd])
+
+  const servLookup = useUser(
+    looksLikeUserId(form.formServName) ? form.formServName : undefined,
+    looksLikeUserId(form.formServName) && !servicemanDisplay(form),
+  )
+  const checkLookup = useUser(
+    looksLikeUserId(form.formCheckBy) ? form.formCheckBy : undefined,
+    looksLikeUserId(form.formCheckBy) && !formCheckByDisplay(form),
+  )
+  const servShown =
+    servicemanDisplay(form) ||
+    userPickLabel(servLookup.data ?? {}) ||
+    (servLookup.isFetching ? 'Memuat…' : '')
+  const checkShown =
+    formCheckByDisplay(form) ||
+    userPickLabel(checkLookup.data ?? {}) ||
+    (checkLookup.isFetching ? 'Memuat…' : '')
 
   const allowed = canAddOrEditForm(user)
   const cats =
@@ -291,28 +316,48 @@ export function FormHeaderPage() {
         <div className="grid-2">
           <label className="field">
             <span>Serviceman</span>
-            <div className="password-row">
-              <input value={form.formServName} readOnly required />
-              <button
-                type="button"
-                className="btn btn-secondary"
+            <div className="picker-input-wrap">
+              <input
+                type="text"
+                className="picker-input-field"
+                value={servShown}
+                readOnly
+                required
+                placeholder="Pilih serviceman…"
                 onClick={() => setPicker('serv')}
-              >
-                Pick
-              </button>
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    setPicker('serv')
+                  }
+                }}
+                role="button"
+                aria-haspopup="dialog"
+                aria-label="Pilih serviceman"
+              />
             </div>
           </label>
           <label className="field">
             <span>Check By</span>
-            <div className="password-row">
-              <input value={form.formCheckBy} readOnly required />
-              <button
-                type="button"
-                className="btn btn-secondary"
+            <div className="picker-input-wrap">
+              <input
+                type="text"
+                className="picker-input-field"
+                value={checkShown}
+                readOnly
+                required
+                placeholder="Pilih check by…"
                 onClick={() => setPicker('check')}
-              >
-                Pick
-              </button>
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    setPicker('check')
+                  }
+                }}
+                role="button"
+                aria-haspopup="dialog"
+                aria-label="Pilih check by"
+              />
             </div>
           </label>
         </div>
@@ -343,14 +388,28 @@ export function FormHeaderPage() {
         title="Pilih Serviceman"
         levelFilter="MECHANIC"
         onClose={() => setPicker(null)}
-        onSelect={(row) => patch({ formServName: row.namaUser || row.username })}
+        onSelect={(row) => {
+          const id = row.idUsers.trim()
+          if (!id) return
+          patch({
+            formServName: id,
+            formServNameLabel: userPickLabel(row),
+          })
+        }}
       />
       <UserPickerModal
         open={picker === 'check'}
         title="Pilih Check By"
         levelFilter="TOOL_KEEPER"
         onClose={() => setPicker(null)}
-        onSelect={(row) => patch({ formCheckBy: row.namaUser || row.username })}
+        onSelect={(row) => {
+          const id = row.idUsers.trim()
+          if (!id) return
+          patch({
+            formCheckBy: id,
+            formCheckByLabel: userPickLabel(row),
+          })
+        }}
       />
     </div>
   )

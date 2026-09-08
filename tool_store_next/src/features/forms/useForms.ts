@@ -36,6 +36,7 @@ export function useForm(idForm: string | undefined, enabled = true) {
     queryKey: queryKeys.form(idForm ?? ''),
     queryFn: () => fetchFormById(idForm!),
     enabled: enabled && !!idForm?.trim(),
+    staleTime: 0,
   })
 }
 
@@ -43,6 +44,7 @@ export function useFormMutations() {
   const qc = useQueryClient()
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ['forms'] })
+    qc.invalidateQueries({ queryKey: ['form'] })
     qc.invalidateQueries({ queryKey: queryKeys.dashboardCounts })
   }
 
