@@ -1,6 +1,7 @@
 'use server'
 
 import { ApiParam } from '@/api/params'
+import { canAccessSuperiorApproval } from '@/auth/roles'
 import {
   dbDashboardCounts,
   dbExportFormDetails,
@@ -8,9 +9,39 @@ import {
   dbListForms,
   dbMutateForm,
 } from '@/db/forms'
+import { dbGetUserById } from '@/db/usersRepo'
 import { notifyFormMilestoneChange } from '@/features/forms/notifyMilestone'
+import { normFormMilestone } from '@/features/forms/formMilestones'
 import type { FormListFilters, SaveFormInput } from '@/features/forms/types'
 import type { DashboardCounts, FormRow, PaginatedList } from '@/types/models'
+
+function isSuperiorDecisionMilestone(milestone: string): boolean {
+  const n = normFormMilestone(milestone)
+  return n === 'SUPERIOR APPROVED' || n === 'REJECTED BY SUPERIOR'
+}
+
+async function assertSuperiorDecisionAllowed(
+  prev: FormRow,
+  input: SaveFormInput,
+): Promise<void> {
+  const next = input.formMilestone ?? ''
+  if (!isSuperiorDecisionMilestone(next)) return
+  if (normFormMilestone(prev.formMilestone) === normFormMilestone(next)) return
+
+  const actorId = (input.formUserUpdate ?? '').trim()
+  const actor = actorId ? await dbGetUserById(actorId) : null
+  const allowed = canAccessSuperiorApproval(
+    actor
+      ? { idUsersApp: actor.idUsers, level: actor.level }
+      : null,
+    prev,
+  )
+  if (!allowed) {
+    throw new Error(
+      'Hanya Super Admin atau superior serviceman yang boleh approve / reject order ini',
+    )
+  }
+}
 
 export async function fetchForms(
   filters: FormListFilters = {},
@@ -44,6 +75,7 @@ export async function mutateForm(input: SaveFormInput): Promise<string> {
     if (input.param === ApiParam.editForm && input.idForm?.trim()) {
       const prev = await dbGetFormById(input.idForm)
       prevMilestone = prev?.formMilestone ?? ''
+      if (prev) await assertSuperiorDecisionAllowed(prev, input)
     }
     const msg = await dbMutateForm(input)
     if (input.param === ApiParam.editForm && input.idForm?.trim()) {

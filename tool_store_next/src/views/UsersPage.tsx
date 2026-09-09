@@ -25,6 +25,20 @@ function statusTone(status: string): 'ok' | 'bad' | 'warn' {
   return 'warn'
 }
 
+const USER_SEARCH_FIELDS = [
+  { value: 'all', label: 'Semua' },
+  { value: 'username', label: 'Username' },
+  { value: 'name', label: 'Nama' },
+  { value: 'phone', label: 'No. Telp' },
+  { value: 'level', label: 'Level' },
+  { value: 'status', label: 'Status' },
+] as const
+
+function userSearchFieldLabel(field: string | null): string {
+  const key = (field ?? 'all').trim().toLowerCase()
+  return USER_SEARCH_FIELDS.find((f) => f.value === key)?.label ?? field ?? ''
+}
+
 function UserCard({ user, index }: { user: UserRow; index: number }) {
   const tone = statusTone(user.status)
   return (
@@ -234,7 +248,7 @@ export function UsersPage() {
           <span className="chip chip-filter">
             {t('search')}: {params.get('q')}
             {params.get('field') && params.get('field') !== 'all'
-              ? ` · ${params.get('field')}`
+              ? ` · ${userSearchFieldLabel(params.get('field'))}`
               : ''}
             {searchResultCount != null
               ? ` · ${t('dataCount').replace('{n}', String(searchResultCount))}`
@@ -257,12 +271,11 @@ export function UsersPage() {
             onChange={(e) => setSearchField(e.target.value)}
             aria-label="Search field"
           >
-            <option value="all">Semua</option>
-            <option value="username">Username</option>
-            <option value="name">Nama</option>
-            <option value="phone">No. Telp</option>
-            <option value="level">Level</option>
-            <option value="status">Status</option>
+            {USER_SEARCH_FIELDS.map((f) => (
+              <option key={f.value} value={f.value}>
+                {f.label}
+              </option>
+            ))}
           </select>
           <SearchTextInput
             ref={searchInputRef}

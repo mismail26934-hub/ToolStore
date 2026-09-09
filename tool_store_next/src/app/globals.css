@@ -925,41 +925,103 @@ h3 {
   }
 }
 
+.dash-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.dash-section-title {
+  margin: 0 0 8px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
 .tile-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
 }
 
 .tile {
-  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  min-height: 72px;
+  text-decoration: none;
+  color: inherit;
   background: linear-gradient(160deg, var(--bg-2), var(--bg-1));
-  transition: transform 0.15s ease, border-color 0.15s ease;
+  border-left: 3px solid color-mix(in srgb, var(--line) 80%, transparent);
+  transition:
+    transform 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .tile:hover {
-  transform: translateY(-2px);
+  transform: translateY(-1px);
   border-color: var(--amber-dim);
 }
 
-.tile-static {
-  cursor: default;
+.tile-hot {
+  border-left-color: var(--amber);
+}
+
+.tile-icon {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--muted) 14%, transparent);
+  color: var(--muted);
+}
+
+.tile-hot .tile-icon {
+  background: color-mix(in srgb, var(--amber) 18%, transparent);
+  color: var(--amber);
+}
+
+.tile-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
 }
 
 .tile-label {
-  color: var(--muted);
+  color: var(--text);
   font-size: 0.78rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  margin-bottom: 6px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+}
+
+.tile-hint {
+  color: var(--muted);
+  font-size: 0.7rem;
+  line-height: 1.2;
 }
 
 .tile-value {
   font-family: var(--font-display), Impact, sans-serif;
-  font-size: 2rem;
+  font-size: 1.65rem;
   letter-spacing: 0.03em;
   color: var(--amber);
   line-height: 1;
+  flex-shrink: 0;
+  min-width: 1.6ch;
+  text-align: right;
+}
+
+.tile-empty .tile-value {
+  color: var(--muted);
 }
 
 .toolbar {
@@ -2328,8 +2390,12 @@ h3 {
     padding-top: calc(8px + var(--topbar-height));
   }
 
-  .tile-grid {
+  .tile-grid--4 {
     grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .tile-grid--3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .card-grid {

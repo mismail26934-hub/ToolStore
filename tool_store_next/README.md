@@ -138,7 +138,7 @@ Dokumentasi ringkas semua perubahan UI/UX dan perilaku aplikasi di branch Next.j
 - Tombol Superior / Dept Head: **Approve** (bukan “Act”).
 - Tombol Service Admin: **Review**.
 - Tanggal Check / Request ditampilkan `dd/mm/yyyy`.
-- Setelah **REJECTED BY SUPERIOR**, tombol **Reopen** muncul untuk **SUPERADMIN** atau **superior serviceman** (`users.superior_id` milik `form_serv_name`). Pilih APPROVED → `SUPERIOR APPROVED` (lanjut Service Admin). User SUPERIOR lain tidak bisa reopen.
+- **Approve / Reject / Reopen Superior** hanya **SUPERADMIN** atau **superior serviceman** (`users.superior_id` milik `form_serv_name`). User SUPERIOR lain tidak melihat tombol. Reopen setelah **REJECTED BY SUPERIOR**: pilih APPROVED → `SUPERIOR APPROVED` (lanjut Service Admin). Ditegakkan di UI dan di `mutateForm`.
 
 ### 6. Order timeline (milestone 1–7)
 

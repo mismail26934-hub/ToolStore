@@ -87,16 +87,29 @@ export async function dbListUsers(
   }
   const kw = filters.keyword?.trim() ?? ''
   if (kw) {
-    const field = (filters.searchField ?? 'all').trim()
+    const field = (filters.searchField ?? 'all').trim().toLowerCase()
+    const like = `%${kw}%`
     if (field === 'username') {
       where.push('u.username LIKE ?')
-      params.push(`%${kw}%`)
+      params.push(like)
     } else if (field === 'name' || field === 'nama') {
       where.push('u.nama_user LIKE ?')
-      params.push(`%${kw}%`)
+      params.push(like)
+    } else if (field === 'phone' || field === 'telp' || field === 'no_telp') {
+      where.push('u.no_telp LIKE ?')
+      params.push(like)
+    } else if (field === 'level') {
+      where.push('u.level LIKE ?')
+      params.push(like)
+    } else if (field === 'status') {
+      where.push('u.status LIKE ?')
+      params.push(like)
     } else {
-      where.push('(u.username LIKE ? OR u.nama_user LIKE ? OR u.id_tu LIKE ?)')
-      params.push(`%${kw}%`, `%${kw}%`, `%${kw}%`)
+      where.push(
+        `(u.username LIKE ? OR u.nama_user LIKE ? OR u.id_tu LIKE ?
+          OR u.no_telp LIKE ? OR u.level LIKE ? OR u.status LIKE ?)`,
+      )
+      params.push(like, like, like, like, like, like)
     }
   }
 
