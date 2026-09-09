@@ -5,15 +5,47 @@ import {
   isRejectedBySuperior,
   isReviewedByServiceAdmin,
   isSuperiorApproved,
+  normFormMilestone,
 } from '@/features/forms/formMilestones'
 
 function levelOf(user: { level?: string } | null) {
   return (user?.level ?? '').toUpperCase()
 }
 
-export function canAddOrEditForm(user: SessionUser | null) {
+export function canAddOrEditForm(user: { level?: string } | null) {
   const lv = levelOf(user)
   return lv === 'SUPERADMIN' || lv === 'TOOL_KEEPER'
+}
+
+/**
+ * Header / tool items lock after Order Request (step 1–7).
+ * DRAFT and REJECTED BY SUPERIOR stay editable for Tool Keeper.
+ */
+export function isFormContentLocked(milestone: string | null | undefined) {
+  const m = normFormMilestone(milestone)
+  if (m === '' || m === 'DRAFT') return false
+  if (m === 'REJECTED BY SUPERIOR') return false
+  return true
+}
+
+export function canMutateFormContent(
+  user: { level?: string } | null,
+  milestone: string | null | undefined,
+) {
+  if (!canAddOrEditForm(user)) return false
+  if (levelOf(user) === 'SUPERADMIN') return true
+  return !isFormContentLocked(milestone)
+}
+
+export function formContentDeniedMessage(
+  user: { level?: string } | null,
+  milestone: string | null | undefined,
+) {
+  if (canMutateFormContent(user, milestone)) return null
+  if (!canAddOrEditForm(user)) {
+    return 'Hanya Super Admin atau Tool Keeper yang boleh mengubah form / tool item'
+  }
+  return 'Form sudah masuk proses (step 1–7). Hanya Super Admin yang boleh mengubah'
 }
 
 export function canMutatePr(user: SessionUser | null) {

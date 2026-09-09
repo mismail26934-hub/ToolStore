@@ -44,7 +44,7 @@ html[data-theme='dark'] {
 }
 
 html[data-theme='light'] {
-  /* Page = CAT yellow; ink on yellow/white = black (Trakindo). */
+  /* Page = CAT yellow; ink on yellow/white = solid black (Trakindo). */
   --bg-0: #ffffff;
   --bg-1: #ffffff;
   --bg-2: #fff8dc;
@@ -52,13 +52,13 @@ html[data-theme='light'] {
   --page-bg: #ffb81c;
   --glow-1: transparent;
   --glow-2: transparent;
-  --line: #1a1a1a;
-  --text: #1a1a1a;
-  --muted: #3d2e00;
-  --amber: #1a1a1a;
-  --amber-dim: #3d2e00;
-  --amber-bright: #2a2a2a;
-  --amber-border: #1a1a1a;
+  --line: #000000;
+  --text: #000000;
+  --muted: #111111;
+  --amber: #000000;
+  --amber-dim: #111111;
+  --amber-bright: #000000;
+  --amber-border: #000000;
   --amber-ink: #ffb81c;
   --green: #1b5e20;
   --red: #b71c1c;
@@ -72,7 +72,7 @@ html[data-theme='light'] {
   --overlay: #1a0f0acc;
   --brand-shadow: rgba(0, 0, 0, 0.18);
   --topbar-glass-bg: rgba(255, 184, 28, 0.78);
-  --topbar-glass-border: rgba(26, 26, 26, 0.2);
+  --topbar-glass-border: rgba(0, 0, 0, 0.28);
 
   --orange: var(--amber);
   --orange-soft: var(--amber-bright);
@@ -110,6 +110,48 @@ body {
 html[data-theme='light'],
 html[data-theme='light'] body {
   background: var(--page-bg);
+  /* Subpixel smoothing keeps black type heavier/crisper on yellow. */
+  -webkit-font-smoothing: auto;
+  -moz-osx-font-smoothing: auto;
+}
+
+html[data-theme='light'] .brand,
+html[data-theme='light'] .page-nav-title h1,
+html[data-theme='light'] .page-header h1 {
+  text-shadow: none;
+  font-weight: 800;
+}
+
+html[data-theme='light'] .brand span {
+  opacity: 1;
+}
+
+html[data-theme='light'] .page-nav-title p,
+html[data-theme='light'] .muted,
+html[data-theme='light'] .data-table th,
+html[data-theme='light'] .related-data-table th {
+  color: #000000;
+}
+
+html[data-theme='light'] .page-nav-title p,
+html[data-theme='light'] .muted,
+html[data-theme='light'] .loading-state {
+  font-weight: 600;
+}
+
+html[data-theme='light'] .data-table td {
+  color: #000000;
+  font-weight: 600;
+}
+
+html[data-theme='light'] .tile-hint,
+html[data-theme='light'] .dash-section-title,
+html[data-theme='light'] .tile-empty .tile-value {
+  color: #000000;
+}
+
+html[data-theme='light'] .tile-hint {
+  font-weight: 600;
 }
 
 a {
@@ -155,8 +197,22 @@ h3 {
   z-index: 105;
   height: var(--topbar-height);
   pointer-events: none;
+  background: transparent;
+  border-bottom: 1px solid transparent;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  transition:
+    background 0.22s ease,
+    border-color 0.22s ease,
+    box-shadow 0.22s ease;
+}
+
+.app-shell.is-scrolled .topbar-glass,
+.app-shell.menu-open .topbar-glass,
+html.menu-open .topbar-glass {
   background: var(--topbar-glass-bg);
-  border-bottom: 1px solid var(--topbar-glass-border);
+  border-bottom-color: var(--topbar-glass-border);
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   backdrop-filter: blur(20px) saturate(180%);
@@ -1026,12 +1082,12 @@ h3 {
 }
 
 html[data-theme='light'] .tile-hot .tile-icon {
-  background: #1a1a1a;
+  background: #000000;
   color: #ffb81c;
 }
 
 html[data-theme='light'] .tile-hot .tile-value {
-  color: #1a1a1a;
+  color: #000000;
 }
 
 .toolbar {
@@ -2527,6 +2583,10 @@ html[data-theme='light'] .tile-hot .tile-value {
     inset: 0;
     z-index: 10000;
     background: var(--overlay);
+  }
+
+  html.menu-open .topbar-glass {
+    z-index: 10015;
   }
 
   html.menu-open .topbar {

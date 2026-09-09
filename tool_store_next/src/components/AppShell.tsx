@@ -96,6 +96,7 @@ export function AppShell({
   const [sessionOpen, setSessionOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
   const [logoutOpen, setLogoutOpen] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
   const manageRef = useRef<HTMLDivElement>(null)
   const sessionRef = useRef<HTMLDivElement>(null)
   const pageMeta = usePageHeaderMeta()
@@ -124,6 +125,13 @@ export function AppShell({
     setManageOpen(false)
     setSessionOpen(false)
   }, [pathname, search])
+
+  useEffect(() => {
+    const update = () => setScrolled(window.scrollY > 8)
+    update()
+    window.addEventListener('scroll', update, { passive: true })
+    return () => window.removeEventListener('scroll', update)
+  }, [pathname])
 
   useEffect(() => {
     document.documentElement.classList.toggle('menu-open', menuOpen)
@@ -295,7 +303,7 @@ export function AppShell({
 
   return (
     <div
-      className={`app-shell${menuOpen ? ' menu-open' : ''}${bootstrapping ? ' app-shell--boot' : ''}`}
+      className={`app-shell${menuOpen ? ' menu-open' : ''}${bootstrapping ? ' app-shell--boot' : ''}${scrolled ? ' is-scrolled' : ''}`}
     >
       <div className="topbar-glass" aria-hidden />
 

@@ -4,8 +4,14 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import { useAuth } from '@/auth/AuthContext'
+import {
+  canAddOrEditForm,
+  canMutateFormContent,
+  formContentDeniedMessage,
+} from '@/auth/roles'
 import { ActionNoteField } from '@/components/ActionNoteField'
 import { PageHeader } from '@/components/PageHeader'
+import { useForm } from '@/features/forms/useForms'
 import {
   useToolDetailMutations,
   useToolDetails,
@@ -68,7 +74,15 @@ export function ToolDetailPage() {
   const router = useRouter()
   const { user } = useAuth()
   const existing = useToolDetails(idForm, !isAdd)
+  const header = useForm(idForm, !!idForm)
   const { add, edit, remove } = useToolDetailMutations(idForm)
+  const canSee = canAddOrEditForm(user)
+  const canMutate =
+    header.isSuccess &&
+    canMutateFormContent(user, header.data?.formMilestone)
+  const lockHint = header.isSuccess
+    ? formContentDeniedMessage(user, header.data?.formMilestone)
+    : null
 
   const [rows, setRows] = useState<RowForm[]>([emptyRow()])
   const [message, setMessage] = useState<string | null>(null)
@@ -104,6 +118,10 @@ export function ToolDetailPage() {
     e.preventDefault()
     setError(null)
     setMessage(null)
+    if (!canMutate) {
+      setError(lockHint || 'Anda tidak berhak mengubah tool item')
+      return
+    }
 
     try {
       for (const row of rows) {
@@ -142,6 +160,10 @@ export function ToolDetailPage() {
   }
 
   const onDelete = async () => {
+    if (!canMutate) {
+      setError(lockHint || 'Anda tidak berhak mengubah tool item')
+      return
+    }
     if (!seed || !window.confirm('Hapus tool item ini?')) return
     setError(null)
     try {
@@ -170,7 +192,7 @@ export function ToolDetailPage() {
         title={isAdd ? 'Add Tool Items' : 'Edit Tool Item'}
         subtitle={`${isAdd ? 'Multiple Detail Input' : 'Single Detail Input'} · Form ${idForm}`}
       >
-        {isAdd && (
+        {isAdd && canMutate && (
           <button type="button" className="btn btn-secondary" onClick={addRow}>
             + Row
           </button>
@@ -189,6 +211,16 @@ export function ToolDetailPage() {
         </div>
       )}
 
+      {!canSee && (
+        <div className="alert alert-error">
+          Hanya Super Admin atau Tool Keeper yang boleh membuka tool item
+        </div>
+      )}
+      {canSee && lockHint && !canMutate && (
+        <div className="alert alert-error">{lockHint}</div>
+      )}
+
+      {canSee && (
       <form className="stack" onSubmit={onSubmit}>
         {rows.map((row, i) => (
           <section key={i} className="panel tool-form-panel">
@@ -197,7 +229,7 @@ export function ToolDetailPage() {
                 Item {i + 1}
                 {row.idFormDetail ? ` · ${row.idFormDetail}` : ''}
               </h3>
-              {isAdd && rows.length > 1 && (
+              {isAdd && canMutate && rows.length > 1 && (
                 <button
                   type="button"
                   className="btn btn-danger btn-sm"
@@ -206,7 +238,7 @@ export function ToolDetailPage() {
                   Remove
                 </button>
               )}
-              {!isAdd && (
+              {!isAdd && canMutate && (
                 <button
                   type="button"
                   className="btn btn-danger btn-sm"
@@ -301,7 +333,7 @@ export function ToolDetailPage() {
               value={row.actionNote}
               onChange={(v) => updateRow(i, { actionNote: v })}
               required
-              disabled={submitting}
+              disabled={submitting || !canMutate}
             />
           </section>
         ))}
@@ -312,11 +344,12 @@ export function ToolDetailPage() {
         <button
           type="submit"
           className="btn btn-primary btn-block"
-          disabled={submitting}
+          disabled={submitting || !canMutate}
         >
           {submitting ? 'Saving…' : isAdd ? 'Save Data' : 'Update Data'}
         </button>
       </form>
+      )}
     </div>
   )
 }

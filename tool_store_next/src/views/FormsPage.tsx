@@ -12,7 +12,7 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/auth/AuthContext'
-import { canAddOrEditForm } from '@/auth/roles'
+import { canAddOrEditForm, canMutateFormContent } from '@/auth/roles'
 import { FORM_INBOX_FETCH_LIMIT, FORM_PAGE_SIZE } from '@/api/params'
 import { DateFilterModal } from '@/components/DateFilterModal'
 import { ExcelExportModal } from '@/components/ExcelExportModal'
@@ -48,6 +48,36 @@ import {
 import { useToolDetails } from '@/features/tools/useToolDetails'
 import type { FormRow } from '@/types/models'
 
+function LockedAction({
+  href,
+  className,
+  children,
+  locked,
+}: {
+  href: string
+  className: string
+  children: React.ReactNode
+  locked: boolean
+}) {
+  if (locked) {
+    return (
+      <button
+        type="button"
+        className={className}
+        disabled
+        title="Form sudah masuk proses. Hanya Super Admin yang boleh mengubah"
+      >
+        {children}
+      </button>
+    )
+  }
+  return (
+    <Link className={className} href={href}>
+      {children}
+    </Link>
+  )
+}
+
 function FormCardDetails({
   form,
   canEditForm,
@@ -61,6 +91,7 @@ function FormCardDetails({
   const related = useFormRelated(form.idForm, true)
   const mut = useRelatedMutations(form.idForm)
   const hasTools = (details.data?.length ?? 0) > 0
+  const contentLocked = !canMutateFormContent(user, form.formMilestone)
 
   const relatedReady =
     Boolean(details.data) &&
@@ -96,12 +127,13 @@ function FormCardDetails({
       {canEditForm && (
         <div className="section-title-row">
           <h3>Request</h3>
-          <Link
+          <LockedAction
             className="btn btn-secondary btn-sm"
             href={`/forms/${form.idForm}/edit`}
+            locked={contentLocked}
           >
             Edit request
-          </Link>
+          </LockedAction>
         </div>
       )}
 
@@ -109,12 +141,15 @@ function FormCardDetails({
 
       <div className="section-title-row">
         <h3>Tool items</h3>
-        <Link
-          className="btn btn-primary btn-sm"
-          href={`/forms/${form.idForm}/tools/new`}
-        >
-          + Add item
-        </Link>
+        {canEditForm && (
+          <LockedAction
+            className="btn btn-primary btn-sm"
+            href={`/forms/${form.idForm}/tools/new`}
+            locked={contentLocked}
+          >
+            + Add item
+          </LockedAction>
+        )}
       </div>
 
       {details.isLoading && <p className="muted">Loading items…</p>}
@@ -142,12 +177,15 @@ function FormCardDetails({
                     qty {row.qty || '0'} · {row.pnDesc || '—'}
                   </div>
                 </div>
-                <Link
-                  className="btn btn-secondary btn-sm"
-                  href={`/forms/${form.idForm}/tools/${row.idFormDetail}`}
-                >
-                  Open
-                </Link>
+                {canEditForm && (
+                  <LockedAction
+                    className="btn btn-secondary btn-sm"
+                    href={`/forms/${form.idForm}/tools/${row.idFormDetail}`}
+                    locked={contentLocked}
+                  >
+                    Open
+                  </LockedAction>
+                )}
               </div>
 
               <div className="tool-item-block-grid">
@@ -783,12 +821,13 @@ export function FormsPage() {
                         <td>{formatDateDisplay(form.fromDateUpdate)}</td>
                         <td className="actions" onClick={(e) => e.stopPropagation()}>
                           {canEdit && (
-                            <Link
+                            <LockedAction
                               className="btn btn-secondary btn-sm"
                               href={`/forms/${form.idForm}/edit`}
+                              locked={!canMutateFormContent(user, form.formMilestone)}
                             >
                               Edit
-                            </Link>
+                            </LockedAction>
                           )}
                           <button
                             type="button"

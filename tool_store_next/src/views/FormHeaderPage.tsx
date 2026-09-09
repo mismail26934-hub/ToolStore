@@ -5,7 +5,12 @@ import Link from 'next/link'
 import { useParams, usePathname, useRouter } from 'next/navigation'
 import { ApiParam } from '@/api/params'
 import { useAuth } from '@/auth/AuthContext'
-import { canAddOrEditForm, todayYmd } from '@/auth/roles'
+import {
+  canAddOrEditForm,
+  canMutateFormContent,
+  formContentDeniedMessage,
+  todayYmd,
+} from '@/auth/roles'
 import { UserPickerModal } from '@/components/UserPickerModal'
 import { DateInput } from '@/components/DateInput'
 import { PageHeader } from '@/components/PageHeader'
@@ -124,6 +129,9 @@ export function FormHeaderPage() {
     (checkLookup.isFetching ? 'Memuat…' : '')
 
   const allowed = canAddOrEditForm(user)
+  const milestone = remote.data?.formMilestone ?? form.formMilestone
+  const canMutate = isAdd ? allowed : canMutateFormContent(user, milestone)
+  const lockHint = !isAdd ? formContentDeniedMessage(user, milestone) : null
   const cats =
     form.formStatusOrder === 'NON HOLDER'
       ? NON_HOLDER_CATS
@@ -135,7 +143,9 @@ export function FormHeaderPage() {
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setError(null)
-    if (!allowed) return setError('Anda tidak berhak mengubah form ini')
+    if (!canMutate) {
+      return setError(lockHint || 'Anda tidak berhak mengubah form ini')
+    }
     if (!form.formNo.trim()) return setError('Form Number wajib diisi')
     if (!form.formStatusOrder.trim())
       return setError('Status Order wajib dipilih')
@@ -170,6 +180,10 @@ export function FormHeaderPage() {
   }
 
   const onDelete = async () => {
+    if (!canMutate) {
+      setError(lockHint || 'Anda tidak berhak mengubah form ini')
+      return
+    }
     if ((tools.data?.length ?? 0) > 0) {
       setError('Tidak bisa hapus form yang masih punya tool item')
       return
@@ -215,7 +229,7 @@ export function FormHeaderPage() {
       <form className="panel stack" onSubmit={onSubmit}>
         <div className="form-panel-header">
           <h3>Request header</h3>
-          {!isAdd && allowed && (
+          {!isAdd && canMutate && (
             <button
               type="button"
               className="btn btn-danger btn-sm btn-with-icon"
@@ -372,12 +386,15 @@ export function FormHeaderPage() {
           />
         </label>
 
+        {lockHint && !canMutate && (
+          <div className="alert alert-error">{lockHint}</div>
+        )}
         {error && <div className="alert alert-error">{error}</div>}
 
         <button
           type="submit"
           className="btn btn-primary btn-block"
-          disabled={mutate.isPending || !allowed}
+          disabled={mutate.isPending || !canMutate}
         >
           {mutate.isPending ? 'Saving…' : isAdd ? 'Save Form' : 'Update Form'}
         </button>

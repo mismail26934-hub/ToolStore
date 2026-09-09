@@ -1,7 +1,11 @@
 'use server'
 
 import { ApiParam } from '@/api/params'
-import { canAccessSuperiorApproval } from '@/auth/roles'
+import {
+  canAccessSuperiorApproval,
+  canAddOrEditForm,
+  formContentDeniedMessage,
+} from '@/auth/roles'
 import {
   dbDashboardCounts,
   dbExportFormDetails,
@@ -18,6 +22,39 @@ import type { DashboardCounts, FormRow, PaginatedList } from '@/types/models'
 function isSuperiorDecisionMilestone(milestone: string): boolean {
   const n = normFormMilestone(milestone)
   return n === 'SUPERIOR APPROVED' || n === 'REJECTED BY SUPERIOR'
+}
+
+async function actorFromUserId(userId?: string) {
+  const id = (userId ?? '').trim()
+  if (!id) return null
+  const row = await dbGetUserById(id)
+  return row ? { level: row.level } : null
+}
+
+function dateKey(value?: string) {
+  return (value ?? '').trim().slice(0, 10)
+}
+
+function headerFieldsChanged(prev: FormRow, input: SaveFormInput) {
+  const n = (v?: string) => (v ?? '').trim()
+  return (
+    n(input.formNo) !== n(prev.formNo) ||
+    n(input.formServName) !== n(prev.formServName) ||
+    n(input.formCheckBy) !== n(prev.formCheckBy) ||
+    dateKey(input.formDateCheckBy) !== dateKey(prev.formDateCheckBy) ||
+    dateKey(input.formDateServName) !== dateKey(prev.formDateServName) ||
+    n(input.formServComment) !== n(prev.formServComment) ||
+    n(input.formStatusOrder) !== n(prev.formStatusOrder)
+  )
+}
+
+async function assertFormContentAllowed(
+  userId: string | undefined,
+  milestone: string | null | undefined,
+) {
+  const actor = await actorFromUserId(userId)
+  const denied = formContentDeniedMessage(actor, milestone)
+  if (denied) throw new Error(denied)
 }
 
 async function assertSuperiorDecisionAllowed(
@@ -71,11 +108,33 @@ export async function fetchDashboardCounts(): Promise<DashboardCounts> {
 
 export async function mutateForm(input: SaveFormInput): Promise<string> {
   try {
+    const actorId = input.formUserUpdate
+    if (input.param === ApiParam.addForm) {
+      const actor = await actorFromUserId(actorId)
+      if (!canAddOrEditForm(actor)) {
+        throw new Error(
+          'Hanya Super Admin atau Tool Keeper yang boleh mengubah form / tool item',
+        )
+      }
+    }
+
     let prevMilestone = ''
-    if (input.param === ApiParam.editForm && input.idForm?.trim()) {
+    if (
+      (input.param === ApiParam.editForm ||
+        input.param === ApiParam.deleteForm) &&
+      input.idForm?.trim()
+    ) {
       const prev = await dbGetFormById(input.idForm)
       prevMilestone = prev?.formMilestone ?? ''
-      if (prev) await assertSuperiorDecisionAllowed(prev, input)
+      if (input.param === ApiParam.deleteForm && prev) {
+        await assertFormContentAllowed(actorId, prev.formMilestone)
+      }
+      if (input.param === ApiParam.editForm && prev) {
+        await assertSuperiorDecisionAllowed(prev, input)
+        if (headerFieldsChanged(prev, input)) {
+          await assertFormContentAllowed(actorId, prev.formMilestone)
+        }
+      }
     }
     const msg = await dbMutateForm(input)
     if (input.param === ApiParam.editForm && input.idForm?.trim()) {
